@@ -16,8 +16,8 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CONNECTION_H__
-#define __CONNECTION_H__
+#ifndef __SES_NET_CLIENT_CONNECTION_H__
+#define __SES_NET_CLIENT_CONNECTION_H__
 
 #include <cstdint>
 #include <memory>
@@ -25,63 +25,19 @@
 
 #include <boost/noncopyable.hpp>
 
+#include "net/connection.hpp"
 #include "net/connectiontype.hpp"
 
 namespace ses {
 namespace net {
 namespace client {
 
-class ConnectionListener
-{
-public:
-  typedef std::shared_ptr<ConnectionListener> Ptr;
-  typedef std::weak_ptr<ConnectionListener> WeakPtr;
-
-protected:
-  ConnectionListener()
-  {};
-
-  virtual ~ConnectionListener()
-  {};
-
-public:
-  virtual void onReceived(char *data, std::size_t size) = 0;
-
-  virtual void onError(const std::string &error) = 0;
-};
-
-class Connection : private boost::noncopyable
-{
-public:
-  typedef std::shared_ptr<Connection> Ptr;
-
-protected:
-  Connection(const ConnectionListener::Ptr &listener);
-
-  virtual ~Connection()
-  {};
-
-  void notifyRead(char *data, size_t size);
-
-  void notifyError(const std::string &error);
-
-public:
-  virtual bool connected() const = 0;
-
-  virtual std::string connectedIp() const = 0;
-
-  virtual bool send(const char *data, std::size_t size) = 0;
-
-private:
-  ConnectionListener::WeakPtr listener_;
-};
-
-Connection::Ptr establishConnection(const ConnectionListener::Ptr &listener,
-                                    ConnectionType type,
-                                    const std::string &host, uint16_t port);
+Connection::Ptr establishConnection(const ConnectionHandler::Ptr &listener,
+                                    const std::string &host, uint16_t port,
+                                    ConnectionType type = CONNECTION_TYPE_AUTO);
 
 } //namespace client
 } //namespace net
 } //namespace ses
 
-#endif /* __CONNECTION_H__ */
+#endif /* __SES_NET_CLIENT_CONNECTION_H__ */

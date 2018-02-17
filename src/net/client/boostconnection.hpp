@@ -16,8 +16,8 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __BOOSTCONNECTION_H__
-#define __BOOSTCONNECTION_H__
+#ifndef __SES_NET_CLIENT_BOOSTCONNECTION_H__
+#define __SES_NET_CLIENT_BOOSTCONNECTION_H__
 
 #include "net/client/connection.hpp"
 
@@ -29,7 +29,7 @@ template<class SOCKET>
 class BoostConnection : public Connection
 {
 public:
-  BoostConnection(const ConnectionListener::Ptr &listener,
+  BoostConnection(const ConnectionHandler::Ptr &listener,
                   const std::string &server, uint16_t port)
     : Connection(listener)
       , socket_(ioService_)
@@ -51,20 +51,20 @@ public:
   {
   }
 
-  virtual bool connected() const
+  bool connected() const override
   {
     return socket_.get().lowest_layer().is_open();
 
   }
 
-  virtual std::string connectedIp() const
+  std::string connectedIp() const override
   {
     return connected() ?
            socket_.get().lowest_layer().remote_endpoint().address().to_string() :
            "";
   }
 
-  virtual bool send(const char *data, std::size_t size)
+  bool send(const char *data, std::size_t size) override
   {
     std::cout << "Send: ";
     std::cout.write(data, size);
@@ -117,4 +117,4 @@ private:
 } //namespace ses
 } //namespace net
 
-#endif /* __BOOSTCONNECTION_H__ */
+#endif /* __SES_NET_CLIENT_BOOSTCONNECTION_H__ */

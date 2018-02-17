@@ -2,8 +2,8 @@
 // Created by ses on 16.02.18.
 //
 
-#ifndef SES_PROXY_CONNECTIONTYPE_HPP
-#define SES_PROXY_CONNECTIONTYPE_HPP
+#ifndef SES_NET_CONNECTIONTYPE_HPP
+#define SES_NET_CONNECTIONTYPE_HPP
 
 namespace ses {
 namespace net {
@@ -18,4 +18,4 @@ enum ConnectionType
 } //namespace net
 } //namespace ses
 
-#endif //SES_PROXY_CONNECTIONTYPE_HPP
+#endif //SES_NET_CONNECTIONTYPE_HPP

@@ -3,11 +3,31 @@ project(ses_proxy)
 
 set(CMAKE_CXX_STANDARD 11)
 
-find_package(Boost)
+find_package(Threads)
+find_package(OpenSSL REQUIRED)
+find_package(Boost REQUIRED system)
 
 include_directories(src)
 
-add_library(ses_proxy_net STATIC src/net/client/connection.cpp src/net/client/boosttlsconnection.cpp src/net/client/boosttcpconnection.cpp src/net/server/server.cpp src/net/server/server.hpp src/net/server/connection.cpp src/net/server/connection.hpp)
+add_library(ses_proxy_net
+        STATIC
+        src/net/connection.cpp
+        src/net/client/connection.cpp
+        src/net/client/boosttlsconnection.cpp
+        src/net/client/boosttcpconnection.cpp
+        src/net/server/server.cpp
+        src/net/server/server.hpp
+        src/net/jsonrpc/jsonrpc.cpp)
 
-add_executable(ses_proxy src/main.cpp)
-target_link_libraries(ses_proxy ses_proxy_net)
+add_library(ses_proxy_stratum
+        STATIC
+        src/stratum/stratum.cpp)
+
+add_executable(ses_proxy src/main.cpp src/proxy/server.hpp src/proxy/server.cpp src/proxy/client.cpp)
+target_link_libraries(ses_proxy
+        ses_proxy_net
+        ses_proxy_stratum
+        Boost::system
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        ${CMAKE_THREAD_LIBS_INIT})

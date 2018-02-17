@@ -28,32 +28,8 @@ namespace ses {
 namespace net {
 namespace client {
 
-Connection::Connection(const ConnectionListener::Ptr &listener)
-  : listener_(listener)
-{
-}
-
-void Connection::notifyRead(char *data, size_t size)
-{
-  ConnectionListener::Ptr listener = listener_.lock();
-  if (listener)
-  {
-    listener->onReceived(data, size);
-  }
-}
-
-void Connection::notifyError(const std::string &error)
-{
-  ConnectionListener::Ptr listener = listener_.lock();
-  if (listener)
-  {
-    listener->onError(error);
-  }
-}
-
-
-Connection::Ptr establishConnection(const ConnectionListener::Ptr &listener,
-                                    ConnectionType type, const std::string &host, uint16_t port)
+Connection::Ptr establishConnection(const ConnectionHandler::Ptr &listener, const std::string &host, uint16_t port,
+                                    ConnectionType type)
 {
   Connection::Ptr connection;
 

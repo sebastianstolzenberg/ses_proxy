@@ -16,8 +16,8 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __BOOSTTLSCONNECTION_H__
-#define __BOOSTTLSCONNECTION_H__
+#ifndef __SES_NET_CLIENT_BOOSTTLSCONNECTION_H__
+#define __SES_NET_CLIENT_BOOSTTLSCONNECTION_H__
 
 #include "net/client/connection.hpp"
 
@@ -25,11 +25,11 @@ namespace ses {
 namespace net {
 namespace client {
 
-Connection::Ptr establishBoostTlsConnection(const ConnectionListener::Ptr& listener,
+Connection::Ptr establishBoostTlsConnection(const ConnectionHandler::Ptr& listener,
                                             const std::string& host, uint16_t port);
 
 } //namespace client
 } //namespace ses
 } //namespace net
 
-#endif /* __BOOSTTLSCONNECTION_H__ */
+#endif /* __SES_NET_CLIENT_BOOSTTLSCONNECTION_H__ */

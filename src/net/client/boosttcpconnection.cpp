@@ -61,7 +61,7 @@ private:
   SocketType socket_;
 };
 
-Connection::Ptr establishBoostTcpConnection(const ConnectionListener::Ptr &listener,
+Connection::Ptr establishBoostTcpConnection(const ConnectionHandler::Ptr &listener,
                                             const std::string &host, uint16_t port)
 {
   //return std::make_shared<BoostTcpConnection>(listener, server, port);

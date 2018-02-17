@@ -16,20 +16,48 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __SES_NET_CLIENT_BOOSTTCPCONNECTION_H__
-#define __SES_NET_CLIENT_BOOSTTCPCONNECTION_H__
+#include <iostream>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include "net/client/connection.hpp"
+#include "net/client/boosttlsconnection.hpp"
+#include "net/client/boosttcpconnection.hpp"
+
 
 namespace ses {
 namespace net {
-namespace client {
 
-Connection::Ptr establishBoostTcpConnection(const ConnectionHandler::Ptr& listener,
-                                            const std::string& host, uint16_t port);
+Connection::Connection()
+{
+}
 
-} //namespace client
+Connection::Connection(const ConnectionHandler::Ptr &handler)
+  : handler_(handler)
+{
+}
+
+void Connection::setHandler(const ConnectionHandler::Ptr &handler)
+{
+  handler_ = handler;
+}
+
+void Connection::notifyRead(char *data, size_t size)
+{
+  ConnectionHandler::Ptr handler = handler_.lock();
+  if (handler)
+  {
+    handler->handleReceived(data, size);
+  }
+}
+
+void Connection::notifyError(const std::string &error)
+{
+  ConnectionHandler::Ptr handler = handler_.lock();
+  if (handler)
+  {
+    handler->handleError(error);
+  }
+}
+
 } //namespace ses
 } //namespace net
-
-#endif /* __SES_NET_CLIENT_BOOSTTCPCONNECTION_H__ */
