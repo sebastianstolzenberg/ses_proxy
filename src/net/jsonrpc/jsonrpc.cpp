@@ -59,22 +59,35 @@ std::string response(const std::string& id, const std::string& result, const std
   return util::boostpropertytree::ptreeToString(responseTree, false);
 }
 
-std::string okResponse(const std::string& id)
+std::string statusResponse(const std::string& id, const std::string& status)
 {
   pt::ptree responseTree;
   responseTree.put("id", id);
   responseTree.put("jsonrpc", "2.0");
-  responseTree.put("result.status", "OK");
+  responseTree.put("result.status", status);
   return util::boostpropertytree::ptreeToString(responseTree, false);
 }
 
-bool parse(ParserHandler& handler, const std::string& jsonrpc)
+std::string errorResponse(const std::string& id, int code, const std::string& message)
+{
+  pt::ptree responseTree;
+  responseTree.put("id", id);
+  responseTree.put("jsonrpc", "2.0");
+  responseTree.put("error.code", code);
+  responseTree.put("error.message", message);
+  return util::boostpropertytree::ptreeToString(responseTree, false);
+}
+
+bool parse(const std::string& jsonrpc,
+           std::function<void (const std::string& id, const std::string& method, const std::string& params)> requestHandler,
+           std::function<void (const std::string& id, const std::string& result, const std::string& error)> responseHandler,
+           std::function<void (const std::string& method, const std::string& params)> notificatonHandler)
 {
   pt::ptree jsonrpcTree = util::boostpropertytree::stringToPtree(jsonrpc);
 
   std::string id = jsonrpcTree.get<std::string>("id", "null");
 //  std::string jsonrpcVersion = jsonrpcTree.get<std::string>("jsonrpc", "");
-  std::string method = jsonrpcTree.get<std::string>("method", "null");
+  std::string method = jsonrpcTree.get<std::string>("method", "");
 
   std::string params = util::boostpropertytree::ptreeToString(jsonrpcTree.get_child_optional("params"));
   std::string result = util::boostpropertytree::ptreeToString(jsonrpcTree.get_child_optional("result"));
@@ -85,7 +98,7 @@ bool parse(ParserHandler& handler, const std::string& jsonrpc)
   {
     if (!method.empty())
     {
-      handler.handleJsonNotification(id, method, params);
+      notificatonHandler(method, params);
       success = true;
     }
   }
@@ -93,12 +106,12 @@ bool parse(ParserHandler& handler, const std::string& jsonrpc)
   {
     if (!method.empty())
     {
-      handler.handleJsonRequest(id, method, params);
+      requestHandler(id, method, params);
       success = true;
     }
     else if (!result.empty() || !error.empty())
     {
-      handler.handleJsonResponse(id, result, error);
+      responseHandler(id, result, error);
       success = true;
     }
   }

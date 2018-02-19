@@ -7,6 +7,7 @@
 
 #include <list>
 #include <memory>
+#include <boost/uuid/uuid.hpp>
 
 #include "net/server/server.hpp"
 #include "proxy/client.hpp"
@@ -31,7 +32,7 @@ public:
 private:
   net::server::Server::Ptr server_;
 
-  std::list<Client::Ptr> clients_;
+  std::map<boost::uuids::uuid, Client::Ptr> clients_;
 };
 
 } // namespace proxy

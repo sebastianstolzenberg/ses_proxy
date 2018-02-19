@@ -6,6 +6,7 @@
 //#include "net/server/server.hpp"
 //#include "net/client/connection.hpp"
 #include "proxy/server.hpp"
+#include "proxy/pool.hpp"
 
 //class MainServerHandler : public ses::net::server::ServerHandler,
 //                          public ses::net::ConnectionHandler
@@ -73,6 +74,14 @@ int main()
   ses::proxy::Server::Ptr proxyServer = std::make_shared<ses::proxy::Server>();
   proxyServer->start("127.0.0.1", 12345);
 
+
+  ses::proxy::Pool::Ptr pool = std::make_shared<ses::proxy::Pool>();
+  pool->connect("127.0.0.1",
+                5555,
+                "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
+                "ses-proxy-test");
+
+  pool->submit("f8010020", "32823cde080e1877baa3c023a17f4d250d8fa4b3128b08f507d0afea9de10000");
 
   waitForSignal();
 

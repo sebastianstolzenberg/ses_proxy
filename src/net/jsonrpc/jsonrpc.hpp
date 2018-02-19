@@ -1,6 +1,9 @@
 #ifndef SES_NET_JSONRPC_JSONRPC_HPP
 #define SES_NET_JSONRPC_JSONRPC_HPP
 
+#include <string>
+#include <functional>
+
 namespace ses {
 namespace net {
 namespace jsonrpc {
@@ -11,20 +14,13 @@ std::string notification(const std::string& method, const std::string& parameter
 
 std::string response(const std::string& id, const std::string& result, const std::string& error);
 
-std::string okResponse(const std::string& id);
+std::string statusResponse(const std::string& id, const std::string& status);
+std::string errorResponse(const std::string& id, int code, const std::string& message);
 
-class ParserHandler
-{
-protected:
-  virtual ~ParserHandler() {}
-
-public:
-  virtual void handleJsonRequest(const std::string& id, const std::string& method, const std::string& params) = 0;
-  virtual void handleJsonResponse(const std::string& id, const std::string& result, const std::string& error) = 0;
-  virtual void handleJsonNotification(const std::string& id, const std::string& method, const std::string& params) = 0;
-};
-
-bool parse(ParserHandler& handler, const std::string& jsonrpc);
+bool parse(const std::string& jsonrpc,
+           std::function<void (const std::string& id, const std::string& method, const std::string& params)> requestHandler,
+           std::function<void (const std::string& id, const std::string& result, const std::string& error)> responseHandler,
+           std::function<void (const std::string& method, const std::string& params)> notificatonHandler);
 
 } // namespace jsonrpc
 } // namespace net

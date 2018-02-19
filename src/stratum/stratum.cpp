@@ -6,133 +6,75 @@
 
 namespace ses {
 namespace stratum {
-
 namespace pt = boost::property_tree;
 
+namespace server {
 namespace {
-void parseServerLogin(const std::string& jsonRequestId, ServerMethodHandler& handler, const std::string& params)
+void parseLogin(const std::string& jsonRequestId, const std::string& params, LoginHandler& handler)
 {
   pt::ptree tree = util::boostpropertytree::stringToPtree(params);
   std::string login = tree.get<std::string>("login", "");
   std::string pass = tree.get<std::string>("pass", "");
   std::string agent = tree.get<std::string>("agent", "");
-  handler.handleStratumServerLogin(jsonRequestId, login, pass, agent);
+  handler(jsonRequestId, login, pass, agent);
 }
 
-//"\"id\":\"%s\","
-//"\"job_id\":\"%s\","
-//"\"nonce\":\"%s\","
-//"\"result\":\"%s\""
-
-void parseServerSubmit(const std::string& jsonRequestId, ServerMethodHandler& handler, const std::string& params)
+void parseSubmit(const std::string& jsonRequestId, const std::string& params, SubmitHandler& handler)
 {
   pt::ptree tree = util::boostpropertytree::stringToPtree(params);
   std::string identifier = tree.get<std::string>("id", "");
   std::string jobIdentifier = tree.get<std::string>("job_id", "");
   std::string nonce = tree.get<std::string>("nonce", "");
   std::string result = tree.get<std::string>("result", "");
-  handler.handleStratumServerSubmit(jsonRequestId, identifier, jobIdentifier, nonce, result);
+  handler(jsonRequestId, identifier, jobIdentifier, nonce, result);
 }
 
+void parseKeepaliveD(const std::string& jsonRequestId, const std::string& params, KeepAliveDHandler& handler)
+{
+  pt::ptree tree = util::boostpropertytree::stringToPtree(params);
+  std::string identifier = tree.get<std::string>("id", "");
+  handler(jsonRequestId, identifier);
+}
 }
 
-void parseServerMethod(const std::string& jsonRequestId, ServerMethodHandler& handler,
-                       const std::string& method, const std::string& params)
+void parseRequest(const std::string& jsonRequestId, const std::string& method, const std::string& params,
+                  LoginHandler loginHandler, GetJobHandler getJobHandler, SubmitHandler submitHandler,
+                  KeepAliveDHandler keepAliveDHandler, UnknownMethodHandler unknownMethodHandler)
 {
   if (method == "login")
   {
-    parseServerLogin(jsonRequestId, handler, params);
+    parseLogin(jsonRequestId, params, loginHandler);
   }
   else if (method == "getjob")
   {
-    handler.handleStratumServerGetJob(jsonRequestId);
+    getJobHandler(jsonRequestId);
   }
   else if (method == "submit")
   {
-    parseServerSubmit(jsonRequestId, handler, params);
+    parseSubmit(jsonRequestId, params, submitHandler);
   }
   else if (method == "keepalived")
   {
-    handler.handleStratumServerKeepAliveD(jsonRequestId);
+    parseKeepaliveD(jsonRequestId, params, keepAliveDHandler);
   }
-  else if (method == "mining.authorize")
+  else
   {
-    handler.handleStratumServerMiningAuthorize("", "");
-  }
-  else if (method == "mining.capabilities")
-  {
-    handler.handleStratumServerMiningCapabilities("");
-  }
-  else if (method == "mining.extranonce.subscribe")
-  {
-    handler.handleStratumMServeriningExtraNonceSubscribe();
-  }
-  else if (method == "mining.get_transactions")
-  {
-    handler.handleStratumServerMiningGetTransactions("");
-  }
-  else if (method == "mining.submit")
-  {
-    handler.handleStratumServerMiningSubmit("", "", "", "", "");
-  }
-  else if (method == "mining.subscribe")
-  {
-    handler.handleStratumServerMiningSubscribe("", "");
-  }
-  else if (method == "mining.suggest_difficulty")
-  {
-    handler.handleStratumServerMiningSuggestDifficulty("");
-  }
-  else if (method == "mining.suggest_target")
-  {
-    handler.handleStratumServerMiningSuggestTarget("");
+    unknownMethodHandler(jsonRequestId);
   }
 }
 
-void parseClientMethod(const std::string& jsonRequestId, ClientMethodHandler& handler,
-                       const std::string& method, const std::string& params)
-{
-  if (method == "client.get_version")
-  {
-    handler.handleStratumClientGetVersion();
-  }
-  else if (method == "client.reconnect")
-  {
-    handler.handleStratumClientReconnect("", "", "");
-  }
-  else if (method == "client.show_message")
-  {
-    handler.handleStratumClientShowMessage("");
-  }
-  else if (method == "mining.notify")
-  {
-    handler.handleStratumClientMiningNotify("", "", "", "", "", "", "", "", false);
-  }
-  else if (method == "mining.set_difficulty")
-  {
-    handler.handleStratumClientMiningSetDifficulty("");
-  }
-  else if (method == "mining.set_extranonce")
-  {
-    handler.handleStratumClientMiningSetExtraNonce("", 1);
-  }
-  else if (method == "mining.set_goal")
-  {
-    handler.handleStratumClientMiningSetGoal("");
-  }
-}
-
-std::string createLoginResponse(const std::string& id,
-                                const Job& job,
-                                const std::string& status)
+std::string createLoginResponse(const std::string& id, const std::optional<Job>& job)
 {
   pt::ptree tree;
   tree.put("id", id);
-  tree.put("job.blob", job.blob_);
-  tree.put("job.job_id", job.jobId_);
-  tree.put("job.target", job.target_);
-  tree.put("job.id", job.id_);
-  tree.put("status", status);
+  if (job)
+  {
+    tree.put("job.blob", job->blob_);
+    tree.put("job.job_id", job->jobId_);
+    tree.put("job.target", job->target_);
+    tree.put("job.id", job->id_);
+  }
+  tree.put("status", "OK");
   return util::boostpropertytree::ptreeToString(tree);
 }
 
@@ -146,10 +88,95 @@ std::string createJobNotification(const Job& job)
   return util::boostpropertytree::ptreeToString(tree);
 }
 
-std::string createSubmitResponse(bool ok)
-{
+} // namespace server
 
+namespace client {
+
+namespace {
+void parseError(const std::string& error, ErrorHandler& handler)
+{
+  pt::ptree tree = util::boostpropertytree::stringToPtree(error);
+  int code = tree.get<int>("code", -1);
+  std::string message = tree.get<std::string>("message", "");
+  handler(code, message);
 }
+}
+
+std::string createLoginRequest(const std::string& login, const std::string& pass, const std::string& agent)
+{
+  pt::ptree tree;
+  tree.put("login", login);
+  tree.put("pass", pass);
+  tree.put("agent", agent);
+  return util::boostpropertytree::ptreeToString(tree);
+}
+
+void parseLoginResponse(const std::string& result, const std::string& error,
+                        LoginSuccessHandler successHandler, ErrorHandler errorHandler)
+{
+  if (!error.empty())
+  {
+    parseError(error, errorHandler);
+  }
+  else
+  {
+    pt::ptree tree = util::boostpropertytree::stringToPtree(result);
+    std::string identifier = tree.get<std::string>("id", "");
+    std::optional<Job> optionalJob;
+    if (tree.count("job") > 0)
+    {
+      Job job;
+      job.blob_ = tree.get<std::string>("job.blob", "");
+      job.jobId_ = tree.get<std::string>("job.job_id", "");
+      job.target_ = tree.get<std::string>("job.target", "");
+      job.id_ = tree.get<std::string>("job.id", "");
+      optionalJob = job;
+    }
+    successHandler(identifier, optionalJob);
+  }
+}
+
+std::string createSubmitRequest(const std::string& id, const std::string& jobId,
+                                const std::string& nonce, const std::string& result)
+{
+  pt::ptree tree;
+  tree.put("id", id);
+  tree.put("job_id", jobId);
+  tree.put("nonce", nonce);
+  tree.put("result", result);
+  return util::boostpropertytree::ptreeToString(tree);
+}
+
+void parseSubmitResponse(const std::string& result, const std::string& error,
+                         SubmitSuccessHandler successHandler, ErrorHandler errorHandler)
+{
+  if (!error.empty())
+  {
+    parseError(error, errorHandler);
+  }
+  else
+  {
+    pt::ptree tree = util::boostpropertytree::stringToPtree(result);
+    std::string status = tree.get<std::string>("status", "");
+    successHandler(status);
+  }
+}
+
+void parseNotification(const std::string& method, const std::string& params, NewJobHandler newJobHandler)
+{
+  if (method == "job")
+  {
+    pt::ptree tree = util::boostpropertytree::stringToPtree(params);
+    Job job;
+    job.blob_ = tree.get<std::string>("blob", "");
+    job.jobId_ = tree.get<std::string>("job_id", "");
+    job.target_ = tree.get<std::string>("jtarget", "");
+    job.id_ = tree.get<std::string>("id", "");
+    newJobHandler(job);
+  }
+}
+
+} // namespace client
 
 } // namespace stratum
 } // namespace ses

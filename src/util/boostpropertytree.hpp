@@ -1,6 +1,8 @@
 #ifndef SES_UTIL_BOOSTPROPERTYTREE_HPP
 #define SES_UTIL_BOOSTPROPERTYTREE_HPP
 
+#include <boost/exception/diagnostic_information.hpp>
+
 namespace ses {
 namespace util {
 namespace boostpropertytree {
@@ -9,14 +11,26 @@ inline boost::property_tree::ptree stringToPtree(const std::string& string)
 {
   std::istringstream stream(string);
   boost::property_tree::ptree tree;
-  boost::property_tree::read_json(stream, tree);
+  try
+  {
+    boost::property_tree::read_json(stream, tree);
+  }
+  catch (...)
+  {
+  }
   return tree;
 }
 
 inline std::string ptreeToString(const boost::property_tree::ptree& ptree, bool pretty = true)
 {
   std::ostringstream stream;
-  boost::property_tree::write_json(stream, ptree, pretty);
+  try
+  {
+    boost::property_tree::write_json(stream, ptree, pretty);
+  }
+  catch (...)
+  {
+  }
   return stream.str();
 }
 

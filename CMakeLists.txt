@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(ses_proxy)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(Threads)
 find_package(OpenSSL REQUIRED)
@@ -23,7 +23,7 @@ add_library(ses_proxy_stratum
         STATIC
         src/stratum/stratum.cpp)
 
-add_executable(ses_proxy src/main.cpp src/proxy/server.hpp src/proxy/server.cpp src/proxy/client.cpp)
+add_executable(ses_proxy src/main.cpp src/proxy/server.hpp src/proxy/server.cpp src/proxy/client.cpp src/proxy/pool.cpp src/proxy/pool.hpp)
 target_link_libraries(ses_proxy
         ses_proxy_net
         ses_proxy_stratum

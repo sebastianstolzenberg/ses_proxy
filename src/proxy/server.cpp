@@ -1,3 +1,4 @@
+#include <boost/uuid/random_generator.hpp>
 
 #include "proxy/server.hpp"
 
@@ -12,9 +13,10 @@ void Server::start(const std::string& address, uint16_t port, net::ConnectionTyp
 
 void Server::handleNewConnection(const net::Connection::Ptr& connection)
 {
-  Client::Ptr client = std::make_shared<Client>();
+  boost::uuids::uuid clientId = boost::uuids::random_generator()();
+  Client::Ptr client = std::make_shared<Client>(clientId);
   client->setConnection(connection);
-  clients_.push_back(client);
+  clients_[clientId] = client;
 }
 
 } // namespace proxy

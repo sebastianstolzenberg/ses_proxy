@@ -1,11 +1,17 @@
 
 #include <iostream>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/lexical_cast.hpp>
+
+#include "net/jsonrpc/jsonrpc.hpp"
+#include "stratum/stratum.hpp"
 #include "proxy/client.hpp"
 
 namespace ses {
 namespace proxy {
 
-Client::Client()
+Client::Client(const boost::uuids::uuid& id)
+  : rpcIdentifier_(id)
 {
 }
 
@@ -17,125 +23,129 @@ void Client::setConnection(const net::Connection::Ptr& connection)
 
 void Client::handleReceived(char* data, std::size_t size)
 {
-  std::cout << "proxy::Client::handleReceived" << std::string(data, size) << std::endl;
+  using namespace std::placeholders;
 
-  net::jsonrpc::parse(*this, std::string(data, size));
+  net::jsonrpc::parse(
+    std::string(data, size),
+    [this](const std::string& id, const std::string& method, const std::string& params)
+    {
+//      std::cout << "proxy::Client::handleReceived request, id, " << id << ", method, " << method
+//                << ", params, " << params << std::endl;
+      stratum::server::parseRequest(id, method, params,
+                                    std::bind(&Client::handleLogin, this, _1, _2, _3, _4),
+                                    std::bind(&Client::handleGetJob, this, _1),
+                                    std::bind(&Client::handleSubmit, this, _1, _2, _3, _4, _5),
+                                    std::bind(&Client::handleKeepAliveD, this, _1, _2),
+                                    std::bind(&Client::handleUnknownMethod, this, _1));
+    },
+    [this](const std::string& id, const std::string& result, const std::string& error)
+    {
+      std::cout << "proxy::Client::handleReceived response, id, " << id << ", result, " << result
+                << ", error, " << error << std::endl;
+    },
+    [this](const std::string& method, const std::string& params)
+    {
+      std::cout << "proxy::Client::handleReceived notification, method, " << method << ", params, "
+                << params << std::endl;
+    });
 }
 
 void Client::handleError(const std::string& error)
 {
-
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
 }
 
-void Client::handleJsonRequest(const std::string& id, const std::string& method, const std::string& params)
-{
-  std::cout << "proxy::Client::handleJsonRequest, id, " << id << ", method, " << method << ", params, " << params << std::endl;
-
-  stratum::parseServerMethod(id, *this, method, params);
-}
-
-void Client::handleJsonResponse(const std::string& id, const std::string& result, const std::string& error)
-{
-  std::cout << "proxy::Client::handleJsonResponse, id, " << id << ", result, " << result << ", error, " << error << std::endl;
-}
-
-void Client::handleJsonNotification(const std::string& id, const std::string& method, const std::string& params)
-{
-  std::cout << "proxy::Client::handleJsonNotification, id, " << id << ", method, " << method << ", params, " << params << std::endl;
-
-  stratum::parseServerMethod(id, *this, method, params);
-}
-
-
-void Client::handleStratumServerLogin(const std::string& jsonRequestId,
-                                      const std::string& login, const std::string& pass, const std::string& agent)
+void Client::handleLogin(const std::string& jsonRequestId, const std::string& login, const std::string& pass, const std::string& agent)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl
             << " login = " << login << std::endl
             << " pass = " << pass << std::endl
             << " agent = " << agent << std::endl;
 
-  stratum::Job job = {"0100fce3a2d4053f5d3b6d35992eca02a91c0e9789633dbc97e82074d26ee7816323fb313c795f00000000ec114de588d63bce2dcfd18f04ea3664942350ad63a752387212adc57ade160805",
-                      "9Zl7oF0WaLk1IRz577c2vhY5ebs5",
-                      "26310800",
-                      "b78f6a5e-2e3f-4b46-b13c-223ca7b23fcd"};
+  if (login.empty())
+  {
+    sendErrorResponse(jsonRequestId, "missing login");
+  }
+  else
+  {
+    // TODO 'invalid address used for login'
 
-  std::string responseResult =
-    stratum::createLoginResponse("b78f6a5e-2e3f-4b46-b13c-223ca7b23fcd", job, "OK");
+    stratum::Job
+      job =
+      {"0100fce3a2d4053f5d3b6d35992eca02a91c0e9789633dbc97e82074d26ee7816323fb313c795f00000000ec114de588d63bce2dcfd18f04ea3664942350ad63a752387212adc57ade160805",
+       "9Zl7oF0WaLk1IRz577c2vhY5ebs5",
+       "26310800",
+       boost::uuids::to_string(rpcIdentifier_)};
 
-  std::string response = net::jsonrpc::response(jsonRequestId, responseResult, "");
-  std::cout << " response = " << response << std::endl;
+    std::string responseResult =
+      stratum::server::createLoginResponse(boost::uuids::to_string(rpcIdentifier_));
 
-  connection_->send(response);
+    std::string response = net::jsonrpc::response(jsonRequestId, responseResult, "");
+    std::cout << " response = " << response << std::endl;
 
-  connection_->send(net::jsonrpc::notification("job", stratum::createJobNotification(job)));
+    connection_->send(response);
+
+    connection_->send(net::jsonrpc::notification("job", stratum::server::createJobNotification(job)));
+  }
 }
 
-void Client::handleStratumServerGetJob(const std::string& jsonRequestId)
+void Client::handleGetJob(const std::string& jsonRequestId)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
 }
 
-void Client::handleStratumServerSubmit(const std::string& jsonRequestId,
-                                       const std::string& identifier, const std::string& jobIdentifier,
-                                       const std::string& nonce, const std::string& result)
+void Client::handleSubmit(const std::string& jsonRequestId,
+                          const std::string& identifier, const std::string& jobIdentifier,
+                          const std::string& nonce, const std::string& result)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl
             << " identifier = " << identifier << std::endl
             << " jobIdentifier = " << jobIdentifier << std::endl
             << " nonce = " << nonce << std::endl
             << " result = " << result << std::endl;
-  connection_->send(net::jsonrpc::okResponse(jsonRequestId));
+
+  if (!identifier.empty() && rpcIdentifier_ != boost::lexical_cast<boost::uuids::uuid>(identifier))
+  {
+    sendErrorResponse(jsonRequestId, "Unauthenticated");
+  }
+  else
+  {
+//    if (invalid job id)
+//    {
+//      sendErrorResponse(jsonRequestId, "Invalid job id");
+//    }
+//    else
+    {
+      //TODO test nonce pattern -> sendErrorResponse(jsonRequestId, "Duplicate share");
+      //TODO block expired -> sendErrorResponse(jsonRequestId, "Block expired");
+      //TODO low difficulty share -> sendErrorResponse(jsonRequestId, "Low difficulty share");
+
+      sendSuccessResponse(jsonRequestId, "OK");
+    }
+  }
 }
 
-void Client::handleStratumServerKeepAliveD(const std::string& jsonRequestId)
+void Client::handleKeepAliveD(const std::string& jsonRequestId, const std::string& identifier)
+{
+  std::cout << __PRETTY_FUNCTION__ << ", identifier, " << identifier << std::endl;
+  sendSuccessResponse(jsonRequestId, "KEEPALIVED");
+}
+
+void Client::handleUnknownMethod(const std::string& jsonRequestId)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
+  sendErrorResponse(jsonRequestId, "invalid method");
 }
 
-
-void Client::handleStratumServerMiningAuthorize(const std::string& username, const std::string& password)
+void Client::sendSuccessResponse(const std::string& jsonRequestId, const std::string& status)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  connection_->send(net::jsonrpc::statusResponse(jsonRequestId, status));
 }
 
-void Client::handleStratumServerMiningCapabilities(const std::string& tbd)
+void Client::sendErrorResponse(const std::string& jsonRequestId, const std::string& message)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  connection_->send(net::jsonrpc::errorResponse(jsonRequestId, -1, message));
 }
-
-void Client::handleStratumMServeriningExtraNonceSubscribe()
-{
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-}
-
-void Client::handleStratumServerMiningGetTransactions(const std::string& jobIdentifier)
-{
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-}
-
-void Client::handleStratumServerMiningSubmit(const std::string& username, const std::string& jobIdentifier,
-                                             const std::string& extraNonce2, const std::string& nTime,
-                                             const std::string& nOnce)
-{
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-}
-
-void Client::handleStratumServerMiningSubscribe(const std::string& userAgent, const std::string& extraNonce1)
-{
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-}
-
-void Client::handleStratumServerMiningSuggestDifficulty(const std::string& difficulty)
-{
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-}
-
-void Client::handleStratumServerMiningSuggestTarget(const std::string& target)
-{
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-}
-
 
 } // namespace proxy
 } // namespace ses

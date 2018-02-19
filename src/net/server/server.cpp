@@ -36,6 +36,10 @@ public:
 
   virtual bool send(const char* data, std::size_t size)
   {
+    std::cout << "net::server::BoostConnection::send:" << std::endl << "  ";
+    std::cout.write(data, size);
+    std::cout << "\n";
+
     socket_.send(boost::asio::buffer(data, size));
   }
 
@@ -47,9 +51,13 @@ private:
                             boost::asio::transfer_at_least(1),
                             [this](boost::system::error_code error, size_t bytes_transferred)
                             {
+                              std::cout << "net::server::BoostConnection::handleRead:" << std::endl << "  ";
+                              std::cout.write(receiveBuffer_, bytes_transferred);
+                              std::cout << "\n";
+
                               if (!error)
                               {
-                                std::cout << "server::BoostConnection received :";
+                                std::cout << "net::server::BoostConnection received :";
                                 std::cout.write(receiveBuffer_, bytes_transferred);
                                 std::cout << "\n";
                                 notifyRead(receiveBuffer_, bytes_transferred);
@@ -57,7 +65,7 @@ private:
                               }
                               else
                               {
-                                std::cout << "Read failed: " << error.message() << "\n";
+                                std::cout << "net::server::BoostConnection Read failed: " << error.message() << "\n";
                                 notifyError(error.message());
                               }
                             });
