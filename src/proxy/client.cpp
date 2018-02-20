@@ -115,6 +115,16 @@ void Client::handleSubmit(const std::string& jsonRequestId,
 //      sendErrorResponse(jsonRequestId, "Invalid job id");
 //    }
 //    else
+//    if (difficulty too low)
+//    {
+//      sendErrorResponse(jsonRequestId, "Low difficulty share");
+//    }
+//    else
+//    if (invalid nicehash nonce)
+//    {
+//      sendErrorResponse(jsonRequestId, "Invalid nonce; is miner not compatible with NiceHash?");
+//    }
+//    else
     {
       //TODO test nonce pattern -> sendErrorResponse(jsonRequestId, "Duplicate share");
       //TODO block expired -> sendErrorResponse(jsonRequestId, "Block expired");

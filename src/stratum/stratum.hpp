@@ -2,8 +2,11 @@
 #define SES_STRATUM_STRATUM_HPP
 
 #include <string>
+#include <vector>
 #include <functional>
 #include <optional>
+
+#include "stratum/job.hpp"
 
 namespace ses {
 namespace stratum {
@@ -11,9 +14,9 @@ namespace stratum {
 class Job
 {
 public:
-  std::string blob_;
+  std::vector blob_;
   std::string jobId_;
-  std::string target_;
+  uint64_t target_;
   std::string id_;
 };
 

@@ -21,9 +21,14 @@ add_library(ses_proxy_net
 
 add_library(ses_proxy_stratum
         STATIC
-        src/stratum/stratum.cpp)
+        src/stratum/stratum.cpp
+        src/stratum/job.cpp)
 
-add_executable(ses_proxy src/main.cpp src/proxy/server.hpp src/proxy/server.cpp src/proxy/client.cpp src/proxy/pool.cpp src/proxy/pool.hpp)
+add_executable(ses_proxy
+        src/main.cpp
+        src/proxy/server.cpp
+        src/proxy/client.cpp
+        src/proxy/pool.cpp)
 target_link_libraries(ses_proxy
         ses_proxy_net
         ses_proxy_stratum

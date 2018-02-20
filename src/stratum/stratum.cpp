@@ -170,7 +170,7 @@ void parseNotification(const std::string& method, const std::string& params, New
     Job job;
     job.blob_ = tree.get<std::string>("blob", "");
     job.jobId_ = tree.get<std::string>("job_id", "");
-    job.target_ = tree.get<std::string>("jtarget", "");
+    job.target_ = tree.get<std::string>("target", "");
     job.id_ = tree.get<std::string>("id", "");
     newJobHandler(job);
   }
