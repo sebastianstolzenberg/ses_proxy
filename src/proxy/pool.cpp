@@ -22,11 +22,20 @@ void Pool::connect(const std::string& host, uint16_t port, const std::string& us
   sendRequest(REQUEST_TYPE_LOGIN, stratum::client::createLoginRequest(user, pass, "ses-proxy"));
 }
 
+void Pool::getJob()
+{
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  sendRequest(REQUEST_TYPE_GETJOB);
+}
+
 void Pool::submit(const std::string& nonce, const std::string& result)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
-  sendRequest(REQUEST_TYPE_SUBMIT,
-              stratum::client::createSubmitRequest(clientIdentifier_, jobIdentifier_, nonce, result));
+  if (currentJob_)
+  {
+    sendRequest(REQUEST_TYPE_SUBMIT,
+                stratum::client::createSubmitRequest(clientIdentifier_, currentJob_->getJobId(), nonce, result));
+  }
 }
 
 void Pool::handleReceived(char* data, std::size_t size)
@@ -54,6 +63,12 @@ void Pool::handleReceived(char* data, std::size_t size)
                                                 std::bind(&Pool::handleLoginError, this, _1, _2));
             break;
 
+          case REQUEST_TYPE_GETJOB:
+            stratum::client::parseGetJobResponse(result, error,
+                                                std::bind(&Pool::handleGetJobSuccess, this, _1),
+                                                std::bind(&Pool::handleGetJobError, this, _1, _2));
+            break;
+
           case REQUEST_TYPE_SUBMIT:
             stratum::client::parseSubmitResponse(result, error,
                                                  std::bind(&Pool::handleSubmitSuccess, this, _1),
@@ -74,20 +89,31 @@ void Pool::handleError(const std::string& error)
   std::cout << __PRETTY_FUNCTION__ << std::endl;
 }
 
-void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job)
+void Pool::handleLoginSuccess(const std::string& id, const stratum::Job::Ptr& job)
 {
   std::cout << "proxy::Pool::handleLoginSuccess, id, " << id << std::endl;
 
   clientIdentifier_ = id;
   if (job)
   {
-    jobIdentifier_ = job->jobId_;
+    currentJob_ = job;
+    currentJob_->setNonce(0x88000099);
   }
 }
 
 void Pool::handleLoginError(int code, const std::string& message)
 {
   std::cout << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message<< std::endl;
+}
+
+void Pool::handleGetJobSuccess(const stratum::Job::Ptr& job)
+{
+  std::cout << "proxy::Pool::handleGetJobSuccess" << std::endl;
+}
+
+void Pool::handleGetJobError(int code, const std::string& message)
+{
+  std::cout << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message << std::endl;
 }
 
 void Pool::handleSubmitSuccess(const std::string& status)
@@ -100,9 +126,9 @@ void Pool::handleSubmitError(int code, const std::string& message)
   std::cout << "proxy::Pool::handleSubmitError, code, " << code << ", message, " << message << std::endl;
 }
 
-void Pool::handleNewJob(const stratum::Job& job)
+void Pool::handleNewJob(const stratum::Job::Ptr& job)
 {
-  std::cout << "proxy::Pool::handleNewJob, job.jobId_, " << job.jobId_ << std::endl;
+  std::cout << "proxy::Pool::handleNewJob, job.jobId_, " << job->getJobId() << std::endl;
 }
 
 void Pool::sendRequest(Pool::RequestType type, const std::string& params)
@@ -112,6 +138,10 @@ void Pool::sendRequest(Pool::RequestType type, const std::string& params)
   {
     case REQUEST_TYPE_LOGIN:
       method = "login";
+      break;
+
+    case REQUEST_TYPE_GETJOB:
+      method = "getjob";
       break;
 
     case REQUEST_TYPE_SUBMIT:

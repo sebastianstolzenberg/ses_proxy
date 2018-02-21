@@ -3,8 +3,7 @@
 
 #include <string>
 #include <vector>
-#include <functional>
-#include <optional>
+#include <memory>
 
 namespace ses {
 namespace stratum {
@@ -12,18 +11,29 @@ namespace stratum {
 class Job
 {
 public:
-  Job(const std::string& blob, const std::string& jobId, const std::string& target, const std::string& id);
+  typedef std::shared_ptr<Job> Ptr;
 
-  const std::vector& getBlob() const;
+public:
+  Job(const std::string& blobHexString, const std::string& jobId, const std::string& targetHexString,
+      const std::string& id);
+
+  bool isValid() const;
+
+  const std::vector<uint8_t>& getBlob() const;
+  std::string getBlobHexString() const;
 
   const std::string& getJobId() const;
 
   uint64_t getTarget() const;
+  std::string getTargetHexString() const;
 
   const std::string& getId() const;
 
+  uint32_t getNonce() const;
+  void setNonce(uint32_t nonce);
+
 private:
-  std::vector blob_;
+  std::vector<uint8_t> blob_;
   std::string jobId_;
   uint64_t target_;
   std::string id_;

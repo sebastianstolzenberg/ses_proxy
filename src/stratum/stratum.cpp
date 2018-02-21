@@ -69,10 +69,10 @@ std::string createLoginResponse(const std::string& id, const std::optional<Job>&
   tree.put("id", id);
   if (job)
   {
-    tree.put("job.blob", job->blob_);
-    tree.put("job.job_id", job->jobId_);
-    tree.put("job.target", job->target_);
-    tree.put("job.id", job->id_);
+    tree.put("job.blob", job->getBlobHexString());
+    tree.put("job.job_id", job->getJobId());
+    tree.put("job.target", job->getTargetHexString());
+    tree.put("job.id", job->getId());
   }
   tree.put("status", "OK");
   return util::boostpropertytree::ptreeToString(tree);
@@ -81,10 +81,10 @@ std::string createLoginResponse(const std::string& id, const std::optional<Job>&
 std::string createJobNotification(const Job& job)
 {
   pt::ptree tree;
-  tree.put("blob", job.blob_);
-  tree.put("job_id", job.jobId_);
-  tree.put("target", job.target_);
-  tree.put("id", job.id_);
+  tree.put("blob", job.getBlobHexString());
+  tree.put("job_id", job.getJobId());
+  tree.put("target", job.getTargetHexString());
+  tree.put("id", job.getId());
   return util::boostpropertytree::ptreeToString(tree);
 }
 
@@ -100,6 +100,13 @@ void parseError(const std::string& error, ErrorHandler& handler)
   std::string message = tree.get<std::string>("message", "");
   handler(code, message);
 }
+
+Job::Ptr parseJob(const pt::ptree& tree)
+{
+  return std::make_shared<Job>(tree.get<std::string>("blob", ""), tree.get<std::string>("job_id", ""),
+                               tree.get<std::string>("target", ""), tree.get<std::string>("id", ""));
+}
+
 }
 
 std::string createLoginRequest(const std::string& login, const std::string& pass, const std::string& agent)
@@ -122,17 +129,26 @@ void parseLoginResponse(const std::string& result, const std::string& error,
   {
     pt::ptree tree = util::boostpropertytree::stringToPtree(result);
     std::string identifier = tree.get<std::string>("id", "");
-    std::optional<Job> optionalJob;
+    Job::Ptr optionalJob;
     if (tree.count("job") > 0)
     {
-      Job job;
-      job.blob_ = tree.get<std::string>("job.blob", "");
-      job.jobId_ = tree.get<std::string>("job.job_id", "");
-      job.target_ = tree.get<std::string>("job.target", "");
-      job.id_ = tree.get<std::string>("job.id", "");
-      optionalJob = job;
+      optionalJob = parseJob(tree.get_child("job"));
     }
     successHandler(identifier, optionalJob);
+  }
+}
+
+void parseGetJobResponse(const std::string& result, const std::string& error,
+                         GetJobSuccessHandler successHandler, ErrorHandler errorHandler)
+{
+  if (!error.empty())
+  {
+    parseError(error, errorHandler);
+  }
+  else
+  {
+    pt::ptree tree = util::boostpropertytree::stringToPtree(result);
+    successHandler(parseJob(tree));
   }
 }
 
@@ -167,12 +183,7 @@ void parseNotification(const std::string& method, const std::string& params, New
   if (method == "job")
   {
     pt::ptree tree = util::boostpropertytree::stringToPtree(params);
-    Job job;
-    job.blob_ = tree.get<std::string>("blob", "");
-    job.jobId_ = tree.get<std::string>("job_id", "");
-    job.target_ = tree.get<std::string>("target", "");
-    job.id_ = tree.get<std::string>("id", "");
-    newJobHandler(job);
+    newJobHandler(parseJob(tree));
   }
 }
 

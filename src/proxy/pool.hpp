@@ -23,6 +23,8 @@ public:
   void connect(const std::string& host, uint16_t port, const std::string& user, const std::string& pass,
                net::ConnectionType connectionType = net::CONNECTION_TYPE_AUTO);
 
+  void getJob();
+
   void submit(const std::string& nonce, const std::string& result);
 
 private: // net::ConnectionHandler
@@ -30,23 +32,27 @@ private: // net::ConnectionHandler
   void handleError(const std::string& error) override;
 
 public:
-  void handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job);
+  void handleLoginSuccess(const std::string& id, const stratum::Job::Ptr& job);
   void handleLoginError(int code, const std::string& message);
+
+  void handleGetJobSuccess(const stratum::Job::Ptr& job);
+  void handleGetJobError(int code, const std::string& message);
 
   void handleSubmitSuccess(const std::string& status);
   void handleSubmitError(int code, const std::string& message);
 
-  void handleNewJob(const stratum::Job& job);
+  void handleNewJob(const stratum::Job::Ptr& job);
 
 private:
   typedef uint32_t RequestIdentifier;
   enum RequestType
   {
     REQUEST_TYPE_LOGIN,
+    REQUEST_TYPE_GETJOB,
     REQUEST_TYPE_SUBMIT
   };
 
-  void sendRequest(RequestType type, const std::string& params);
+  void sendRequest(RequestType type, const std::string& params = "");
 
 private:
   net::Connection::Ptr connection_;
@@ -54,7 +60,7 @@ private:
   std::unordered_map<RequestIdentifier, RequestType> outstandingRequests_;
 
   std::string clientIdentifier_;
-  std::string jobIdentifier_;
+  stratum::Job::Ptr currentJob_;
 };
 
 } // namespace proxy
