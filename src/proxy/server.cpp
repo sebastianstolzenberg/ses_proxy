@@ -5,18 +5,23 @@
 namespace ses {
 namespace proxy {
 
-void Server::start(const std::string& address, uint16_t port, net::ConnectionType type)
+void Server::start(const Configuration& configuration, const NewClientHandler& newClientHandler)
 {
-  Server::Ptr server = shared_from_this();
-  server_ = net::server::createServer(server, address, port, type);
+  configuration_ = configuration;
+  newClientHandler_ = newClientHandler;
+  server_ = net::server::createServer(std::bind(&Server::handleNewConnection, this, std::placeholders::_1),
+                                      configuration.endPoint_);
 }
 
-void Server::handleNewConnection(const net::Connection::Ptr& connection)
+void Server::handleNewConnection(net::Connection::Ptr connection)
 {
-  boost::uuids::uuid clientId = boost::uuids::random_generator()();
-  Client::Ptr client = std::make_shared<Client>(clientId);
+  auto workerId = boost::uuids::random_generator()();
+  auto client = std::make_shared<Client>(workerId, configuration_.defaultAlgorithm_);
   client->setConnection(connection);
-  clients_[clientId] = client;
+  if (newClientHandler_)
+  {
+    newClientHandler_(client);
+  }
 }
 
 } // namespace proxy

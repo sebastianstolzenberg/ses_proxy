@@ -27,7 +27,6 @@ void parseRequest(const std::string& jsonRequestId, const std::string& method, c
 
 std::string createLoginResponse(const std::string& id, const std::optional<Job>& job = std::optional<Job>());
 std::string createJobNotification(const Job& job);
-
 } // namespace server
 
 
@@ -35,11 +34,11 @@ namespace client {
 typedef std::function<void(int code, const std::string& message)> ErrorHandler;
 
 std::string createLoginRequest(const std::string& login, const std::string& pass, const std::string& agent);
-typedef std::function<void(const std::string& id, const Job::Ptr& optionalJob)> LoginSuccessHandler;
+typedef std::function<void(const std::string& id, const std::optional<Job>& optionalJob)> LoginSuccessHandler;
 void parseLoginResponse(const std::string& result, const std::string& error,
                         LoginSuccessHandler successHandler, ErrorHandler errorHandler);
 
-typedef std::function<void(const Job::Ptr& job)> GetJobSuccessHandler;
+typedef std::function<void(const Job& job)> GetJobSuccessHandler;
 void parseGetJobResponse(const std::string& result, const std::string& error,
                          GetJobSuccessHandler successHandler, ErrorHandler errorHandler);
 
@@ -49,7 +48,7 @@ typedef std::function<void(const std::string& status)> SubmitSuccessHandler;
 void parseSubmitResponse(const std::string& result, const std::string& error,
                          SubmitSuccessHandler successHandler, ErrorHandler errorHandler);
 
-typedef std::function<void(const Job::Ptr& job)> NewJobHandler;
+typedef std::function<void(const Job& job)> NewJobHandler;
 void parseNotification(const std::string& method, const std::string& params, NewJobHandler newJobHandler);
 } // namespace client
 

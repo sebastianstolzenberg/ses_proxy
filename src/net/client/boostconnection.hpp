@@ -29,9 +29,10 @@ template<class SOCKET>
 class BoostConnection : public Connection
 {
 public:
-  BoostConnection(const ConnectionHandler::Ptr &listener,
-                  const std::string &server, uint16_t port)
-    : Connection(listener)
+  BoostConnection(const std::string &server, uint16_t port,
+                  const Connection::ReceivedDataHandler& receivedDataHandler,
+                  const Connection::ErrorHandler& errorHandler)
+    : Connection(receivedDataHandler, errorHandler)
       , socket_(ioService_)
   {
     std::cout << "Connecting BoostConnection ... ";

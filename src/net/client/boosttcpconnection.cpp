@@ -61,11 +61,12 @@ private:
   SocketType socket_;
 };
 
-Connection::Ptr establishBoostTcpConnection(const ConnectionHandler::Ptr &listener,
-                                            const std::string &host, uint16_t port)
+Connection::Ptr establishBoostTcpConnection(const std::string &host, uint16_t port,
+                                            const Connection::ReceivedDataHandler& receivedDataHandler,
+                                            const Connection::ErrorHandler& errorHandler)
 {
   //return std::make_shared<BoostTcpConnection>(listener, server, port);
-  return std::make_shared<BoostConnection < BoostTcpSocket> > (listener, host, port);
+  return std::make_shared<BoostConnection < BoostTcpSocket> > (host, port, receivedDataHandler, errorHandler);
 }
 
 } //namespace client

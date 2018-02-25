@@ -26,15 +26,15 @@
 #include <boost/noncopyable.hpp>
 
 #include "net/connection.hpp"
-#include "net/connectiontype.hpp"
+#include "net/endpoint.hpp"
 
 namespace ses {
 namespace net {
 namespace client {
 
-Connection::Ptr establishConnection(const ConnectionHandler::Ptr &listener,
-                                    const std::string &host, uint16_t port,
-                                    ConnectionType type = CONNECTION_TYPE_AUTO);
+Connection::Ptr establishConnection(const EndPoint& endPoint,
+                                    const Connection::ReceivedDataHandler& receivedDataHandler,
+                                    const Connection::ErrorHandler& errorHandler);
 
 } //namespace client
 } //namespace net

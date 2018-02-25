@@ -25,8 +25,9 @@ namespace ses {
 namespace net {
 namespace client {
 
-Connection::Ptr establishBoostTlsConnection(const ConnectionHandler::Ptr& listener,
-                                            const std::string& host, uint16_t port);
+Connection::Ptr establishBoostTlsConnection(const std::string& host, uint16_t port,
+                                            const Connection::ReceivedDataHandler& receivedDataHandler,
+                                            const Connection::ErrorHandler& errorHandler);
 
 } //namespace client
 } //namespace ses

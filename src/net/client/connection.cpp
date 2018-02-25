@@ -28,26 +28,28 @@ namespace ses {
 namespace net {
 namespace client {
 
-Connection::Ptr establishConnection(const ConnectionHandler::Ptr &listener, const std::string &host, uint16_t port,
-                                    ConnectionType type)
+Connection::Ptr establishConnection(const EndPoint& endPoint,
+                                    const Connection::ReceivedDataHandler& receivedDataHandler,
+                                    const Connection::ErrorHandler& errorHandler)
 {
   Connection::Ptr connection;
 
-  if (type == CONNECTION_TYPE_AUTO)
+  ConnectionType connectionType = endPoint.connectionType_;
+  if (connectionType == CONNECTION_TYPE_AUTO)
   {
-    type = (port == 443) ? CONNECTION_TYPE_TLS : CONNECTION_TYPE_TCP;
+    connectionType = (endPoint.port_ == 443) ? CONNECTION_TYPE_TLS : CONNECTION_TYPE_TCP;
   }
 
   try
   {
-    switch (type)
+    switch (connectionType)
     {
       case CONNECTION_TYPE_TLS:
-        connection = establishBoostTlsConnection(listener, host, port);
+        connection = establishBoostTlsConnection(endPoint.host_, endPoint.port_, receivedDataHandler, errorHandler);
         break;
 
       case CONNECTION_TYPE_TCP:
-        connection = establishBoostTcpConnection(listener, host, port);
+        connection = establishBoostTcpConnection(endPoint.host_, endPoint.port_, receivedDataHandler, errorHandler);
 
       default:
         break;

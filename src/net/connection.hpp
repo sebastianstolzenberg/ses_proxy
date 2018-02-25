@@ -30,44 +30,26 @@
 namespace ses {
 namespace net {
 
-class ConnectionHandler
-{
-public:
-  typedef std::shared_ptr<ConnectionHandler> Ptr;
-  typedef std::weak_ptr<ConnectionHandler> WeakPtr;
-
-protected:
-  ConnectionHandler()
-  {};
-
-  virtual ~ConnectionHandler()
-  {};
-
-public:
-  virtual void handleReceived(char* data, std::size_t size) = 0;
-
-  virtual void handleError(const std::string& error) = 0;
-};
-
 class Connection : private boost::noncopyable
 {
 public:
   typedef std::shared_ptr<Connection> Ptr;
+  typedef std::function<void(char* data, std::size_t size)> ReceivedDataHandler;
+  typedef std::function<void(const std::string& error)> ErrorHandler;
 
 protected:
-  Connection();
-
-  Connection(const ConnectionHandler::Ptr& listener);
-
-  virtual ~Connection()
-  {};
+  Connection() = default;
+  Connection(const Connection::ReceivedDataHandler& receivedDataHandler,
+             const Connection::ErrorHandler& errorHandler);
+  virtual ~Connection() = default;
 
   void notifyRead(char* data, size_t size);
 
   void notifyError(const std::string& error);
 
 public:
-  void setHandler(const ConnectionHandler::Ptr& handler);
+  void setHandler(const ReceivedDataHandler& receivedDataHandler, const ErrorHandler& errorHandler);
+  void resetHandler();
 
   virtual bool connected() const = 0;
 
@@ -77,7 +59,8 @@ public:
   bool send(const std::string& data) {return send(data.data(), data.size());}
 
 private:
-  ConnectionHandler::WeakPtr handler_;
+  ReceivedDataHandler receivedDataHandler_;
+  ErrorHandler errorHandler_;
 };
 
 } //namespace net

@@ -3,10 +3,7 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
 
-//#include "net/server/server.hpp"
-//#include "net/client/connection.hpp"
-#include "proxy/server.hpp"
-#include "proxy/pool.hpp"
+#include "proxy/proxy.hpp"
 
 //class MainServerHandler : public ses::net::server::ServerHandler,
 //                          public ses::net::ConnectionHandler
@@ -70,18 +67,27 @@ int main()
 //
 //  sleep(1);
 
+  ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>();
 
-  ses::proxy::Server::Ptr proxyServer = std::make_shared<ses::proxy::Server>();
-  proxyServer->start("127.0.0.1", 12345);
+  proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("127.0.0.1", 5555),
+                                                 "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
+                                                 "ses-proxy-test",
+                                                 ses::proxy::ALGORITHM_CRYPTONIGHT));
 
+  proxy->addServer(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12345),
+                                                     ses::proxy::ALGORITHM_CRYPTONIGHT));
 
-  ses::proxy::Pool::Ptr pool = std::make_shared<ses::proxy::Pool>();
-  pool->connect("127.0.0.1",
-                5555,
-                "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
-                "ses-proxy-test");
-
-  pool->submit("f8010020", "32823cde080e1877baa3c023a17f4d250d8fa4b3128b08f507d0afea9de10000");
+//  ses::proxy::Server::Ptr proxyServer = std::make_shared<ses::proxy::Server>();
+//  proxyServer->start(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12345),
+//                                                       ses::proxy::ALGORITHM_CRYPTONIGHT),
+//                     handleNewClient);
+//
+//
+//  ses::proxy::Pool::Ptr pool = std::make_shared<ses::proxy::Pool>();
+//  pool->connect(ses::proxy::Pool::Configuration(ses::net::EndPoint("127.0.0.1", 5555),
+//                                                "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
+//                                                "ses-proxy-test",
+//                                                ses::proxy::ALGORITHM_CRYPTONIGHT));
 
   waitForSignal();
 

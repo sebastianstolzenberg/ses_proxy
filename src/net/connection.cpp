@@ -27,35 +27,37 @@
 namespace ses {
 namespace net {
 
-Connection::Connection()
+Connection::Connection(const Connection::ReceivedDataHandler& receivedDataHandler,
+                       const Connection::ErrorHandler& errorHandler)
+  : receivedDataHandler_(receivedDataHandler)
+  , errorHandler_(errorHandler)
 {
 }
 
-Connection::Connection(const ConnectionHandler::Ptr &handler)
-  : handler_(handler)
+void Connection::setHandler(const ReceivedDataHandler& receivedDataHandler, const ErrorHandler& errorHandler)
 {
+  receivedDataHandler_ = receivedDataHandler;
+  errorHandler_ = errorHandler;
 }
 
-void Connection::setHandler(const ConnectionHandler::Ptr &handler)
+void Connection::resetHandler()
 {
-  handler_ = handler;
+  setHandler(ReceivedDataHandler(), ErrorHandler());
 }
 
 void Connection::notifyRead(char *data, size_t size)
 {
-  ConnectionHandler::Ptr handler = handler_.lock();
-  if (handler)
+  if (receivedDataHandler_)
   {
-    handler->handleReceived(data, size);
+    receivedDataHandler_(data, size);
   }
 }
 
 void Connection::notifyError(const std::string &error)
 {
-  ConnectionHandler::Ptr handler = handler_.lock();
-  if (handler)
+  if (errorHandler_)
   {
-    handler->handleError(error);
+    errorHandler_(error);
   }
 }
 

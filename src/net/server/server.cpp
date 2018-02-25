@@ -79,8 +79,8 @@ private:
 class BoostServer : public Server
 {
 public:
-  BoostServer(const ServerHandler::Ptr& handler, const std::string& address, uint16_t port)
-    : handler_(handler)
+  BoostServer(const NewConnectionHandler& handler, const std::string& address, uint16_t port)
+    : newConnecionHandler_(handler)
     , acceptor_(ioService_)
     , nextSocket_(ioService_)
   {
@@ -112,19 +112,9 @@ private:
           return;
         }
 
-        if (!ec)
+        if (!ec && newConnecionHandler_)
         {
-          ServerHandler::Ptr handler = handler_.lock();
-          if (handler)
-          {
-            handler->handleNewConnection(
-              std::make_shared<BoostConnection>(std::move(nextSocket_)));
-          }
-          else
-          {
-            // noone there to handle a new socket ... just closes it
-            nextSocket_.close();
-          }
+          newConnecionHandler_(std::make_shared<BoostConnection>(std::move(nextSocket_)));
         }
 
       accept();
@@ -132,18 +122,16 @@ private:
   }
 
 private:
-  ServerHandler::WeakPtr handler_;
+  NewConnectionHandler newConnecionHandler_;
 
   boost::asio::io_service ioService_;
   boost::asio::ip::tcp::acceptor acceptor_;
   boost::asio::ip::tcp::socket nextSocket_;
 };
 
-Server::Ptr createServer(const ServerHandler::Ptr& handler,
-                         const std::string& address, uint16_t port,
-                         ConnectionType type)
+Server::Ptr createServer(const NewConnectionHandler& handler, const EndPoint& endPoint)
 {
-  return std::make_shared<BoostServer>(handler, address, port);
+  return std::make_shared<BoostServer>(handler, endPoint.host_, endPoint.port_);
 }
 
 } //namespace server
