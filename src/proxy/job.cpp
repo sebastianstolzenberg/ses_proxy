@@ -72,14 +72,10 @@ bool Job::isValid() const
   return target_ != 0 && blob_.size() >= BLOB_SIZE_MIN && blob_.size() <= BLOB_SIZE_MAX;
 }
 
-Job::SubmitStatus Job::submitResult(const JobResult& result)
+void Job::submitResult(const JobResult& result,
+                       const SubmitStatusHandler& submitStatusHandler)
 {
-  SubmitStatus status = SUBMIT_REJECTED_INVALID_JOB_ID;
-  if (jobResultHandler_)
-  {
-    status = jobResultHandler_(result);
-  }
-  return status;
+  submitResult(assignedWorker_, result, submitStatusHandler);
 }
 
 uint32_t Job::getNonce() const
@@ -125,6 +121,23 @@ const std::vector<uint8_t>& Job::getBlob() const
 uint64_t Job::getTarget() const
 {
   return target_;
+}
+
+void Job::submitResult(const WorkerIdentifier& workerIdentifier,
+                       const JobResult& result,
+                       const SubmitStatusHandler& submitStatusHandler)
+{
+  if (!jobResultHandler_)
+  {
+    if (submitStatusHandler)
+    {
+      submitStatusHandler(SUBMIT_REJECTED_INVALID_JOB_ID);
+    }
+  }
+  else
+  {
+    jobResultHandler_(workerIdentifier, result, submitStatusHandler);
+  }
 }
 
 } // namespace proxy

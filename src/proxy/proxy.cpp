@@ -26,7 +26,9 @@ void Proxy::handleNewClient(Client::Ptr newClient)
   clients_[newClient->getIdentifier()] = newClient;
   if (!pools_.empty())
   {
-    newClient->assignJob(pools_.front()->getNextJob());
+    //TODO assign as worker to some pool
+//    pools_.front()->
+//    newClient->assignJob(pools_.front()->getNextJob());
   }
 }
 

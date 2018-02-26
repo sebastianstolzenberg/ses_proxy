@@ -41,13 +41,12 @@ Algorithm Client::getAlgorithm() const
   return algorithm_;
 }
 
-void Client::assignJob(const Job::Ptr& job, const Job::JobResultHandler& jobResultHandler)
+void Client::assignJob(const Job::Ptr& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   if (job)
   {
     currentJob_ = job;
-    jobResultHandler_ = jobResultHandler;
     currentJob_->setAssignedWorker(identifier_);
     sendJobNotification();
   }
@@ -171,49 +170,17 @@ void Client::handleSubmit(const std::string& jsonRequestId,
             << " nonce = " << nonce << std::endl
             << " result = " << result << std::endl;
 
-  if (jobResultHandler_)
+  if (currentJob_)
   {
+    currentJob_
     jobResultHandler_(identifier_,
                       JobResult(jobIdentifier, nonce, result),
                       std::bind(&Client::handleUpstreamSubmitStatus, shared_from_this(),
                                 jsonRequestId, std::placeholders::_1));
   }
-
-  if (!identifier.empty() && identifier_ != boost::lexical_cast<WorkerIdentifier>(identifier))
-  {
-    sendErrorResponse(jsonRequestId, "Unauthenticated");
-  }
   else
   {
-    if (!currentJob_ || currentJob_->getJobId() != jobIdentifier)
-    {
-      sendErrorResponse(jsonRequestId, "Invalid job id");
-    }
-//    else
-//    if (difficulty too low)
-//    {
-//      sendErrorResponse(jsonRequestId, "Low difficulty share");
-//    }
-//    else
-//    if (invalid nicehash nonce)
-//    {
-//      sendErrorResponse(jsonRequestId, "Invalid nonce; is miner not compatible with NiceHash?");
-//    }
-    else
-    {
-      //TODO test nonce pattern -> sendErrorResponse(jsonRequestId, "Duplicate share");
-      //TODO block expired -> sendErrorResponse(jsonRequestId, "Block expired");
-      //TODO low difficulty share -> sendErrorResponse(jsonRequestId, "Low difficulty share");
-
-      if (currentJob_->submitResult(JobResult(jobIdentifier, nonce, result)))
-      {
-        sendSuccessResponse(jsonRequestId, "OK");
-      }
-      else
-      {
-        sendErrorResponse(jsonRequestId, "Rejected");
-      }
-    }
+    sendErrorResponse(jsonRequestId, "Invalid job id");
   }
 }
 

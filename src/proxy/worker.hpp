@@ -23,7 +23,7 @@ protected:
 public:
   virtual WorkerIdentifier getIdentifier() const = 0;
   virtual Algorithm getAlgorithm() const = 0;
-  virtual void assignJob(const Job::Ptr& job, const Job::JobResultHandler& jobResultHandler) = 0;
+  virtual void assignJob(const Job::Ptr& job) = 0;
 };
 
 } // namespace proxy

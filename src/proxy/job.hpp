@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <map>
 #include <memory>
 #include <functional>
 
@@ -29,9 +30,9 @@ public:
     SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE
   };
   typedef std::function<void(SubmitStatus submitStatus)> SubmitStatusHandler;
-  typedef std::function<SubmitStatus(const WorkerIdentifier& workerIdentifier,
-                                     const JobResult& jobResult,
-                                     const SubmitStatusHandler& submitStatusHandler)> JobResultHandler;
+  typedef std::function<void(const WorkerIdentifier& workerIdentifier,
+                             const JobResult& jobResult,
+                             const SubmitStatusHandler& submitStatusHandler)> JobResultHandler;
 
 public:
   Job(const stratum::Job& stratumJob);
@@ -41,7 +42,8 @@ public:
   void invalidate();
   bool isValid() const;
 
-  virtual SubmitStatus submitResult(const JobResult& result);
+  virtual void submitResult(const JobResult& result,
+                            const SubmitStatusHandler& submitStatusHandler);
 
   stratum::Job asStratumJob() const;
   uint32_t getNonce() const;
@@ -54,6 +56,11 @@ public:
   const std::string& getJobId() const;
   const std::vector<uint8_t>& getBlob() const;
   uint64_t getTarget() const;
+
+protected:
+  void submitResult(const WorkerIdentifier& workerIdentifier,
+                    const JobResult& result,
+                    const SubmitStatusHandler& submitStatusHandler);
 
 protected:
   JobResultHandler jobResultHandler_;
@@ -74,21 +81,38 @@ public:
   {
   }
 
-  SubmitStatus submitResult(const JobResult& result) override
+  void submitResult(const JobResult& result,
+                    const SubmitStatusHandler& submitStatusHandler) override
   {
-    SubmitStatus status = SUBMIT_REJECTED_INVALID_JOB_ID;
-    if (isValid() && // job hasn't been canceled
-        jobResultHandler_ && // a handler is registered
-        (result.getNiceHash() != getNiceHash()) && // the nicehash matches
-        foundNonces_.count(result.getNonce()) == 0) // the nonce hasn't been found before
+    if (foundNonces_.count(result.getNonce()) == 0)
     {
-      status = jobResultHandler_(result);
-      if (status == SUBMIT_ACCEPTED)
-      {
-        foundNonces_.insert(result.getNonce());
-      }
+      submitStatusHandler(SUBMIT_REJECTED_DUPLICATE);
     }
-    return status;
+    else if (result.getNiceHash() != getNiceHash())
+    {
+      // "Malformed nonce";
+      submitStatusHandler(SUBMIT_REJECTED_DUPLICATE);
+    }
+    else if (!isValid() || !jobResultHandler_ )
+    {
+      submitStatusHandler(SUBMIT_REJECTED_INVALID_JOB_ID);
+    }
+    else
+    {
+      SubmitStatusHandler subJobSubmitStatusHandler = submitStatusHandler;
+//          std::bind(&SubJob::handleSubmitStatus, shared_from_this(),
+//                    std::placeholders::_1, submitStatusHandler, result.getNonce());
+      jobResultHandler_(getAssignedWorker(), result, subJobSubmitStatusHandler);
+    }
+  }
+
+private:
+  void handleSubmitStatus(SubmitStatus submitStatus, SubmitStatusHandler handler, uint32_t nonce)
+  {
+    if (submitStatus == SUBMIT_ACCEPTED)
+    {
+      foundNonces_.insert(nonce);
+    }
   }
 
 private:
@@ -133,16 +157,21 @@ private:
     {
       subJob = std::make_shared<SubJob>(*this);
       subJob->setNiceHash(nextNiceHash_++);
-      subJob->setJobResultHandler(std::bind(&MasterJob::modifyAndSubmitResult, shared_from_this(), std::placeholders::_1));
+      JobResultHandler modifyingJobResultHandler =
+          std::bind(&MasterJob::modifyAndSubmitResult, shared_from_this(),
+                    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+      subJob->setJobResultHandler(modifyingJobResultHandler);
     }
     return subJob;
   }
 
-  SubmitStatus modifyAndSubmitResult(const JobResult& result)
+  void modifyAndSubmitResult(const WorkerIdentifier& workerIdentifier,
+                             const JobResult& result,
+                             const SubmitStatusHandler& submitStatusHandler)
   {
     JobResult modifiedResult = result;
     modifiedResult.setJobId(getJobId());
-    return Job::submitResult(modifiedResult);
+    submitResult(workerIdentifier, modifiedResult, submitStatusHandler);
   }
 
 private:

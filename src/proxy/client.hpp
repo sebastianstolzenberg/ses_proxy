@@ -36,7 +36,7 @@ public:
 public: // from Worker
   WorkerIdentifier getIdentifier() const override;
   Algorithm getAlgorithm() const override;
-  void assignJob(const Job::Ptr& job, const Job::JobResultHandler& jobResultHandler) override;
+  void assignJob(const Job::Ptr& job) override;
 
 public:
   const std::string& getUseragent() const;
@@ -77,7 +77,7 @@ private:
   std::string password_;
 
   Job::Ptr currentJob_;
-  Job::JobResultHandler jobResultHandler_;
+  std::map<std::string, Job::Ptr> jobs_;
 
 //  std::string subscribedExtraNone1_;
 //  Difficulty suggestedDifficulty_;
