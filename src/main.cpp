@@ -69,7 +69,13 @@ int main()
 
   ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>();
 
-  proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("127.0.0.1", 5555),
+
+
+//  proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("127.0.0.1", 5555),
+//                                                 "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
+//                                                 "ses-proxy-test",
+//                                                 ses::proxy::ALGORITHM_CRYPTONIGHT));
+  proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("pool.aeon.hashvault.pro", 443),
                                                  "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
                                                  "ses-proxy-test",
                                                  ses::proxy::ALGORITHM_CRYPTONIGHT));

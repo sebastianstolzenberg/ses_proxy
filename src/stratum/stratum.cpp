@@ -160,6 +160,7 @@ std::string createSubmitRequest(const std::string& id, const std::string& jobId,
   tree.put("job_id", jobId);
   tree.put("nonce", nonce);
   tree.put("result", result);
+  //TODO workerNonce poolNonce
   return util::boostpropertytree::ptreeToString(tree);
 }
 

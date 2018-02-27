@@ -14,6 +14,8 @@
 namespace ses {
 namespace proxy {
 
+//TODO solo mode with reservedOffset
+
 void Pool::connect(const Configuration& configuration)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
@@ -165,6 +167,7 @@ void Pool::handleSubmitError(const std::string& jobId, const Job::SubmitStatusHa
     {
       status = Job::SUBMIT_REJECTED_EXPIRED;
       removeJob(jobId);
+      //TODO send new job to miner
     }
     else if (message == "Invalid job id")
     {
@@ -303,7 +306,9 @@ bool Pool::assignJobToWorker(const Worker::Ptr& worker)
 void Pool::login()
 {
   sendRequest(REQUEST_TYPE_LOGIN,
-              stratum::client::createLoginRequest(configuration_.user_, configuration_.pass_, "ses-proxy"));
+              stratum::client::createLoginRequest(configuration_.user_,
+                                                  configuration_.pass_,
+                                                  "ses-proxy"/*"xmr-node-proxy/0.0.1"*/));
 }
 
 void Pool::submit(const JobResult& jobResult, const Job::SubmitStatusHandler& submitStatusHandler)
@@ -328,6 +333,7 @@ void Pool::submit(const JobResult& jobResult, const Job::SubmitStatusHandler& su
   else
   {
     submitStatusHandler(Job::SUBMIT_REJECTED_INVALID_JOB_ID);
+    //TODO send new job to miner
   }
 }
 
