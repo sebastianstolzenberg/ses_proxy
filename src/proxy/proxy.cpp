@@ -23,12 +23,13 @@ void Proxy::addServer(const Server::Configuration& configuration)
 
 void Proxy::handleNewClient(Client::Ptr newClient)
 {
-  clients_[newClient->getIdentifier()] = newClient;
-  if (!pools_.empty())
+  if (newClient)
   {
-    //TODO assign as worker to some pool
-//    pools_.front()->
-//    newClient->assignJob(pools_.front()->getNextJob());
+    clients_[newClient->getIdentifier()] = newClient;
+    if (!pools_.empty())
+    {
+      pools_.front()->addWorker(newClient);
+    }
   }
 }
 

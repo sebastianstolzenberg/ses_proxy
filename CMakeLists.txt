@@ -32,7 +32,7 @@ add_executable(ses_proxy
         src/proxy/proxy.cpp
         src/proxy/jobresult.cpp
         src/proxy/job.cpp
-        src/proxy/jobsource.cpp src/proxy/worker.cpp src/proxy/worker.hpp)
+        src/proxy/worker.cpp)
 target_link_libraries(ses_proxy
         ses_proxy_net
         ses_proxy_stratum

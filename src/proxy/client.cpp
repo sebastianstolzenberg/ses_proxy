@@ -46,8 +46,9 @@ void Client::assignJob(const Job::Ptr& job)
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   if (job)
   {
+    job->setAssignedWorker(identifier_);
+    jobs_[job->getJobId()] = job;
     currentJob_ = job;
-    currentJob_->setAssignedWorker(identifier_);
     sendJobNotification();
   }
 }
@@ -133,13 +134,6 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
     std::cout << " response = " << response << std::endl;
 
     connection_->send(response);
-
-    if (currentJob_)
-    {
-      connection_->send(net::jsonrpc::notification("job",
-                                                   stratum::server::createJobNotification(
-                                                     currentJob_->asStratumJob())));
-    }
   }
 }
 
@@ -170,13 +164,12 @@ void Client::handleSubmit(const std::string& jsonRequestId,
             << " nonce = " << nonce << std::endl
             << " result = " << result << std::endl;
 
-  if (currentJob_)
+  auto jobIt = jobs_.find(jobIdentifier);
+  if (jobIt != jobs_.end())
   {
-    currentJob_
-    jobResultHandler_(identifier_,
-                      JobResult(jobIdentifier, nonce, result),
-                      std::bind(&Client::handleUpstreamSubmitStatus, shared_from_this(),
-                                jsonRequestId, std::placeholders::_1));
+    jobIt->second->submitResult(JobResult(jobIdentifier, nonce, result),
+                                std::bind(&Client::handleUpstreamSubmitStatus, shared_from_this(),
+                                          jsonRequestId, std::placeholders::_1));
   }
   else
   {

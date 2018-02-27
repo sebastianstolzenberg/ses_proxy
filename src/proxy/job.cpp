@@ -44,10 +44,10 @@ Job::Job(const stratum::Job& stratumJob)
 stratum::Job Job::asStratumJob() const
 {
   std::string blobHex;
-  boost::algorithm::hex(blob_, std::back_inserter(blobHex));
+  boost::algorithm::hex_lower(blob_, std::back_inserter(blobHex));
 
   std::string targetHex;
-  boost::algorithm::hex(reinterpret_cast<const uint8_t*>(&target_),
+  boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&target_),
                         reinterpret_cast<const uint8_t*>(&target_) + sizeof(target_),
                         std::back_inserter(targetHex));
 

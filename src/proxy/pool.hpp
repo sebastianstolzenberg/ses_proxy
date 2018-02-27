@@ -7,19 +7,19 @@
 
 #include <memory>
 #include <unordered_map>
+#include <list>
 #include <mutex>
 
 #include "net/connection.hpp"
 #include "stratum/stratum.hpp"
 #include "proxy/algorithm.hpp"
 #include "proxy/job.hpp"
-#include "proxy/jobsource.hpp"
+#include "proxy/worker.hpp"
 
 namespace ses {
 namespace proxy {
 
-class Pool : public JobSource,
-             public std::enable_shared_from_this<Pool>
+class Pool : public std::enable_shared_from_this<Pool>
 {
 public:
   typedef std::shared_ptr<Pool> Ptr;
@@ -42,11 +42,7 @@ public:
 public:
   void connect(const Configuration& configuration);
 
-  Job::Ptr getNextJob();
-
-public: // from JobSource
-  Job::Ptr getJob(const WorkerIdentifier& workerIdentifier) override;
-  Job::SubmitStatus submitJobResult(const WorkerIdentifier& workerIdentifier, const JobResult& jobResult) override;
+  bool addWorker(const Worker::Ptr& worker);
 
 private:
   void handleReceived(char* data, std::size_t size);
@@ -58,12 +54,16 @@ private:
   void handleGetJobSuccess(const stratum::Job& job);
   void handleGetJobError(int code, const std::string& message);
 
-  void handleSubmitSuccess(const::std::string& jobId, const std::string& status);
-  void handleSubmitError(const::std::string& jobId, int code, const std::string& message);
+  void handleSubmitSuccess(const std::string& jobId, const Job::SubmitStatusHandler& submitStatusHandler,
+                           const std::string& status);
+  void handleSubmitError(const std::string& jobId, const Job::SubmitStatusHandler& submitStatusHandler,
+                         int code, const std::string& message);
 
   void handleNewJob(const stratum::Job& job);
 
-  Job::SubmitStatus handleJobResult(const JobResult& jobResult);
+  Job::SubmitStatus handleJobResult(const WorkerIdentifier& workerIdentifier,
+                                    const JobResult& jobResult,
+                                    const Job::SubmitStatusHandler& submitStatusHandler);
 
 private:
 
@@ -74,11 +74,13 @@ private:
     REQUEST_TYPE_GETJOB,
     REQUEST_TYPE_SUBMIT
   };
-  void sendRequest(RequestType type, const std::string& params = "");
+  RequestIdentifier sendRequest(RequestType type, const std::string& params = "");
   void setJob(const stratum::Job& job);
+  void activateJob(const MasterJob::Ptr& job);
   void removeJob(const std::string& jobId);
+  bool assignJobToWorker(const Worker::Ptr& worker);
   void login();
-  Job::SubmitStatus submit(const JobResult& jobResult);
+  void submit(const JobResult& jobResult, const Job::SubmitStatusHandler& submitStatusHandler);
 
 private:
   std::recursive_mutex mutex_;
@@ -88,11 +90,13 @@ private:
   net::Connection::Ptr connection_;
   RequestIdentifier nextRequestIdentifier_ = 1;
   std::unordered_map<RequestIdentifier, RequestType> outstandingRequests_;
-  std::unordered_map<RequestIdentifier, std::string> outstandingSubmits_;
+  std::unordered_map<RequestIdentifier, std::tuple<std::string, Job::SubmitStatusHandler> > outstandingSubmits_;
 
   std::string workerIdentifier_;
   MasterJob::Ptr activeJob_;
   std::map<std::string, MasterJob::Ptr> jobs_;
+
+  std::list<Worker::Ptr> worker_;
 };
 
 } // namespace proxy

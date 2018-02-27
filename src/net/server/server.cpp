@@ -36,7 +36,7 @@ public:
 
   virtual bool send(const char* data, std::size_t size)
   {
-    std::cout << "net::server::BoostConnection::send:" << std::endl << "  ";
+    std::cout << "net::server::BoostConnection::send:  ";
     std::cout.write(data, size);
     std::cout << "\n";
 
@@ -51,10 +51,6 @@ private:
                             boost::asio::transfer_at_least(1),
                             [this](boost::system::error_code error, size_t bytes_transferred)
                             {
-                              std::cout << "net::server::BoostConnection::handleRead:" << std::endl << "  ";
-                              std::cout.write(receiveBuffer_, bytes_transferred);
-                              std::cout << "\n";
-
                               if (!error)
                               {
                                 std::cout << "net::server::BoostConnection received :";

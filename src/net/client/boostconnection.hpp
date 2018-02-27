@@ -67,7 +67,7 @@ public:
 
   bool send(const char *data, std::size_t size) override
   {
-    std::cout << "net::client::BoostConnection::send:" << std::endl << "  ";
+    std::cout << "net::client::BoostConnection::send: ";
     std::cout.write(data, size);
     std::cout << "\n";
 
@@ -95,7 +95,7 @@ public:
   {
     if (!error)
     {
-      std::cout << "net::client::BoostConnection::handleRead:" << std::endl << "  ";
+      std::cout << "net::client::BoostConnection::handleRead: ";
       std::cout.write(receiveBuffer_, bytes_transferred);
       //std::cout << "\n";
       notifyRead(receiveBuffer_, bytes_transferred);

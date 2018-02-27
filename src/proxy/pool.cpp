@@ -2,8 +2,8 @@
 // Created by ses on 18.02.18.
 //
 
-#include <functional>
 #include <iostream>
+#include <functional>
 #include <boost/lexical_cast.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
@@ -25,36 +25,14 @@ void Pool::connect(const Configuration& configuration)
   login();
 }
 
-Job::Ptr Pool::getNextJob()
+bool Pool::addWorker(const Worker::Ptr& worker)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-
-  Job::Ptr job;
-  if (activeJob_)
+  bool accepted = assignJobToWorker(worker);
+  if (accepted)
   {
-    job = activeJob_->getNextSubJob();
+    worker_.push_back(worker);
   }
-  else
-  {
-    sendRequest(REQUEST_TYPE_GETJOB);
-  }
-  return job;
-}
-
-Job::Ptr Pool::getJob(const WorkerIdentifier& workerIdentifier) override
-{
-  Job::Ptr job;
-  if (activeJob_)
-  {
-    job = activeJob_->getSubJob(workerIdentifier);
-  }
-  return job;
-}
-
-Job::SubmitStatus Pool::submitJobResult(const WorkerIdentifier& workerIdentifier,
-                                        const JobResult& jobResult) override
-{
-  return submit(jobResult);
+  return accepted;
 }
 
 void Pool::handleReceived(char* data, std::size_t size)
@@ -92,10 +70,13 @@ void Pool::handleReceived(char* data, std::size_t size)
 
           case REQUEST_TYPE_SUBMIT:
           {
-            std::string jobId = outstandingSubmits_[requestId];
+            std::string jobId;
+            Job::SubmitStatusHandler submitStatusHandler;
+            std::tie(jobId, submitStatusHandler) = outstandingSubmits_[requestId];
+            outstandingSubmits_.erase(requestId);
             stratum::client::parseSubmitResponse(result, error,
-                                                 std::bind(&Pool::handleSubmitSuccess, this, jobId, _1),
-                                                 std::bind(&Pool::handleSubmitError, this, jobId, _1, _2));
+                                                 std::bind(&Pool::handleSubmitSuccess, this, jobId, submitStatusHandler, _1),
+                                                 std::bind(&Pool::handleSubmitError, this, jobId, submitStatusHandler, _1, _2));
             break;
           }
 
@@ -143,42 +124,58 @@ void Pool::handleGetJobError(int code, const std::string& message)
   std::cout << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message << std::endl;
 }
 
-void Pool::handleSubmitSuccess(const::std::string& jobId, const std::string& status)
+void Pool::handleSubmitSuccess(const std::string& jobId, const Job::SubmitStatusHandler& submitStatusHandler,
+                               const std::string& status)
 {
   std::cout << "proxy::Pool::handleSubmitSuccess, status, " << status << std::endl;
+  if (submitStatusHandler)
+  {
+    submitStatusHandler(Job::SUBMIT_ACCEPTED);
+  }
+
+  auto job = jobs_[jobId];
+  if (job)
+  {
+    std::cout << "proxy::Pool, job " << job->getJobId() << ", numHashes " << job->numHashesFound() << std::endl;
+  }
 }
 
-void Pool::handleSubmitError(const::std::string& jobId, int code, const std::string& message)
+void Pool::handleSubmitError(const std::string& jobId, const Job::SubmitStatusHandler& submitStatusHandler,
+                             int code, const std::string& message)
 {
   std::cout << "proxy::Pool::handleSubmitError, code, " << code << ", message, " << message << std::endl;
 
-  Job::SubmitStatus status = Job::SUBMIT_REJECTED_INVALID_JOB_ID;
-  if (message == "Unauthenticated")
+  if (submitStatusHandler)
   {
-    status = Job::SUBMIT_REJECTED_UNAUTHENTICATED;
-    login();
-  }
-  else if (message == "IP Address currently banned")
-  {
-    status = Job::SUBMIT_REJECTED_IP_BANNED;
-  }
-  else if (message == "Duplicate share")
-  {
-    status = Job::SUBMIT_REJECTED_DUPLICATE;
-  }
-  else if (message == "Block expired")
-  {
-    status = Job::SUBMIT_REJECTED_EXPIRED;
-    removeJob(jobId);
-  }
-  else if (message == "Invalid job id")
-  {
-    status = Job::SUBMIT_REJECTED_INVALID_JOB_ID;
-    removeJob(jobId);
-  }
-  else if (message == "Low difficulty share")
-  {
-    status = Job::SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE;
+    Job::SubmitStatus status = Job::SUBMIT_REJECTED_INVALID_JOB_ID;
+    if (message == "Unauthenticated")
+    {
+      status = Job::SUBMIT_REJECTED_UNAUTHENTICATED;
+      login();
+    }
+    else if (message == "IP Address currently banned")
+    {
+      status = Job::SUBMIT_REJECTED_IP_BANNED;
+    }
+    else if (message == "Duplicate share")
+    {
+      status = Job::SUBMIT_REJECTED_DUPLICATE;
+    }
+    else if (message == "Block expired")
+    {
+      status = Job::SUBMIT_REJECTED_EXPIRED;
+      removeJob(jobId);
+    }
+    else if (message == "Invalid job id")
+    {
+      status = Job::SUBMIT_REJECTED_INVALID_JOB_ID;
+      removeJob(jobId);
+    }
+    else if (message == "Low difficulty share")
+    {
+      status = Job::SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE;
+    }
+    submitStatusHandler(status);
   }
 }
 
@@ -188,14 +185,16 @@ void Pool::handleNewJob(const stratum::Job& job)
   setJob(job);
 }
 
-Job::SubmitStatus Pool::handleJobResult(const JobResult& jobResult)
+Job::SubmitStatus Pool::handleJobResult(const WorkerIdentifier& workerIdentifier,
+                                        const JobResult& jobResult,
+                                        const Job::SubmitStatusHandler& submitStatusHandler)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
 
-  submit(jobResult);
+  submit(jobResult, submitStatusHandler);
 }
 
-void Pool::sendRequest(Pool::RequestType type, const std::string& params)
+Pool::RequestIdentifier Pool::sendRequest(Pool::RequestType type, const std::string& params)
 {
   std::string method;
   switch (type)
@@ -214,54 +213,91 @@ void Pool::sendRequest(Pool::RequestType type, const std::string& params)
 
     default:
       // unknown request type
-      return;
+      return 0;
   }
 
   auto id = nextRequestIdentifier_;
   ++nextRequestIdentifier_;
   outstandingRequests_[id] = type;
   connection_->send(net::jsonrpc::request(std::to_string(id), method, params));
+  return id;
 }
 
 void Pool::setJob(const stratum::Job& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+
   std::cout << __PRETTY_FUNCTION__
             << ", jobId, " << job.getJobId()
             << ", target, " << job.getTarget()
             << std::endl;
-  if (jobs_.count(job.getJobId()) == 0)
+  auto knownJob = jobs_.find(job.getJobId());
+  if (knownJob == jobs_.end())
   {
+    std::cout << __PRETTY_FUNCTION__ << " New job" << std::endl;
     try
     {
       auto newJob = std::make_shared<MasterJob>(job);
-      newJob->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(), std::placeholders::_1));
+      newJob->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
+                                            std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
       jobs_[newJob->getJobId()] = newJob;
-      activeJob_ = newJob;
+      activateJob(newJob);
     }
     catch (...)
     {
       std::cout << boost::current_exception_diagnostic_information();
     }
   }
+  else if (activeJob_ && job.getJobId() != activeJob_->getJobId())
+  {
+    std::cout << __PRETTY_FUNCTION__ << " Known job, setting it as active job" << std::endl;
+    activateJob(knownJob->second);
+  }
   else
   {
-    // job is known already
+    std::cout << __PRETTY_FUNCTION__ << " Known job which is active already" << std::endl;
+  }
+}
+
+void Pool::activateJob(const MasterJob::Ptr& job)
+{
+  activeJob_ = job;
+  for (const auto& worker : worker_)
+  {
+    assignJobToWorker(worker);
   }
 }
 
 void Pool::removeJob(const std::string& jobId)
 {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+
   // invalidates job and removes it from lists
-  if (jobs_.count(jobId) > 0)
+  auto job = jobs_.find(jobId);
+  if (job != jobs_.end())
   {
-    jobs_[jobId]->invalidate();
-    jobs_.erase(jobId);
+    job->second->invalidate();
+    jobs_.erase(job);
   }
   if (activeJob_ && activeJob_->getJobId() == jobId)
   {
     activeJob_.reset();
   }
+}
+
+bool Pool::assignJobToWorker(const Worker::Ptr& worker)
+{
+  bool accepted = false;
+  if (worker && activeJob_)
+  {
+    auto job = activeJob_->getSubJob(worker->getIdentifier());
+    if (job)
+    {
+      worker->assignJob(job);
+      accepted = true;
+    }
+  }
+  return accepted;
 }
 
 void Pool::login()
@@ -270,29 +306,29 @@ void Pool::login()
               stratum::client::createLoginRequest(configuration_.user_, configuration_.pass_, "ses-proxy"));
 }
 
-Job::SubmitStatus Pool::submit(const JobResult& jobResult)
+void Pool::submit(const JobResult& jobResult, const Job::SubmitStatusHandler& submitStatusHandler)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   std::cout << __PRETTY_FUNCTION__ << std::endl;
-
-  Job::SubmitStatus submitStatus = Job::SUBMIT_REJECTED_INVALID_JOB_ID;
 
   auto jobIt = jobs_.find(jobResult.getJobId());
   if (jobIt != jobs_.end())
   {
     //TODO further result verification
-    sendRequest(REQUEST_TYPE_SUBMIT,
+    RequestIdentifier id =
+      sendRequest(REQUEST_TYPE_SUBMIT,
                 stratum::client::createSubmitRequest(workerIdentifier_, jobIt->second->getJobId(),
                                                      jobResult.getNonceHexString(),
                                                      jobResult.getHashHexString()));
-
-    submitStatus = Job::SUBMIT_ACCEPTED;
+    if (id != 0)
+    {
+      outstandingSubmits_[id] = std::tie(jobResult.getJobId(), submitStatusHandler);
+    }
   }
   else
   {
-    submitStatus = Job::SUBMIT_REJECTED_INVALID_JOB_ID;
+    submitStatusHandler(Job::SUBMIT_REJECTED_INVALID_JOB_ID);
   }
-  return submitStatus;
 }
 
 } // namespace proxy

@@ -30,7 +30,7 @@ JobResult::JobResult(const std::string& jobId, const std::string& nonce, const s
 std::string JobResult::getNonceHexString() const
 {
   std::string hex;
-  boost::algorithm::hex(reinterpret_cast<const uint8_t*>(&nonce_),
+  boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&nonce_),
                         reinterpret_cast<const uint8_t*>(&nonce_) + sizeof(nonce_),
                         std::back_inserter(hex));
   return hex;
@@ -39,7 +39,7 @@ std::string JobResult::getNonceHexString() const
 std::string JobResult::getHashHexString() const
 {
   std::string hex;
-  boost::algorithm::hex(hash_, std::back_inserter(hex));
+  boost::algorithm::hex_lower(hash_, std::back_inserter(hex));
   return hex;
 }
 

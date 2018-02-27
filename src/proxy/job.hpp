@@ -1,12 +1,14 @@
 #ifndef SES_PROXY_JOB_HPP
 #define SES_PROXY_JOB_HPP
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <set>
 #include <map>
 #include <memory>
 #include <functional>
+#include <numeric>
 
 #include "stratum/job.hpp"
 #include "proxy/workeridentifier.hpp"
@@ -44,6 +46,7 @@ public:
 
   virtual void submitResult(const JobResult& result,
                             const SubmitStatusHandler& submitStatusHandler);
+  virtual size_t numHashesFound() const = 0;
 
   stratum::Job asStratumJob() const;
   uint32_t getNonce() const;
@@ -84,11 +87,11 @@ public:
   void submitResult(const JobResult& result,
                     const SubmitStatusHandler& submitStatusHandler) override
   {
-    if (foundNonces_.count(result.getNonce()) == 0)
+    if (foundNonces_.count(result.getNonce()) > 0)
     {
       submitStatusHandler(SUBMIT_REJECTED_DUPLICATE);
     }
-    else if (result.getNiceHash() != getNiceHash())
+    else if (getNiceHash() != 0 && result.getNiceHash() != getNiceHash())
     {
       // "Malformed nonce";
       submitStatusHandler(SUBMIT_REJECTED_DUPLICATE);
@@ -99,20 +102,27 @@ public:
     }
     else
     {
-      SubmitStatusHandler subJobSubmitStatusHandler = submitStatusHandler;
-//          std::bind(&SubJob::handleSubmitStatus, shared_from_this(),
-//                    std::placeholders::_1, submitStatusHandler, result.getNonce());
+      SubmitStatusHandler subJobSubmitStatusHandler =
+          std::bind(&SubJob::handleSubmitStatus, std::dynamic_pointer_cast<SubJob>(shared_from_this()),
+                    std::placeholders::_1, submitStatusHandler, result.getNonce());
       jobResultHandler_(getAssignedWorker(), result, subJobSubmitStatusHandler);
     }
+  }
+
+  size_t numHashesFound() const override
+  {
+    return foundNonces_.size();
   }
 
 private:
   void handleSubmitStatus(SubmitStatus submitStatus, SubmitStatusHandler handler, uint32_t nonce)
   {
+    std::cout << __PRETTY_FUNCTION__ << " " << submitStatus << std::endl;
     if (submitStatus == SUBMIT_ACCEPTED)
     {
       foundNonces_.insert(nonce);
     }
+    handler(submitStatus);
   }
 
 private:
@@ -137,7 +147,7 @@ public:
     if (subJobIt == subJobs_.end())
     {
       // new worker
-      subJob = getNextSubJob();
+      subJob = getNextSubJob(workerIdentifier);
     }
     else
     {
@@ -146,8 +156,17 @@ public:
     return subJob;
   }
 
+  size_t numHashesFound() const override
+  {
+    return std::accumulate(subJobs_.begin(), subJobs_.end(), 0,
+                           [](size_t sum, const auto& subJob) -> size_t
+                           {
+                             return sum + (subJob.second ? subJob.second->numHashesFound() : 0);
+                           });
+  }
+
 private:
-  SubJob::Ptr getNextSubJob()
+  SubJob::Ptr getNextSubJob(const WorkerIdentifier& workerIdentifier)
   {
     SubJob::Ptr subJob;
     // If the masterjob has been nice-hashed by the upstream proxy or pool already,
@@ -158,9 +177,11 @@ private:
       subJob = std::make_shared<SubJob>(*this);
       subJob->setNiceHash(nextNiceHash_++);
       JobResultHandler modifyingJobResultHandler =
-          std::bind(&MasterJob::modifyAndSubmitResult, shared_from_this(),
-                    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        std::bind(&MasterJob::modifyAndSubmitResult, std::dynamic_pointer_cast<MasterJob>(shared_from_this()),
+                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+      subJob->setAssignedWorker(workerIdentifier);
       subJob->setJobResultHandler(modifyingJobResultHandler);
+      subJobs_[workerIdentifier] = subJob;
     }
     return subJob;
   }
