@@ -104,7 +104,12 @@ void parseError(const std::string& error, ErrorHandler& handler)
 Job parseJob(const pt::ptree& tree)
 {
   return Job(tree.get<std::string>("id", ""), tree.get<std::string>("job_id", ""),
-             tree.get<std::string>("blob", ""), tree.get<std::string>("target", ""));
+             tree.get<std::string>("blob", ""), tree.get<std::string>("target", ""),
+             tree.get<std::string>("blocktemplate_blob", ""), tree.get<std::string>("difficulty", ""),
+             tree.get<std::string>("height", ""), tree.get<std::string>("reserved_offset", ""),
+             tree.get<std::string>("client_nonce_offset", ""), tree.get<std::string>("client_pool_offset", ""),
+             tree.get<std::string>("target_diff", ""), tree.get<std::string>("target_diff_hex", ""),
+             tree.get<std::string>("job_id", ""));
 }
 
 }

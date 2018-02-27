@@ -308,7 +308,7 @@ void Pool::login()
   sendRequest(REQUEST_TYPE_LOGIN,
               stratum::client::createLoginRequest(configuration_.user_,
                                                   configuration_.pass_,
-                                                  "ses-proxy"/*"xmr-node-proxy/0.0.1"*/));
+                                                  "ses-proxy/0.1 with xmr-node-proxy support"));
 }
 
 void Pool::submit(const JobResult& jobResult, const Job::SubmitStatusHandler& submitStatusHandler)

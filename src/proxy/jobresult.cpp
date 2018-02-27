@@ -22,9 +22,20 @@ JobResult::Hash parseHash(const std::string& hashHexString)
 }
 
 JobResult::JobResult(const std::string& jobId, const std::string& nonce, const std::string& hash)
-  : jobId_(jobId), nonce_(parseNonce(nonce)), hash_(parseHash(hash))
+  : jobId_(jobId), nonce_(parseNonce(nonce)), hash_(parseHash(hash)), isNodeJsResult_(false)
 {
+}
 
+JobResult::JobResult(const std::string& btId, const std::string& nonce, const std::string& resultHash,
+                     const std::string& workerNonce)
+  : jobId_(btId), nonce_(parseNonce(nonce)), hash_(parseHash(resultHash)), workerNonce_(parseNonce(workerNonce))
+  , isNodeJsResult_(true)
+{
+}
+
+bool JobResult::isNodeJsResult() const
+{
+  return isNodeJsResult_;
 }
 
 std::string JobResult::getNonceHexString() const
@@ -40,6 +51,15 @@ std::string JobResult::getHashHexString() const
 {
   std::string hex;
   boost::algorithm::hex_lower(hash_, std::back_inserter(hex));
+  return hex;
+}
+
+std::string JobResult::getWorkerNonceHexString() const
+{
+  std::string hex;
+  boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&workerNonce_),
+                              reinterpret_cast<const uint8_t*>(&workerNonce_) + sizeof(workerNonce_),
+                              std::back_inserter(hex));
   return hex;
 }
 
@@ -61,6 +81,11 @@ uint32_t JobResult::getNonce() const
 const JobResult::Hash& JobResult::getHash() const
 {
   return hash_;
+}
+
+uint32_t JobResult::getWorkerNonce() const
+{
+  return workerNonce_;
 }
 
 uint8_t JobResult::getNiceHash() const
