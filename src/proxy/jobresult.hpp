@@ -4,8 +4,11 @@
 #include <string>
 #include <array>
 
+#include "proxy/workeridentifier.hpp"
+
 namespace ses {
 namespace proxy {
+
 
 class JobResult
 {
@@ -15,6 +18,21 @@ public:
     HASH_SIZE_BYTES = 32
   };
   typedef std::array<uint8_t, HASH_SIZE_BYTES> Hash;
+
+  enum SubmitStatus
+  {
+    SUBMIT_ACCEPTED,
+    SUBMIT_REJECTED_IP_BANNED,
+    SUBMIT_REJECTED_UNAUTHENTICATED,
+    SUBMIT_REJECTED_DUPLICATE,
+    SUBMIT_REJECTED_EXPIRED,
+    SUBMIT_REJECTED_INVALID_JOB_ID,
+    SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE
+  };
+  typedef std::function<void(SubmitStatus submitStatus)> SubmitStatusHandler;
+  typedef std::function<void(const WorkerIdentifier& workerIdentifier,
+                             const JobResult& jobResult,
+                             const SubmitStatusHandler& submitStatusHandler)> Handler;
 
 public:
   JobResult(const std::string& jobId, const std::string& nonce, const std::string& hash);

@@ -19,18 +19,17 @@ Job::Job(const std::string& id, const std::string& jobId, const std::string& blo
          const std::string& client_pool_offset, const std::string& target_diff, const std::string& target_diff_hex,
          const std::string& job_id)
   : id_(id)
-  , jobId_(jobId)
+  , jobId_(job_id.empty() ? jobId : job_id)
   , blob_(blobHexString)
   , target_(targetHexString)
-  , blocktemplate_blob_(blocktemplate_blob)
+  , blocktemplateBlob_(blocktemplate_blob)
   , difficulty_(difficulty)
   , height_(height)
-  , reserved_offset_(reserved_offset)
-  , client_nonce_offset_(client_nonce_offset)
-  , client_pool_offset_(client_pool_offset)
-  , target_diff_(target_diff)
-  , target_diff_hex_(target_diff_hex)
-  , job_id_(job_id)
+  , reservedOffset_(reserved_offset)
+  , clientNonceOffset_(client_nonce_offset)
+  , clientPoolOffset_(client_pool_offset)
+  , targetDiff_(target_diff)
+  , targetDiffHex_(target_diff_hex)
 {
 }
 
@@ -56,7 +55,7 @@ const std::string& Job::getTarget() const
 
 const std::string& Job::getBlocktemplate_blob() const
 {
-  return blocktemplate_blob_;
+  return blocktemplateBlob_;
 }
 
 const std::string& Job::getDifficulty() const
@@ -71,37 +70,32 @@ const std::string& Job::getHeight() const
 
 const std::string& Job::getReserved_offset() const
 {
-  return reserved_offset_;
+  return reservedOffset_;
 }
 
-const std::string& Job::getClient_nonce_offset() const
+const std::string& Job::getClientNonceOffset() const
 {
-  return client_nonce_offset_;
+  return clientNonceOffset_;
 }
 
-const std::string& Job::getClient_pool_offset() const
+const std::string& Job::getClientPoolOffset() const
 {
-  return client_pool_offset_;
+  return clientPoolOffset_;
 }
 
-const std::string& Job::getTarget_diff() const
+const std::string& Job::getTargetDiff() const
 {
-  return target_diff_;
+  return targetDiff_;
 }
 
-const std::string& Job::getTarget_diff_hex() const
+const std::string& Job::getTargetDiffHex() const
 {
-  return target_diff_hex_;
+  return targetDiffHex_;
 }
 
-const std::string& Job::getJob_id() const
+bool Job::isBlockTemplate() const
 {
-  return job_id_;
-}
-
-bool Job::isNodeJs() const
-{
-  return !blocktemplate_blob_.empty();
+  return !blocktemplateBlob_.empty();
 }
 
 } // namespace stratum

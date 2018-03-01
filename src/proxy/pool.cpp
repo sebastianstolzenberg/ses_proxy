@@ -234,31 +234,39 @@ void Pool::setJob(const stratum::Job& job)
             << ", jobId, " << job.getJobId()
             << ", target, " << job.getTarget()
             << std::endl;
-  auto knownJob = jobs_.find(job.getJobId());
-  if (knownJob == jobs_.end())
+  if (job.isBlockTemplate())
   {
-    std::cout << __PRETTY_FUNCTION__ << " New job" << std::endl;
-    try
-    {
-      auto newJob = std::make_shared<MasterJob>(job);
-      newJob->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
-                                            std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-      jobs_[newJob->getJobId()] = newJob;
-      activateJob(newJob);
-    }
-    catch (...)
-    {
-      std::cout << boost::current_exception_diagnostic_information();
-    }
-  }
-  else if (activeJob_ && job.getJobId() != activeJob_->getJobId())
-  {
-    std::cout << __PRETTY_FUNCTION__ << " Known job, setting it as active job" << std::endl;
-    activateJob(knownJob->second);
+    //TODO handling of nodeJs block templates
   }
   else
   {
-    std::cout << __PRETTY_FUNCTION__ << " Known job which is active already" << std::endl;
+    auto knownJob = jobs_.find(job.getJobId());
+    if (knownJob == jobs_.end())
+    {
+      std::cout << __PRETTY_FUNCTION__ << " New job" << std::endl;
+      try
+      {
+        auto newJob = std::make_shared<MasterJob>(job);
+        newJob->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
+                                              std::placeholders::_1, std::placeholders::_2,
+                                              std::placeholders::_3));
+        jobs_[newJob->getJobId()] = newJob;
+        activateJob(newJob);
+      }
+      catch (...)
+      {
+        std::cout << boost::current_exception_diagnostic_information();
+      }
+    }
+    else if (activeJob_ && job.getJobId() != activeJob_->getJobId())
+    {
+      std::cout << __PRETTY_FUNCTION__ << " Known job, setting it as active job" << std::endl;
+      activateJob(knownJob->second);
+    }
+    else
+    {
+      std::cout << __PRETTY_FUNCTION__ << " Known job which is active already" << std::endl;
+    }
   }
 }
 

@@ -30,13 +30,12 @@ public:
   const std::string& getDifficulty() const;
   const std::string& getHeight() const;
   const std::string& getReserved_offset() const;
-  const std::string& getClient_nonce_offset() const;
-  const std::string& getClient_pool_offset() const;
-  const std::string& getTarget_diff() const;
-  const std::string& getTarget_diff_hex() const;
-  const std::string& getJob_id() const;
+  const std::string& getClientNonceOffset() const;
+  const std::string& getClientPoolOffset() const;
+  const std::string& getTargetDiff() const;
+  const std::string& getTargetDiffHex() const;
 
-  bool isNodeJs() const;
+  bool isBlockTemplate() const;
 
 private:
   std::string blob_;
@@ -45,15 +44,14 @@ private:
   std::string id_;
 
   //nodejs specific fields
-  std::string blocktemplate_blob_;
+  std::string blocktemplateBlob_;
   std::string difficulty_;
   std::string height_;
-  std::string reserved_offset_;
-  std::string client_nonce_offset_;
-  std::string client_pool_offset_;
-  std::string target_diff_;
-  std::string target_diff_hex_;
-  std::string job_id_;
+  std::string reservedOffset_;
+  std::string clientNonceOffset_;
+  std::string clientPoolOffset_;
+  std::string targetDiff_;
+  std::string targetDiffHex_;
 };
 
 } // namespace stratum
