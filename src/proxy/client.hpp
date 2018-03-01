@@ -56,7 +56,7 @@ private:
   void handleKeepAliveD(const std::string& jsonRequestId, const std::string& identifier);
   void handleUnknownMethod(const std::string& jsonRequestId);
 
-  void handleUpstreamSubmitStatus(std::string jsonRequestId, Job::SubmitStatus submitStatus);
+  void handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::SubmitStatus submitStatus);
 
 
 private:

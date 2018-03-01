@@ -21,31 +21,17 @@ class Job : public std::enable_shared_from_this<Job>
 {
 public:
   typedef std::shared_ptr<Job> Ptr;
-  enum SubmitStatus
-  {
-    SUBMIT_ACCEPTED,
-    SUBMIT_REJECTED_IP_BANNED,
-    SUBMIT_REJECTED_UNAUTHENTICATED,
-    SUBMIT_REJECTED_DUPLICATE,
-    SUBMIT_REJECTED_EXPIRED,
-    SUBMIT_REJECTED_INVALID_JOB_ID,
-    SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE
-  };
-  typedef std::function<void(SubmitStatus submitStatus)> SubmitStatusHandler;
-  typedef std::function<void(const WorkerIdentifier& workerIdentifier,
-                             const JobResult& jobResult,
-                             const SubmitStatusHandler& submitStatusHandler)> JobResultHandler;
 
 public:
   Job(const stratum::Job& stratumJob);
 
-  void setJobResultHandler(const JobResultHandler& jobResultHandler);
+  void setJobResultHandler(const JobResult::Handler& jobResultHandler);
 
   void invalidate();
   bool isValid() const;
 
   virtual void submitResult(const JobResult& result,
-                            const SubmitStatusHandler& submitStatusHandler);
+                            const JobResult::SubmitStatusHandler& submitStatusHandler);
   virtual size_t numHashesFound() const = 0;
 
   stratum::Job asStratumJob() const;
@@ -63,10 +49,10 @@ public:
 protected:
   void submitResult(const WorkerIdentifier& workerIdentifier,
                     const JobResult& result,
-                    const SubmitStatusHandler& submitStatusHandler);
+                    const JobResult::SubmitStatusHandler& submitStatusHandler);
 
 protected:
-  JobResultHandler jobResultHandler_;
+  JobResult::Handler jobResultHandler_;
   WorkerIdentifier assignedWorker_;
   std::string jobId_;
   std::vector<uint8_t> blob_;
@@ -85,24 +71,24 @@ public:
   }
 
   void submitResult(const JobResult& result,
-                    const SubmitStatusHandler& submitStatusHandler) override
+                    const JobResult::SubmitStatusHandler& submitStatusHandler) override
   {
     if (foundNonces_.count(result.getNonce()) > 0)
     {
-      submitStatusHandler(SUBMIT_REJECTED_DUPLICATE);
+      submitStatusHandler(JobResult::SUBMIT_REJECTED_DUPLICATE);
     }
     else if (getNiceHash() != 0 && result.getNiceHash() != getNiceHash())
     {
       // "Malformed nonce";
-      submitStatusHandler(SUBMIT_REJECTED_DUPLICATE);
+      submitStatusHandler(JobResult::SUBMIT_REJECTED_DUPLICATE);
     }
     else if (!isValid() || !jobResultHandler_ )
     {
-      submitStatusHandler(SUBMIT_REJECTED_INVALID_JOB_ID);
+      submitStatusHandler(JobResult::SUBMIT_REJECTED_INVALID_JOB_ID);
     }
     else
     {
-      SubmitStatusHandler subJobSubmitStatusHandler =
+      JobResult::SubmitStatusHandler subJobSubmitStatusHandler =
           std::bind(&SubJob::handleSubmitStatus, std::dynamic_pointer_cast<SubJob>(shared_from_this()),
                     std::placeholders::_1, submitStatusHandler, result.getNonce());
       jobResultHandler_(getAssignedWorker(), result, subJobSubmitStatusHandler);
@@ -115,10 +101,10 @@ public:
   }
 
 private:
-  void handleSubmitStatus(SubmitStatus submitStatus, SubmitStatusHandler handler, uint32_t nonce)
+  void handleSubmitStatus(JobResult::SubmitStatus submitStatus, JobResult::SubmitStatusHandler handler, uint32_t nonce)
   {
     std::cout << __PRETTY_FUNCTION__ << " " << submitStatus << std::endl;
-    if (submitStatus == SUBMIT_ACCEPTED)
+    if (submitStatus == JobResult::SUBMIT_ACCEPTED)
     {
       foundNonces_.insert(nonce);
     }
@@ -176,7 +162,7 @@ private:
     {
       subJob = std::make_shared<SubJob>(*this);
       subJob->setNiceHash(nextNiceHash_++);
-      JobResultHandler modifyingJobResultHandler =
+      JobResult::Handler modifyingJobResultHandler =
         std::bind(&MasterJob::modifyAndSubmitResult, std::dynamic_pointer_cast<MasterJob>(shared_from_this()),
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
       subJob->setAssignedWorker(workerIdentifier);
@@ -188,7 +174,7 @@ private:
 
   void modifyAndSubmitResult(const WorkerIdentifier& workerIdentifier,
                              const JobResult& result,
-                             const SubmitStatusHandler& submitStatusHandler)
+                             const JobResult::SubmitStatusHandler& submitStatusHandler)
   {
     JobResult modifiedResult = result;
     modifiedResult.setJobId(getJobId());

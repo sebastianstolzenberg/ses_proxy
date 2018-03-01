@@ -54,7 +54,7 @@ stratum::Job Job::asStratumJob() const
   return stratum::Job(boost::uuids::to_string(assignedWorker_), jobId_, blobHex, targetHex);
 }
 
-void Job::setJobResultHandler(const Job::JobResultHandler& jobResultHandler)
+void Job::setJobResultHandler(const JobResult::Handler& jobResultHandler)
 {
   jobResultHandler_ = jobResultHandler;
 }
@@ -73,7 +73,7 @@ bool Job::isValid() const
 }
 
 void Job::submitResult(const JobResult& result,
-                       const SubmitStatusHandler& submitStatusHandler)
+                       const JobResult::SubmitStatusHandler& submitStatusHandler)
 {
   submitResult(assignedWorker_, result, submitStatusHandler);
 }
@@ -125,13 +125,13 @@ uint64_t Job::getTarget() const
 
 void Job::submitResult(const WorkerIdentifier& workerIdentifier,
                        const JobResult& result,
-                       const SubmitStatusHandler& submitStatusHandler)
+                       const JobResult::SubmitStatusHandler& submitStatusHandler)
 {
   if (!jobResultHandler_)
   {
     if (submitStatusHandler)
     {
-      submitStatusHandler(SUBMIT_REJECTED_INVALID_JOB_ID);
+      submitStatusHandler(JobResult::SUBMIT_REJECTED_INVALID_JOB_ID);
     }
   }
   else

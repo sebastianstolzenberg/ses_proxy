@@ -13,7 +13,7 @@
 #include "net/connection.hpp"
 #include "stratum/stratum.hpp"
 #include "proxy/algorithm.hpp"
-#include "proxy/job.hpp"
+#include "proxy/jobtemplate.hpp"
 #include "proxy/worker.hpp"
 
 namespace ses {
@@ -54,16 +54,16 @@ private:
   void handleGetJobSuccess(const stratum::Job& job);
   void handleGetJobError(int code, const std::string& message);
 
-  void handleSubmitSuccess(const std::string& jobId, const Job::SubmitStatusHandler& submitStatusHandler,
+  void handleSubmitSuccess(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                            const std::string& status);
-  void handleSubmitError(const std::string& jobId, const Job::SubmitStatusHandler& submitStatusHandler,
+  void handleSubmitError(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                          int code, const std::string& message);
 
   void handleNewJob(const stratum::Job& job);
 
-  Job::SubmitStatus handleJobResult(const WorkerIdentifier& workerIdentifier,
-                                    const JobResult& jobResult,
-                                    const Job::SubmitStatusHandler& submitStatusHandler);
+  JobResult::SubmitStatus handleJobResult(const WorkerIdentifier& workerIdentifier,
+                                          const JobResult& jobResult,
+                                          const JobResult::SubmitStatusHandler& submitStatusHandler);
 
 private:
 
@@ -76,11 +76,11 @@ private:
   };
   RequestIdentifier sendRequest(RequestType type, const std::string& params = "");
   void setJob(const stratum::Job& job);
-  void activateJob(const MasterJob::Ptr& job);
+  void activateJob(const JobTemplate::Ptr& job);
   void removeJob(const std::string& jobId);
   bool assignJobToWorker(const Worker::Ptr& worker);
   void login();
-  void submit(const JobResult& jobResult, const Job::SubmitStatusHandler& submitStatusHandler);
+  void submit(const JobResult& jobResult, const JobResult::SubmitStatusHandler& submitStatusHandler);
 
 private:
   std::recursive_mutex mutex_;
@@ -90,11 +90,12 @@ private:
   net::Connection::Ptr connection_;
   RequestIdentifier nextRequestIdentifier_ = 1;
   std::unordered_map<RequestIdentifier, RequestType> outstandingRequests_;
-  std::unordered_map<RequestIdentifier, std::tuple<std::string, Job::SubmitStatusHandler> > outstandingSubmits_;
+  std::unordered_map<RequestIdentifier,
+    std::tuple<std::string, JobResult::SubmitStatusHandler> > outstandingSubmits_;
 
   std::string workerIdentifier_;
-  MasterJob::Ptr activeJob_;
-  std::map<std::string, MasterJob::Ptr> jobs_;
+  JobTemplate::Ptr activeJobTemplate_;
+  std::map<std::string, JobTemplate::Ptr> jobTemplates_;
 
   std::list<Worker::Ptr> worker_;
 };

@@ -5,6 +5,7 @@
 #include <boost/noncopyable.hpp>
 
 #include "proxy/job.hpp"
+#include "proxy/jobtemplate.hpp"
 #include "proxy/workeridentifier.hpp"
 #include "proxy/algorithm.hpp"
 
@@ -24,6 +25,8 @@ public:
   virtual WorkerIdentifier getIdentifier() const = 0;
   virtual Algorithm getAlgorithm() const = 0;
   virtual void assignJob(const Job::Ptr& job) = 0;
+  virtual bool canHandleJobTemplates() const;
+  virtual void assignJobTemplate(const JobTemplate::Ptr& job);
 };
 
 } // namespace proxy

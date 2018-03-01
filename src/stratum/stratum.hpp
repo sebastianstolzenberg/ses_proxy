@@ -42,8 +42,10 @@ typedef std::function<void(const Job& job)> GetJobSuccessHandler;
 void parseGetJobResponse(const std::string& result, const std::string& error,
                          GetJobSuccessHandler successHandler, ErrorHandler errorHandler);
 
-std::string createSubmitRequest(const std::string& id, const std::string& jobId,
-                                const std::string& nonce, const std::string& result);
+std::string createJobSubmitRequest(const std::string& id, const std::string& jobId,
+                                   const std::string& nonce, const std::string& result);
+std::string createJobTemplateSubmitRequest(const std::string& jobId, const std::string& nonce, const std::string& result,
+                                           const std::string& workerNonce, const std::string& poolNonce);
 typedef std::function<void(const std::string& status)> SubmitSuccessHandler;
 void parseSubmitResponse(const std::string& result, const std::string& error,
                          SubmitSuccessHandler successHandler, ErrorHandler errorHandler);

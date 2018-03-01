@@ -157,15 +157,26 @@ void parseGetJobResponse(const std::string& result, const std::string& error,
   }
 }
 
-std::string createSubmitRequest(const std::string& id, const std::string& jobId,
-                                const std::string& nonce, const std::string& result)
+std::string createJobSubmitRequest(const std::string& id, const std::string& jobId,
+                                      const std::string& nonce, const std::string& result)
 {
   pt::ptree tree;
   tree.put("id", id);
   tree.put("job_id", jobId);
   tree.put("nonce", nonce);
   tree.put("result", result);
-  //TODO workerNonce poolNonce
+  return util::boostpropertytree::ptreeToString(tree);
+}
+
+std::string createJobTemplateSubmitRequest(const std::string& jobId, const std::string& nonce, const std::string& result,
+                                           const std::string& workerNonce, const std::string& poolNonce)
+{
+  pt::ptree tree;
+  tree.put("job_id", jobId);
+  tree.put("nonce", nonce);
+  tree.put("result", result);
+  tree.put("workerNonce", workerNonce);
+  tree.put("poolNonce", poolNonce);
   return util::boostpropertytree::ptreeToString(tree);
 }
 

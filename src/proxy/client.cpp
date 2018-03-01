@@ -158,6 +158,7 @@ void Client::handleSubmit(const std::string& jsonRequestId,
                           const std::string& identifier, const std::string& jobIdentifier,
                           const std::string& nonce, const std::string& result)
 {
+  //TODO extend for JobTemplate receiver
   std::cout << __PRETTY_FUNCTION__ << std::endl
             << " identifier = " << identifier << std::endl
             << " jobIdentifier = " << jobIdentifier << std::endl
@@ -189,35 +190,35 @@ void Client::handleUnknownMethod(const std::string& jsonRequestId)
   sendErrorResponse(jsonRequestId, "invalid method");
 }
 
-void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, Job::SubmitStatus submitStatus)
+void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::SubmitStatus submitStatus)
 {
   switch (submitStatus)
   {
-    case Job::SUBMIT_REJECTED_IP_BANNED:
+    case JobResult::SUBMIT_REJECTED_IP_BANNED:
       sendErrorResponse(jsonRequestId, "IP Address currently banned");
       break;
 
-    case Job::SUBMIT_REJECTED_UNAUTHENTICATED:
+    case JobResult::SUBMIT_REJECTED_UNAUTHENTICATED:
       sendErrorResponse(jsonRequestId, "Unauthenticated");
       break;
 
-    case Job::SUBMIT_REJECTED_DUPLICATE:
+    case JobResult::SUBMIT_REJECTED_DUPLICATE:
       sendErrorResponse(jsonRequestId, "Duplicate share");
       break;
 
-    case Job::SUBMIT_REJECTED_EXPIRED:
+    case JobResult::SUBMIT_REJECTED_EXPIRED:
       sendErrorResponse(jsonRequestId, "Block expired");
       break;
 
-    case Job::SUBMIT_REJECTED_INVALID_JOB_ID:
+    case JobResult::SUBMIT_REJECTED_INVALID_JOB_ID:
       sendErrorResponse(jsonRequestId, "Invalid job id");
       break;
 
-    case Job::SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE:
+    case JobResult::SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE:
       sendErrorResponse(jsonRequestId, "Low difficulty share");
       break;
 
-    case Job::SUBMIT_ACCEPTED:
+    case JobResult::SUBMIT_ACCEPTED:
     default:
       sendSuccessResponse(jsonRequestId, "OK");
       break;

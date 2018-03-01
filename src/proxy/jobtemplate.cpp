@@ -45,10 +45,10 @@ void JobTemplate::setJobResultHandler(const JobResult::Handler& jobResultHandler
 
 bool JobTemplate::canCreateSubjacentTemplates() const
 {
-return false;
+  return false;
 }
 
-JobTemplate::Ptr JobTemplate::getNextSubjacentTemplate()
+JobTemplate::Ptr JobTemplate::getSubjacentTemplateFor(const WorkerIdentifier&)
 {
   // not supported, returns an null pointer
   return JobTemplate::Ptr();
@@ -59,21 +59,48 @@ JobTemplate::Ptr JobTemplate::getNextSubjacentTemplate()
 class WorkerJobTemplate : public JobTemplate
 {
 public:
+  WorkerJobTemplate(const stratum::Job& stratumJob)
+  {
+
+  }
+
   ~WorkerJobTemplate()
   {
   }
 
-  Job::Ptr getNextJobFor(const WorkerIdentifier& workerIdentifier) override
+  Job::Ptr getJobFor(const WorkerIdentifier& workerIdentifier) override
   {
     //TODO implement
     return Job::Ptr();
   }
+
+protected:
+  std::vector<uint8_t> blob_;
+
+
+  std::string jobId_;
+
+  uint32_t reservedOffset_;
+  uint32_t clientNonceOffset_;
+  uint32_t clientPoolOffset_;
+
+  uint64_t difficulty_;
+  uint32_t height_;
+  uint64_t targetDiff_;
+
 };
 
 // For pool templates which can be broken down into several WorkerJobTemplates
 class MasterJobTemplate : public WorkerJobTemplate
 {
 public:
+  MasterJobTemplate(const stratum::Job& stratumJob)
+    : WorkerJobTemplate(stratumJob)
+  {
+
+  }
+
+
   ~MasterJobTemplate()
   {
   }
@@ -83,7 +110,7 @@ public:
     return true;
   }
 
-  JobTemplate::Ptr getNextSubjacentTemplate() override
+  JobTemplate::Ptr getSubjacentTemplateFor(const WorkerIdentifier& workerIdentifier) override
   {
     // not supported
     return JobTemplate::Ptr();
@@ -96,11 +123,14 @@ class NiceHashJobTemplate : public JobTemplate
 {
 public:
   NiceHashJobTemplate()
+  {
+  }
+
   ~NiceHashJobTemplate()
   {
   }
 
-  Job::Ptr getNextJobFor(const WorkerIdentifier& workerIdentifier) override
+  Job::Ptr getJobFor(const WorkerIdentifier& workerIdentifier) override
   {
     //TODO implement
     return Job::Ptr();
@@ -119,7 +149,7 @@ public:
   {
   }
 
-  Job::Ptr getNextJobFor(const WorkerIdentifier& workerIdentifier) override
+  Job::Ptr getJobFor(const WorkerIdentifier& workerIdentifier) override
   {
     //TODO implement
     return Job::Ptr();
