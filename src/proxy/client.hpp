@@ -26,7 +26,6 @@ class Client : public Worker,
 {
 public:
   typedef std::shared_ptr<Client> Ptr;
-//  typedef std::function<void()>
 
 public:
   Client(const WorkerIdentifier& id, Algorithm defaultAlgorithm);
@@ -37,6 +36,8 @@ public: // from Worker
   WorkerIdentifier getIdentifier() const override;
   Algorithm getAlgorithm() const override;
   void assignJob(const Job::Ptr& job) override;
+  bool canHandleJobTemplates() const override;
+  void assignJobTemplate(const JobTemplate::Ptr& job) override;
 
 public:
   const std::string& getUseragent() const;
@@ -52,7 +53,8 @@ private:
   void handleGetJob(const std::string& jsonRequestId);
   void handleSubmit(const std::string& jsonRequestId,
                     const std::string& identifier, const std::string& jobIdentifier,
-                    const std::string& nonce, const std::string& result);
+                    const std::string& nonce, const std::string& result,
+                    const std::string& workerNonce, const std::string& poolNonce);
   void handleKeepAliveD(const std::string& jsonRequestId, const std::string& identifier);
   void handleUnknownMethod(const std::string& jsonRequestId);
 
@@ -72,12 +74,17 @@ private:
 
   WorkerIdentifier identifier_;
   Algorithm algorithm_;
+
+  enum Type { UNKNOWN, MINER, PROXY } type_;
   std::string useragent_;
   std::string username_;
   std::string password_;
 
   Job::Ptr currentJob_;
   std::map<std::string, Job::Ptr> jobs_;
+
+  JobTemplate::Ptr currentJobTemplate_;
+  std::map<std::string, JobTemplate::Ptr> jobTemplates_;
 
 //  std::string subscribedExtraNone1_;
 //  Difficulty suggestedDifficulty_;

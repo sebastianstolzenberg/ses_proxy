@@ -26,10 +26,10 @@ public:
   const std::string& getBlob() const;
   const std::string& getTarget() const;
 
-  const std::string& getBlocktemplate_blob() const;
+  const std::string& getBlocktemplateBlob() const;
   const std::string& getDifficulty() const;
   const std::string& getHeight() const;
-  const std::string& getReserved_offset() const;
+  const std::string& getReservedOffset() const;
   const std::string& getClientNonceOffset() const;
   const std::string& getClientPoolOffset() const;
   const std::string& getTargetDiff() const;

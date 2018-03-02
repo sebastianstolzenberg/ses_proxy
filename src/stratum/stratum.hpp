@@ -16,8 +16,10 @@ namespace server {
 typedef std::function<void(const std::string& jsonRequestId, const std::string& login,
                            const std::string& pass, const std::string& agent)> LoginHandler;
 typedef std::function<void(const std::string& jsonRequestId)> GetJobHandler;
-typedef std::function<void(const std::string& jsonRequestId, const std::string& identifier, const std::string& jobIdentifier,
-                           const std::string& nonce, const std::string& result)> SubmitHandler;
+typedef std::function<void(const std::string& jsonRequestId, const std::string& identifier,
+                           const std::string& jobIdentifier, const std::string& nonce,
+                           const std::string& result, const std::string& workerNonce,
+                           const std::string& poolNonce)> SubmitHandler;
 typedef std::function<void(const std::string& jsonRequestId, const std::string& identifier)> KeepAliveDHandler;
 typedef std::function<void(const std::string& jsonRequestId)> UnknownMethodHandler;
 
@@ -42,10 +44,11 @@ typedef std::function<void(const Job& job)> GetJobSuccessHandler;
 void parseGetJobResponse(const std::string& result, const std::string& error,
                          GetJobSuccessHandler successHandler, ErrorHandler errorHandler);
 
-std::string createJobSubmitRequest(const std::string& id, const std::string& jobId,
-                                   const std::string& nonce, const std::string& result);
-std::string createJobTemplateSubmitRequest(const std::string& jobId, const std::string& nonce, const std::string& result,
-                                           const std::string& workerNonce, const std::string& poolNonce);
+std::string createSubmitRequest(const std::string& id, const std::string& jobId,
+                                const std::string& nonce, const std::string& result,
+                                const std::string& workerNonce = "",
+                                const std::string& poolNonce = "");
+
 typedef std::function<void(const std::string& status)> SubmitSuccessHandler;
 void parseSubmitResponse(const std::string& result, const std::string& error,
                          SubmitSuccessHandler successHandler, ErrorHandler errorHandler);

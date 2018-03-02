@@ -59,12 +59,6 @@ void Job::setJobResultHandler(const JobResult::Handler& jobResultHandler)
   jobResultHandler_ = jobResultHandler;
 }
 
-void Job::invalidate()
-{
-  blob_.clear();
-  target_ = 0;
-}
-
 bool Job::isValid() const
 {
   const size_t BLOB_SIZE_MAX = 84;

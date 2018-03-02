@@ -11,7 +11,7 @@ namespace ses {
 namespace proxy {
 
 Client::Client(const WorkerIdentifier& id, Algorithm defaultAlgorithm)
-  : identifier_(id), algorithm_(defaultAlgorithm)
+  : identifier_(id), algorithm_(defaultAlgorithm), type_(Type::UNKNOWN)
 {
 }
 
@@ -53,6 +53,23 @@ void Client::assignJob(const Job::Ptr& job)
   }
 }
 
+bool Client::canHandleJobTemplates() const
+{
+  return type_ == Type::PROXY;
+}
+
+void Client::assignJobTemplate(const JobTemplate::Ptr& job)
+{
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  if (job)
+  {
+    //job->setAssignedWorker(identifier_);
+    jobTemplates_[job->getJobId()] = job;
+    currentJobTemplate_ = job;
+    sendJobNotification();
+  }
+}
+
 const std::string& Client::getUseragent() const
 {
   return useragent_;
@@ -83,7 +100,7 @@ void Client::handleReceived(char* data, std::size_t size)
       stratum::server::parseRequest(id, method, params,
                                     std::bind(&Client::handleLogin, this, _1, _2, _3, _4),
                                     std::bind(&Client::handleGetJob, this, _1),
-                                    std::bind(&Client::handleSubmit, this, _1, _2, _3, _4, _5),
+                                    std::bind(&Client::handleSubmit, this, _1, _2, _3, _4, _5, _6, _7),
                                     std::bind(&Client::handleKeepAliveD, this, _1, _2),
                                     std::bind(&Client::handleUnknownMethod, this, _1));
     },
@@ -126,6 +143,19 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
     username_ = login;
     password_ = pass;
 
+    if (useragent_.find("xmr-node-proxy") != std::string::npos)
+    {
+      type_ = Type::PROXY;
+    }
+    else
+    {
+      type_ = Type::MINER;
+    }
+    //TODO agent can contain "NiceHash", which asks for a certain difficulty (check nodejs code)
+
+    //TODO login parsing: <wallet>[.<payment id>][+<difficulty>]
+    //TODO password parsing: <identifier>[:<email>]
+
     std::string responseResult =
       stratum::server::createLoginResponse(boost::uuids::to_string(identifier_),
                                            currentJob_ ? currentJob_->asStratumJob() : std::optional<stratum::Job>());
@@ -156,14 +186,17 @@ void Client::handleGetJob(const std::string& jsonRequestId)
 
 void Client::handleSubmit(const std::string& jsonRequestId,
                           const std::string& identifier, const std::string& jobIdentifier,
-                          const std::string& nonce, const std::string& result)
+                          const std::string& nonce, const std::string& result,
+                          const std::string& workerNonce, const std::string& poolNonce)
 {
   //TODO extend for JobTemplate receiver
   std::cout << __PRETTY_FUNCTION__ << std::endl
             << " identifier = " << identifier << std::endl
             << " jobIdentifier = " << jobIdentifier << std::endl
             << " nonce = " << nonce << std::endl
-            << " result = " << result << std::endl;
+            << " result = " << result << std::endl
+            << " workerNonce = " << workerNonce << std::endl
+            << " poolNonce = " << poolNonce << std::endl;
 
   auto jobIt = jobs_.find(jobIdentifier);
   if (jobIt != jobs_.end())

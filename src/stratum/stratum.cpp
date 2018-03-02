@@ -26,7 +26,9 @@ void parseSubmit(const std::string& jsonRequestId, const std::string& params, Su
   auto jobIdentifier = tree.get<std::string>("job_id", "");
   auto nonce = tree.get<std::string>("nonce", "");
   auto result = tree.get<std::string>("result", "");
-  handler(jsonRequestId, identifier, jobIdentifier, nonce, result);
+  auto workerNonce = tree.get<std::string>("nonce", "");
+  auto poolNonce = tree.get<std::string>("result", "");
+  handler(jsonRequestId, identifier, jobIdentifier, nonce, result, workerNonce, poolNonce);
 }
 
 void parseKeepaliveD(const std::string& jsonRequestId, const std::string& params, KeepAliveDHandler& handler)
@@ -34,6 +36,29 @@ void parseKeepaliveD(const std::string& jsonRequestId, const std::string& params
   auto tree = util::boostpropertytree::stringToPtree(params);
   auto identifier = tree.get<std::string>("id", "");
   handler(jsonRequestId, identifier);
+}
+
+pt::ptree getJobTree(const Job& job)
+{
+  pt::ptree tree;
+  tree.put("id", job.getId());
+  tree.put("job_id", job.getJobId());
+  if (job.isBlockTemplate())
+  {
+    tree.put("blocktemplate_blob", job.getBlocktemplateBlob());
+    tree.put("difficulty", job.getDifficulty());
+    tree.put("height", job.getHeight());
+    tree.put("reserved_offset", job.getReservedOffset());
+    tree.put("client_nonce_offset", job.getClientNonceOffset());
+    tree.put("client_pool_offset", job.getClientPoolOffset());
+    tree.put("target_diff", job.getTargetDiffHex());
+  }
+  else
+  {
+    tree.put("blob", job.getBlob());
+    tree.put("target", job.getTarget());
+  }
+  return tree;
 }
 }
 
@@ -69,10 +94,7 @@ std::string createLoginResponse(const std::string& id, const std::optional<Job>&
   tree.put("id", id);
   if (job)
   {
-    tree.put("job.blob", job->getBlob());
-    tree.put("job.job_id", job->getJobId());
-    tree.put("job.target", job->getTarget());
-    tree.put("job.id", job->getId());
+    tree.put_child("job", getJobTree(*job));
   }
   tree.put("status", "OK");
   return util::boostpropertytree::ptreeToString(tree);
@@ -80,12 +102,7 @@ std::string createLoginResponse(const std::string& id, const std::optional<Job>&
 
 std::string createJobNotification(const Job& job)
 {
-  pt::ptree tree;
-  tree.put("blob", job.getBlob());
-  tree.put("job_id", job.getJobId());
-  tree.put("target", job.getTarget());
-  tree.put("id", job.getId());
-  return util::boostpropertytree::ptreeToString(tree);
+  return util::boostpropertytree::ptreeToString(getJobTree(job));
 }
 
 } // namespace server
@@ -157,27 +174,25 @@ void parseGetJobResponse(const std::string& result, const std::string& error,
   }
 }
 
-std::string createJobSubmitRequest(const std::string& id, const std::string& jobId,
-                                      const std::string& nonce, const std::string& result)
+std::string createSubmitRequest(const std::string& id, const std::string& jobId,
+                                const std::string& nonce, const std::string& result,
+                                const std::string& workerNonce, const std::string& poolNonce)
 {
   pt::ptree tree;
   tree.put("id", id);
   tree.put("job_id", jobId);
   tree.put("nonce", nonce);
   tree.put("result", result);
+  if (!workerNonce.empty())
+  {
+    tree.put("workerNonce", workerNonce);
+  }
+  if (!poolNonce.empty())
+  {
+    tree.put("poolNonce", poolNonce);
+  }
   return util::boostpropertytree::ptreeToString(tree);
-}
 
-std::string createJobTemplateSubmitRequest(const std::string& jobId, const std::string& nonce, const std::string& result,
-                                           const std::string& workerNonce, const std::string& poolNonce)
-{
-  pt::ptree tree;
-  tree.put("job_id", jobId);
-  tree.put("nonce", nonce);
-  tree.put("result", result);
-  tree.put("workerNonce", workerNonce);
-  tree.put("poolNonce", poolNonce);
-  return util::boostpropertytree::ptreeToString(tree);
 }
 
 void parseSubmitResponse(const std::string& result, const std::string& error,

@@ -337,7 +337,7 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     //TODO job template specific response
     RequestIdentifier id =
       sendRequest(REQUEST_TYPE_SUBMIT,
-                stratum::client::createJobSubmitRequest(workerIdentifier_, jobIt->second->getJobId(),
+                stratum::client::createSubmitRequest(workerIdentifier_, jobIt->second->getJobId(),
                                                      jobResult.getNonceHexString(),
                                                      jobResult.getHashHexString()));
     if (id != 0)

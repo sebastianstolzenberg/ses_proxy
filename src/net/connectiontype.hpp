@@ -8,6 +8,8 @@
 namespace ses {
 namespace net {
 
+//TODO http proxy traversal
+
 enum ConnectionType
 {
   CONNECTION_TYPE_AUTO,

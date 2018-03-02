@@ -53,7 +53,7 @@ const std::string& Job::getTarget() const
   return target_;
 }
 
-const std::string& Job::getBlocktemplate_blob() const
+const std::string& Job::getBlocktemplateBlob() const
 {
   return blocktemplateBlob_;
 }
@@ -68,7 +68,7 @@ const std::string& Job::getHeight() const
   return height_;
 }
 
-const std::string& Job::getReserved_offset() const
+const std::string& Job::getReservedOffset() const
 {
   return reservedOffset_;
 }

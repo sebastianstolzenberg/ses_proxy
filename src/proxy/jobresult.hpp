@@ -38,19 +38,21 @@ public:
   JobResult(const std::string& jobId, const std::string& nonce, const std::string& hash);
 
   JobResult(const std::string& btId, const std::string& nonce, const std::string& resultHash,
-            const std::string& workerNonce);
+            const std::string& workerNonce, const std::string& poolNonce);
 
   bool isNodeJsResult() const;
 
   std::string getNonceHexString() const;
   std::string getHashHexString() const;
   std::string getWorkerNonceHexString() const;
+  std::string getPoolNonceHexString() const;
 
   const std::string& getJobId() const;
   void setJobId(const std::string& jobId);
   uint32_t getNonce() const;
   const Hash& getHash() const;
   uint32_t getWorkerNonce() const;
+  uint32_t getPoolNonce() const;
 
   uint8_t getNiceHash() const;
 
@@ -59,6 +61,7 @@ private:
   uint32_t nonce_;
   Hash hash_;
   uint32_t workerNonce_;
+  uint32_t poolNonce_;
   bool isNodeJsResult_;
 };
 

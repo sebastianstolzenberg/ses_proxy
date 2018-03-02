@@ -23,18 +23,24 @@ public:
   typedef std::shared_ptr<Job> Ptr;
 
 public:
-  Job(const stratum::Job& stratumJob);
+  Job(const stratum::Job& stratumJob)
+  {
+    //TODO generate random job id
+  }
+
+  virtual ~Job() = default;
 
   void setJobResultHandler(const JobResult::Handler& jobResultHandler);
 
-  void invalidate();
   bool isValid() const;
 
   virtual void submitResult(const JobResult& result,
                             const JobResult::SubmitStatusHandler& submitStatusHandler);
-  virtual size_t numHashesFound() const = 0;
 
-  stratum::Job asStratumJob() const;
+  size_t numHashesFound() const;
+
+  virtual stratum::Job asStratumJob() const = 0;
+
   uint32_t getNonce() const;
   void setNonce(uint32_t nonce);
   uint8_t getNiceHash() const;
@@ -47,6 +53,7 @@ public:
   uint64_t getTarget() const;
 
 protected:
+  Job() = default;
   void submitResult(const WorkerIdentifier& workerIdentifier,
                     const JobResult& result,
                     const JobResult::SubmitStatusHandler& submitStatusHandler);
@@ -57,6 +64,47 @@ protected:
   std::string jobId_;
   std::vector<uint8_t> blob_;
   uint64_t target_;
+};
+
+class MinerJob : public Job
+{
+public:
+  MinerJob(const std::vector<uint8_t>& blob, uint64_t target)
+    : blob_(blob), target_(target)
+  {
+
+  }
+
+  stratum::Job asStratumJob() const override;
+
+private:
+  std::vector<uint8_t> blob_;
+  uint64_t target_;
+};
+
+class ProxyJob : public Job
+{
+public:
+  ProxyJob(const std::vector<uint8_t>& blobTemplate, uint64_t difficulty, uint32_t height,
+           uint32_t reservedOffset, uint32_t clientNonceOffset, uint32_t clientPoolOffset,
+           uint64_t targetDiff)
+    : blobTemplate_(blobTemplate) , difficulty_(difficulty), height_(height),
+      reservedOffset_(reservedOffset), clientNonceOffset_(clientNonceOffset),
+      clientPoolOffset_(clientPoolOffset), targetDiff_(targetDiff)
+  {
+
+  }
+
+  stratum::Job asStratumJob() const override;
+
+private:
+  std::vector<uint8_t> blobTemplate_;
+  uint64_t difficulty_;
+  uint32_t height_;
+  uint32_t reservedOffset_;
+  uint32_t clientNonceOffset_;
+  uint32_t clientPoolOffset_;
+  uint64_t targetDiff_;
 };
 
 class SubJob : public Job
