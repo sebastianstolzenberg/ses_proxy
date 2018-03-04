@@ -38,9 +38,19 @@ const std::string& Job::getId() const
   return id_;
 }
 
-const std::string& Job::getJobId() const
+void Job::setId(const std::string& id)
+{
+  id_ = id;
+}
+
+const std::string& Job::getJobIdentifier() const
 {
   return jobId_;
+}
+
+void Job::setJobIdentifier(const std::string& jobId)
+{
+  jobId_ = jobId;
 }
 
 const std::string& Job::getBlob() const
@@ -63,9 +73,19 @@ const std::string& Job::getDifficulty() const
   return difficulty_;
 }
 
+void Job::setDifficulty(const std::string& difficulty)
+{
+  difficulty_ = difficulty;
+}
+
 const std::string& Job::getHeight() const
 {
   return height_;
+}
+
+void Job::setHeight(const std::string& height)
+{
+  height_ = height;
 }
 
 const std::string& Job::getReservedOffset() const
@@ -73,14 +93,29 @@ const std::string& Job::getReservedOffset() const
   return reservedOffset_;
 }
 
+void Job::setReservedOffset(const std::string& reservedOffset)
+{
+  reservedOffset_ = reservedOffset;
+}
+
 const std::string& Job::getClientNonceOffset() const
 {
   return clientNonceOffset_;
 }
 
+void Job::setClientNonceOffset(const std::string& clientNonceOffset)
+{
+  clientNonceOffset_ = clientNonceOffset;
+}
+
 const std::string& Job::getClientPoolOffset() const
 {
   return clientPoolOffset_;
+}
+
+void Job::setClientPoolOffset(const std::string& clientPoolOffset)
+{
+  clientPoolOffset_ = clientPoolOffset;
 }
 
 const std::string& Job::getTargetDiff() const

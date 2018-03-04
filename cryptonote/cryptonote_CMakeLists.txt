@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.9)
+project(node-cryptonode-util)
+
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(Boost REQUIRED system date_time)
+
+add_library(cryptonote
+        STATIC
+        src/main.cc
+        src/cryptonote_core/cryptonote_format_utils.cpp
+        src/crypto/tree-hash.c
+        src/crypto/hash.c
+        src/crypto/keccak.c
+        src/common/base58.cpp)
+
+target_include_directories(cryptonote
+        PUBLIC src
+        PUBLIC src/contrib/epee/include)
+
+target_link_libraries(cryptonote
+        Boost::system
+        Boost::date_time)
+
+set_target_properties(cryptonote PROPERTIES CXX_FLAGS "-fexceptions -frtti")

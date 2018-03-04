@@ -1,5 +1,4 @@
-#ifndef SES_STRATUM_JOB_HPP
-#define SES_STRATUM_JOB_HPP
+#pragma once
 
 #include <string>
 #include <vector>
@@ -11,8 +10,13 @@ namespace stratum {
 class Job
 {
 public:
+  Job() = default;
   Job(const std::string& id, const std::string& jobId, const std::string& blobHexString,
       const std::string& targetHexString);
+
+  Job(const std::string& blocktemplate_blob,
+      const std::string& difficulty, const std::string& height,
+      const std::string& reserved_offset, const std::string& client_nonce_offset);
 
   Job(const std::string& id, const std::string& jobId, const std::string& blobHexString,
       const std::string& targetHexString,
@@ -22,16 +26,28 @@ public:
       const std::string& job_id);
 
   const std::string& getId() const;
-  const std::string& getJobId() const;
-  const std::string& getBlob() const;
-  const std::string& getTarget() const;
+  void setId(const std::string& id);
 
+  const std::string& getJobIdentifier() const;
+  void setJobIdentifier(const std::string& jobId);
+  const std::string& getBlob() const;
+
+  const std::string& getTarget() const;
+  void setTarget(const std::string& target);
   const std::string& getBlocktemplateBlob() const;
+
   const std::string& getDifficulty() const;
+  void setDifficulty(const std::string& difficulty);
   const std::string& getHeight() const;
+  void setHeight(const std::string& height);
+
   const std::string& getReservedOffset() const;
+  void setReservedOffset(const std::string& reservedOffset);
   const std::string& getClientNonceOffset() const;
+  void setClientNonceOffset(const std::string& clientNonceOffset);
   const std::string& getClientPoolOffset() const;
+  void setClientPoolOffset(const std::string& clientPoolOffset);
+
   const std::string& getTargetDiff() const;
   const std::string& getTargetDiffHex() const;
 
@@ -56,5 +72,3 @@ private:
 
 } // namespace stratum
 } // namespace ses
-
-#endif //SES_STRATUM_JOB_HPP

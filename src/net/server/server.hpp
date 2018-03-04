@@ -1,9 +1,4 @@
-//
-// Created by ses on 16.02.18.
-//
-
-#ifndef SES_NET_SERVER_SERVER_HPP
-#define SES_NET_SERVER_SERVER_HPP
+#pragma once
 
 #include <string>
 #include <memory>
@@ -34,5 +29,3 @@ Server::Ptr createServer(const NewConnectionHandler& handler, const EndPoint& en
 } //namespace server
 } //namespace net
 } //namespace ses
-
-#endif //SES_NET_SERVER_SERVER_HPP

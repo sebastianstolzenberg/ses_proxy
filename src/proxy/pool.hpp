@@ -1,9 +1,4 @@
-//
-// Created by ses on 18.02.18.
-//
-
-#ifndef SES_PROXY_POOL_HPP
-#define SES_PROXY_POOL_HPP
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -102,5 +97,3 @@ private:
 
 } // namespace proxy
 } // namespace ses
-
-#endif //SES_PROXY_POOL_HPP

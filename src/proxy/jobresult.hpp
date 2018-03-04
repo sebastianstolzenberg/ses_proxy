@@ -1,5 +1,4 @@
-#ifndef SES_PROXY_JOBRESULT_HPP
-#define SES_PROXY_JOBRESULT_HPP
+#pragma once
 
 #include <string>
 #include <array>
@@ -47,7 +46,7 @@ public:
   std::string getWorkerNonceHexString() const;
   std::string getPoolNonceHexString() const;
 
-  const std::string& getJobId() const;
+  const std::string& getJobIdentifier() const;
   void setJobId(const std::string& jobId);
   uint32_t getNonce() const;
   const Hash& getHash() const;
@@ -67,5 +66,3 @@ private:
 
 } // namespace proxy
 } // namespace ses
-
-#endif //SES_PROXY_JOBRESULT_HPP

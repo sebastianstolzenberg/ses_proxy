@@ -1,5 +1,4 @@
-#ifndef SES_PROXY_JOBTEMPLATE_HPP
-#define SES_PROXY_JOBTEMPLATE_HPP
+#pragma once
 
 #include <memory>
 #include <functional>
@@ -7,11 +6,12 @@
 #include "stratum/job.hpp"
 #include "proxy/job.hpp"
 #include "proxy/workeridentifier.hpp"
+#include "proxy/workertype.hpp"
 
 namespace ses {
 namespace proxy {
 
-class JobTemplate : public std::enable_shared_from_this<JobTemplate>
+class JobTemplate : public Job
 {
 public:
   typedef std::shared_ptr<JobTemplate> Ptr;
@@ -19,28 +19,16 @@ public:
 public:
   static JobTemplate::Ptr create(const stratum::Job& stratumJob);
 
-  void setJobResultHandler(const JobResult::Handler& jobResultHandler);
-
-  virtual bool canCreateSubjacentTemplates() const;
-  virtual JobTemplate::Ptr getSubjacentTemplateFor(const WorkerIdentifier& workerIdentifier);
+  virtual void setJobResultHandler(const JobResult::Handler& jobResultHandler) = 0;
 
   //TODO set difficulty
-  virtual Job::Ptr getJobFor(const WorkerIdentifier& workerIdentifier) = 0;
-
-  virtual size_t numHashesFound() const = 0;
-  virtual size_t currentHashRate() const = 0;
-
-  virtual std::string getJobId() const = 0;
+  virtual bool supportsWorkerType(WorkerType workerType) = 0;
+  virtual Job::Ptr getJobFor(const WorkerIdentifier& workerIdentifier, WorkerType workerType) = 0;
 
 protected:
   JobTemplate() = default;
   virtual ~JobTemplate() = default;
-
-protected:
-  JobResult::Handler jobResultHandler_;
 };
 
 } // namespace proxy
 } // namespace ses
-
-#endif //SES_PROXY_JOBTEMPLATE_HPP

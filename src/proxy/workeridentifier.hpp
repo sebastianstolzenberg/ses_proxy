@@ -1,6 +1,6 @@
-#ifndef SES_PROXY_WORKERIDENTIFIER_HPP
-#define SES_PROXY_WORKERIDENTIFIER_HPP
+#pragma once
 
+#include <string>
 #include <boost/uuid/uuid.hpp>
 
 namespace ses {
@@ -8,7 +8,8 @@ namespace proxy {
 
 typedef boost::uuids::uuid WorkerIdentifier;
 
+std::string toString(const WorkerIdentifier& workerIdentifier);
+WorkerIdentifier toWorkerIdentifier(const std::string& workerIdentifier);
+
 } // namespace proxy
 } // namespace ses
-
-#endif //SES_PROXY_WORKERIDENTIFIER_HPP

@@ -1,7 +1,5 @@
 
 #include <iostream>
-#include <boost/lexical_cast.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 #include "net/jsonrpc/jsonrpc.hpp"
 #include "stratum/stratum.hpp"
@@ -11,7 +9,7 @@ namespace ses {
 namespace proxy {
 
 Client::Client(const WorkerIdentifier& id, Algorithm defaultAlgorithm)
-  : identifier_(id), algorithm_(defaultAlgorithm), type_(Type::UNKNOWN)
+  : identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN)
 {
 }
 
@@ -41,13 +39,18 @@ Algorithm Client::getAlgorithm() const
   return algorithm_;
 }
 
+WorkerType Client::getType() const
+{
+  return type_;
+}
+
 void Client::assignJob(const Job::Ptr& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   if (job)
   {
-    job->setAssignedWorker(identifier_);
-    jobs_[job->getJobId()] = job;
+//    job->setAssignedWorker(identifier_);
+    jobs_[job->getJobIdentifier()] = job;
     currentJob_ = job;
     sendJobNotification();
   }
@@ -55,7 +58,7 @@ void Client::assignJob(const Job::Ptr& job)
 
 bool Client::canHandleJobTemplates() const
 {
-  return type_ == Type::PROXY;
+  return type_ == WorkerType::PROXY;
 }
 
 void Client::assignJobTemplate(const JobTemplate::Ptr& job)
@@ -64,7 +67,7 @@ void Client::assignJobTemplate(const JobTemplate::Ptr& job)
   if (job)
   {
     //job->setAssignedWorker(identifier_);
-    jobTemplates_[job->getJobId()] = job;
+    jobTemplates_[job->getJobIdentifier()] = job;
     currentJobTemplate_ = job;
     sendJobNotification();
   }
@@ -145,11 +148,11 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
 
     if (useragent_.find("xmr-node-proxy") != std::string::npos)
     {
-      type_ = Type::PROXY;
+      type_ = WorkerType::PROXY;
     }
     else
     {
-      type_ = Type::MINER;
+      type_ = WorkerType::MINER;
     }
     //TODO agent can contain "NiceHash", which asks for a certain difficulty (check nodejs code)
 

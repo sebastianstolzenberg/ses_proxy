@@ -1,9 +1,4 @@
-//
-// Created by ses on 24.02.18.
-//
-
-#ifndef SES_PROXY_PROXY_HPP
-#define SES_PROXY_PROXY_HPP
+#pragma once
 
 #include <list>
 #include <memory>
@@ -35,5 +30,3 @@ private:
 
 } // namespace proxy
 } // namespace ses
-
-#endif //SES_PROXY_PROXY_HPP

@@ -1,5 +1,4 @@
-#ifndef SES_STRATUM_STRATUM_HPP
-#define SES_STRATUM_STRATUM_HPP
+#pragma once
 
 #include <string>
 #include <vector>
@@ -59,5 +58,3 @@ void parseNotification(const std::string& method, const std::string& params, New
 
 } // namespace stratum
 } // namespace ses
-
-#endif //SES_STRATUM_STRATUM_HPP

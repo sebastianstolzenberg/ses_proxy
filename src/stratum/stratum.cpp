@@ -26,8 +26,8 @@ void parseSubmit(const std::string& jsonRequestId, const std::string& params, Su
   auto jobIdentifier = tree.get<std::string>("job_id", "");
   auto nonce = tree.get<std::string>("nonce", "");
   auto result = tree.get<std::string>("result", "");
-  auto workerNonce = tree.get<std::string>("nonce", "");
-  auto poolNonce = tree.get<std::string>("result", "");
+  auto workerNonce = tree.get<std::string>("workerNonce", "");
+  auto poolNonce = tree.get<std::string>("poolNonce", "");
   handler(jsonRequestId, identifier, jobIdentifier, nonce, result, workerNonce, poolNonce);
 }
 
@@ -42,14 +42,14 @@ pt::ptree getJobTree(const Job& job)
 {
   pt::ptree tree;
   tree.put("id", job.getId());
-  tree.put("job_id", job.getJobId());
+  tree.put("job_id", job.getJobIdentifier());
   if (job.isBlockTemplate())
   {
     tree.put("blocktemplate_blob", job.getBlocktemplateBlob());
     tree.put("difficulty", job.getDifficulty());
     tree.put("height", job.getHeight());
     tree.put("reserved_offset", job.getReservedOffset());
-    tree.put("client_nonce_offset", job.getClientNonceOffset());
+    tree.put("client_nonce_offset", job.getClientNonceOffset()); //TODO should be left out when sending a template which is not a MasterJobTemplate
     tree.put("client_pool_offset", job.getClientPoolOffset());
     tree.put("target_diff", job.getTargetDiffHex());
   }

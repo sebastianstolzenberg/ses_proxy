@@ -1,5 +1,4 @@
-#ifndef SES_PROXY_ALGORITHM_HPP
-#define SES_PROXY_ALGORITHM_HPP
+#pragma once
 
 namespace ses {
 namespace proxy {
@@ -12,5 +11,3 @@ enum Algorithm
 
 } // namespace proxy
 } // namespace ses
-
-#endif //SES_PROXY_ALGORITHM_HPP

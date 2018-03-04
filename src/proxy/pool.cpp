@@ -138,7 +138,7 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
   auto job = jobTemplates_[jobId];
   if (job)
   {
-    std::cout << "proxy::Pool, job " << job->getJobId() << ", numHashes " << job->numHashesFound() << std::endl;
+    std::cout << "proxy::Pool, job " << job->getJobIdentifier() << ", numHashes " << job->numHashesFound() << std::endl;
   }
 }
 
@@ -184,7 +184,7 @@ void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitSt
 
 void Pool::handleNewJob(const stratum::Job& job)
 {
-  std::cout << "proxy::Pool::handleNewJob, job.jobId_, " << job.getJobId() << std::endl;
+  std::cout << "proxy::Pool::handleNewJob, job.jobIdentifier_, " << job.getJobIdentifier() << std::endl;
   setJob(job);
 }
 
@@ -231,21 +231,21 @@ void Pool::setJob(const stratum::Job& job)
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
   std::cout << __PRETTY_FUNCTION__
-            << ", jobId, " << job.getJobId()
+            << ", jobId, " << job.getJobIdentifier()
             << ", target, " << job.getTarget()
             << std::endl;
 
-  auto knownJob = jobTemplates_.find(job.getJobId());
+  auto knownJob = jobTemplates_.find(job.getJobIdentifier());
   if (knownJob == jobTemplates_.end())
   {
-    std::cout << __PRETTY_FUNCTION__ << " New job" << std::endl;
+    std::cout << __PRETTY_FUNCTION__ << " New job template" << std::endl;
     try
     {
       auto newJobTemplate = JobTemplate::create(job);
       newJobTemplate->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
                                                     std::placeholders::_1, std::placeholders::_2,
                                                     std::placeholders::_3));
-      jobTemplates_[newJobTemplate->getJobId()] = newJobTemplate;
+      jobTemplates_[newJobTemplate->getJobIdentifier()] = newJobTemplate;
       activateJob(newJobTemplate);
     }
     catch (...)
@@ -253,14 +253,14 @@ void Pool::setJob(const stratum::Job& job)
       std::cout << boost::current_exception_diagnostic_information();
     }
   }
-  else if (activeJobTemplate_ && job.getJobId() != activeJobTemplate_->getJobId())
+  else if (activeJobTemplate_ && job.getJobIdentifier() != activeJobTemplate_->getJobIdentifier())
   {
-    std::cout << __PRETTY_FUNCTION__ << " Known job, setting it as active job" << std::endl;
+    std::cout << __PRETTY_FUNCTION__ << " Known job template, setting it as active job template" << std::endl;
     activateJob(knownJob->second);
   }
   else
   {
-    std::cout << __PRETTY_FUNCTION__ << " Known job which is active already" << std::endl;
+    std::cout << __PRETTY_FUNCTION__ << " Known job template which is active already" << std::endl;
   }
 }
 
@@ -284,7 +284,7 @@ void Pool::removeJob(const std::string& jobId)
     //job->second->invalidate();
     jobTemplates_.erase(job);
   }
-  if (activeJobTemplate_ && activeJobTemplate_->getJobId() == jobId)
+  if (activeJobTemplate_ && activeJobTemplate_->getJobIdentifier() == jobId)
   {
     activeJobTemplate_.reset();
   }
@@ -295,23 +295,11 @@ bool Pool::assignJobToWorker(const Worker::Ptr& worker)
   bool accepted = false;
   if (worker && activeJobTemplate_)
   {
-    if (activeJobTemplate_->canCreateSubjacentTemplates() && worker->canHandleJobTemplates())
+    auto job = activeJobTemplate_->getJobFor(worker->getIdentifier(), worker->getType());
+    if (job)
     {
-      auto jobTemplate = activeJobTemplate_->getSubjacentTemplateFor(worker->getIdentifier());
-      if (jobTemplate)
-      {
-        worker->assignJobTemplate(jobTemplate);
-        accepted = true;
-      }
-    }
-    else
-    {
-      auto job = activeJobTemplate_->getJobFor(worker->getIdentifier());
-      if (job)
-      {
-        worker->assignJob(job);
-        accepted = true;
-      }
+      worker->assignJob(job);
+      accepted = true;
     }
   }
   return accepted;
@@ -322,7 +310,7 @@ void Pool::login()
   sendRequest(REQUEST_TYPE_LOGIN,
               stratum::client::createLoginRequest(configuration_.user_,
                                                   configuration_.pass_,
-                                                  "ses-proxy/0.1 with xmr-node-proxy support"));
+                                                  "ses-proxy/0.1"));// with xmr-node-proxy support"));
 }
 
 void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandler& submitStatusHandler)
@@ -330,19 +318,19 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   std::cout << __PRETTY_FUNCTION__ << std::endl;
 
-  auto jobIt = jobTemplates_.find(jobResult.getJobId());
+  auto jobIt = jobTemplates_.find(jobResult.getJobIdentifier());
   if (jobIt != jobTemplates_.end())
   {
     //TODO further result verification
     //TODO job template specific response
     RequestIdentifier id =
       sendRequest(REQUEST_TYPE_SUBMIT,
-                stratum::client::createSubmitRequest(workerIdentifier_, jobIt->second->getJobId(),
+                stratum::client::createSubmitRequest(workerIdentifier_, jobIt->second->getJobIdentifier(),
                                                      jobResult.getNonceHexString(),
                                                      jobResult.getHashHexString()));
     if (id != 0)
     {
-      outstandingSubmits_[id] = std::tie(jobResult.getJobId(), submitStatusHandler);
+      outstandingSubmits_[id] = std::tie(jobResult.getJobIdentifier(), submitStatusHandler);
     }
   }
   else

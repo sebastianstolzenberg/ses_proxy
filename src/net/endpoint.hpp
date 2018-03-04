@@ -1,5 +1,4 @@
-#ifndef SES_NET_ENDPOINT_HPP
-#define SES_NET_ENDPOINT_HPP
+#pragma once
 
 #include <string>
 #include "connectiontype.hpp"
@@ -22,5 +21,3 @@ public:
 };
 } //namespace net
 } //namespace ses
-
-#endif //SES_NET_ENDPOINT_HPP

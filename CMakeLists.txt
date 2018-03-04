@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.9)
 project(ses_proxy)
 
+#add_subdirectory(cryptonote)
+
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(Threads)
@@ -33,11 +35,14 @@ add_executable(ses_proxy
         src/proxy/jobresult.cpp
         src/proxy/job.cpp
         src/proxy/jobtemplate.cpp
-        src/proxy/worker.cpp)
+        src/proxy/worker.cpp
+        src/proxy/blob.cpp src/proxy/workeridentifier.cpp)
 target_link_libraries(ses_proxy
         ses_proxy_net
         ses_proxy_stratum
+        ${cryptonote_LIBRARY}
         Boost::system
         OpenSSL::SSL
         OpenSSL::Crypto
         ${CMAKE_THREAD_LIBS_INIT})
+#add_dependencies(ses_proxy cryptonote)

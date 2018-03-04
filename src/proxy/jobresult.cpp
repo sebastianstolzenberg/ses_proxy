@@ -76,7 +76,7 @@ std::string JobResult::getPoolNonceHexString() const
   return hex;
 }
 
-const std::string& JobResult::getJobId() const
+const std::string& JobResult::getJobIdentifier() const
 {
   return jobId_;
 }

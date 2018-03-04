@@ -1,5 +1,4 @@
-#ifndef SES_NET_JSONRPC_JSONRPC_HPP
-#define SES_NET_JSONRPC_JSONRPC_HPP
+#pragma once
 
 #include <string>
 #include <functional>
@@ -25,5 +24,3 @@ bool parse(const std::string& jsonrpc,
 } // namespace jsonrpc
 } // namespace net
 } // namespace ses
-
-#endif //SES_NET_JSONRPC_JSONRPC_HPP

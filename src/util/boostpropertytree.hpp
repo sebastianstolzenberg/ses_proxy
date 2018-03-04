@@ -1,5 +1,4 @@
-#ifndef SES_UTIL_BOOSTPROPERTYTREE_HPP
-#define SES_UTIL_BOOSTPROPERTYTREE_HPP
+#pragma once
 
 #include <boost/exception/diagnostic_information.hpp>
 
@@ -47,5 +46,3 @@ inline std::string ptreeToString(const boost::optional<boost::property_tree::ptr
 } // namespace boostpropertytree
 } // namespace util
 } // namespace ses
-
-#endif //SES_UTIL_BOOSTPROPERTYTREE_HPP

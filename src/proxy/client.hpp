@@ -1,9 +1,4 @@
-//
-// Created by ses on 15.02.18.
-//
-
-#ifndef SES_PROXY_CLIENT_HPP
-#define SES_PROXY_CLIENT_HPP
+#pragma once
 
 #include <memory>
 #include <list>
@@ -15,7 +10,6 @@
 #include "net/connection.hpp"
 #include "proxy/algorithm.hpp"
 #include "proxy/job.hpp"
-#include "proxy/workeridentifier.hpp"
 #include "proxy/worker.hpp"
 
 namespace ses {
@@ -35,6 +29,7 @@ public:
 public: // from Worker
   WorkerIdentifier getIdentifier() const override;
   Algorithm getAlgorithm() const override;
+  WorkerType getType() const override ;
   void assignJob(const Job::Ptr& job) override;
   bool canHandleJobTemplates() const override;
   void assignJobTemplate(const JobTemplate::Ptr& job) override;
@@ -75,7 +70,7 @@ private:
   WorkerIdentifier identifier_;
   Algorithm algorithm_;
 
-  enum Type { UNKNOWN, MINER, PROXY } type_;
+  WorkerType type_;
   std::string useragent_;
   std::string username_;
   std::string password_;
@@ -93,5 +88,3 @@ private:
 
 } // namespace proxy
 } // namespace ses
-
-#endif //SES_PROXY_CLIENT_HPP
