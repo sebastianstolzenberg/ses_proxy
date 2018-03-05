@@ -326,8 +326,8 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     RequestIdentifier id =
       sendRequest(REQUEST_TYPE_SUBMIT,
                 stratum::client::createSubmitRequest(workerIdentifier_, jobIt->second->getJobIdentifier(),
-                                                     jobResult.getNonceHexString(),
-                                                     jobResult.getHashHexString()));
+                                                     jobResult.getNonceHexString(), jobResult.getHashHexString(),
+                                                     jobResult.getWorkerNonceHexString(), jobResult.getPoolNonceHexString()));
     if (id != 0)
     {
       outstandingSubmits_[id] = std::tie(jobResult.getJobIdentifier(), submitStatusHandler);

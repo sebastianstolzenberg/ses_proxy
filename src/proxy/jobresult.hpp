@@ -51,7 +51,9 @@ public:
   uint32_t getNonce() const;
   const Hash& getHash() const;
   uint32_t getWorkerNonce() const;
+  void setWorkerNonce(uint32_t workerNonce);
   uint32_t getPoolNonce() const;
+  void setPoolNonce(uint32_t poolNonce);
 
   uint8_t getNiceHash() const;
 

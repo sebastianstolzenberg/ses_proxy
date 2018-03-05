@@ -101,9 +101,19 @@ uint32_t JobResult::getWorkerNonce() const
   return workerNonce_;
 }
 
+void JobResult::setWorkerNonce(uint32_t workerNonce)
+{
+  workerNonce_ = workerNonce;
+}
+
 uint32_t JobResult::getPoolNonce() const
 {
   return poolNonce_;
+}
+
+void JobResult::setPoolNonce(uint32_t poolNonce)
+{
+  poolNonce_ = poolNonce;
 }
 
 uint8_t JobResult::getNiceHash() const

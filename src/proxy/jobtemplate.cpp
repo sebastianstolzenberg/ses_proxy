@@ -69,6 +69,7 @@ public:
     {
       // new worker
       job = getNextSubJob(workerIdentifier, workerType);
+      subJobs_[workerIdentifier] = job;
     }
     else
     {
@@ -123,7 +124,9 @@ public:
   void submitResult(const JobResult& result,
                     const JobResult::SubmitStatusHandler& submitStatusHandler) override
   {
-
+    //TODO implement
+//    JobResult modifiedResult = result;
+//    result.setWorkerNonce()
   }
 
   stratum::Job asStratumJob() const
@@ -146,26 +149,34 @@ protected:
       //TODO limits checking
       Blob blob = blob_;
       blob.setClientNonce(nextClientNonce_);
-      ++nextClientNonce_;
       blob.convertToHashBlob();
       JobResult::Handler resultHandler =
         std::bind(&WorkerJobTemplate::handleResult,
-                  std::dynamic_pointer_cast<WorkerJobTemplate>(shared_from_this()),
+                  std::dynamic_pointer_cast<WorkerJobTemplate>(shared_from_this()), nextClientNonce_,
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
       job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), std::move(blob),
-                                /*difficulty_*/200, resultHandler);
+                                /*difficulty_*/500000, resultHandler);
+      ++nextClientNonce_;
       //TODO connect ResultHandler
     }
     return job;
   }
 
-  void handleResult(const WorkerIdentifier& workerIdentifier,
+private:
+  void handleResult(uint32_t workerNonce,
+                    const WorkerIdentifier& workerIdentifier,
                     const JobResult& jobResult,
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-  }
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::cout << __PRETTY_FUNCTION__ << ", workerNonce, " << workerNonce << std::endl;
 
+    JobResult modifiedResult = jobResult;
+    modifiedResult.setWorkerNonce(workerNonce);
+    modifiedResult.setJobId(jobIdentifier_);
+    //TODO add intermediate submitStatusHandler
+    jobResultHandler_(identifier_, modifiedResult, submitStatusHandler);
+  }
 
 private:
   uint32_t nextClientNonce_;
@@ -248,12 +259,31 @@ protected:
     //TODO limits checking
     Blob blob = blob_;
     blob.setClientPool(nextPoolNonce_);
-    ++nextPoolNonce_;
     subTemplate =
       std::make_shared<WorkerJobTemplate>(workerIdentifier, generateJobIdentifier(), std::move(blob),
                                           difficulty_, height_);
+    subTemplate->setJobResultHandler(
+      std::bind(&MasterJobTemplate::handleResult, std::dynamic_pointer_cast<MasterJobTemplate>(shared_from_this()),
+                nextPoolNonce_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    ++nextPoolNonce_;
     //TODO connect ResultHandler
     return subTemplate;
+  }
+
+private:
+  void handleResult(uint32_t poolNonce,
+                    const WorkerIdentifier& workerIdentifier,
+                    const JobResult& jobResult,
+                    const JobResult::SubmitStatusHandler& submitStatusHandler)
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::cout << __PRETTY_FUNCTION__ << ", poolNonce, " << poolNonce << std::endl;
+
+    JobResult modifiedResult = jobResult;
+    modifiedResult.setPoolNonce(poolNonce);
+    modifiedResult.setJobId(jobIdentifier_);
+    //TODO add intermediate submitStatusHandler
+    jobResultHandler_(identifier_, modifiedResult, submitStatusHandler);
   }
 
 private:

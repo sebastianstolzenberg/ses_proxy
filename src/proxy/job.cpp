@@ -41,7 +41,7 @@ public:
   void submitResult(const JobResult& result,
                     const JobResult::SubmitStatusHandler& submitStatusHandler) override
   {
-    if (jobResultHandler_)
+    if (jobResultHandler_ && result.getJobIdentifier() == jobIdentifier_)
     {
       jobResultHandler_(assignedWorker_, result, submitStatusHandler);
     }
