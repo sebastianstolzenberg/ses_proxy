@@ -10,6 +10,8 @@ class Blob
 public:
   Blob(const stratum::Job& job);
 
+  const std::vector<uint8_t>& blob() const;
+  void convertToHashBlob();
   stratum::Job asStratumJob() const;
 
   std::string toHexString() const;

@@ -1,6 +1,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/hex.hpp>
 
+#include "cryptonote/cryptonote.hpp"
+
 #include "blob.hpp"
 
 namespace ses {
@@ -40,6 +42,16 @@ Blob::Blob(const stratum::Job& job) :
                     std::numeric_limits<uint32_t>::max() :
                     boost::lexical_cast<uint32_t>(job.getClientPoolOffset()))
 {
+}
+
+const std::vector<uint8_t>& Blob::blob() const
+{
+  return blob_;
+}
+
+void Blob::convertToHashBlob()
+{
+  blob_ = cryptonote::convert_blob(blob_);
 }
 
 stratum::Job Blob::asStratumJob() const

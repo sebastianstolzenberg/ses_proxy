@@ -7,8 +7,6 @@
 #include "proxy/blob.hpp"
 #include "proxy/workeridentifier.hpp"
 
-//#include "cryptonote/cryptonote_core/cryptonote_basic.h"
-
 namespace ses {
 namespace proxy {
 
@@ -141,6 +139,7 @@ public:
 protected:
   Job::Ptr getNextSubJob(const WorkerIdentifier& workerIdentifier, WorkerType workerType) override
   {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
     Job::Ptr job;
     if (workerType != WorkerType::PROXY)
     {
@@ -148,11 +147,13 @@ protected:
       Blob blob = blob_;
       blob.setClientNonce(nextClientNonce_);
       ++nextClientNonce_;
+      blob.convertToHashBlob();
       JobResult::Handler resultHandler =
         std::bind(&WorkerJobTemplate::handleResult,
                   std::dynamic_pointer_cast<WorkerJobTemplate>(shared_from_this()),
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-      job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), std::move(blob), difficulty_, resultHandler);
+      job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), std::move(blob),
+                                /*difficulty_*/200, resultHandler);
       //TODO connect ResultHandler
     }
     return job;

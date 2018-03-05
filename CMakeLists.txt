@@ -3,6 +3,8 @@ project(ses_proxy)
 
 #add_subdirectory(cryptonote)
 
+add_subdirectory(src/cryptonote)
+
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(Threads)
@@ -40,7 +42,7 @@ add_executable(ses_proxy
 target_link_libraries(ses_proxy
         ses_proxy_net
         ses_proxy_stratum
-        ${cryptonote_LIBRARY}
+        cryptonote
         Boost::system
         OpenSSL::SSL
         OpenSSL::Crypto
