@@ -22,7 +22,8 @@ JobResult::Hash parseHash(const std::string& hashHexString)
 }
 
 JobResult::JobResult(const std::string& jobId, const std::string& nonce, const std::string& hash)
-  : jobId_(jobId), nonce_(parseNonce(nonce)), hash_(parseHash(hash)), isNodeJsResult_(false)
+  : jobId_(jobId), nonce_(parseNonce(nonce)), hash_(parseHash(hash)), workerNonce_(0), poolNonce_(0),
+    isNodeJsResult_(false)
 {
 }
 

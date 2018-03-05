@@ -115,7 +115,7 @@ class WorkerJobTemplate : public BaseJobTemplate
 public:
   WorkerJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob,
                     uint64_t difficulty, uint32_t height)
-    : BaseJobTemplate(identifier, jobIdentifier, blob), nextClientNonce_(0), difficulty_(difficulty),
+    : BaseJobTemplate(identifier, jobIdentifier, blob), nextClientNonce_(1), difficulty_(difficulty),
       height_(height)
   {
     std::cout << "WorkerJobTemplate()" << std::endl;
@@ -191,7 +191,7 @@ class MasterJobTemplate : public BaseJobTemplate
 public:
   MasterJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob,
                     uint64_t difficulty, uint32_t height)
-    : BaseJobTemplate(identifier, jobIdentifier, blob), nextPoolNonce_(0), difficulty_(difficulty),
+    : BaseJobTemplate(identifier, jobIdentifier, blob), nextPoolNonce_(1), difficulty_(difficulty),
       height_(height)
   {
     std::cout << "MasterJobTemplate()" << std::endl;
