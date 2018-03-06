@@ -6,6 +6,7 @@
 #include "proxy/jobtemplate.hpp"
 #include "proxy/blob.hpp"
 #include "proxy/workeridentifier.hpp"
+#include "difficulty.hpp"
 
 namespace ses {
 namespace proxy {
@@ -114,9 +115,9 @@ class WorkerJobTemplate : public BaseJobTemplate
 {
 public:
   WorkerJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob,
-                    uint64_t difficulty, uint32_t height)
+                    uint64_t difficulty, uint32_t height, uint32_t targetDiff)
     : BaseJobTemplate(identifier, jobIdentifier, blob), nextClientNonce_(1), difficulty_(difficulty),
-      height_(height)
+      height_(height), targetDiff_(targetDiff)
   {
     std::cout << "WorkerJobTemplate()" << std::endl;
   }
@@ -152,10 +153,11 @@ protected:
       blob.convertToHashBlob();
       JobResult::Handler resultHandler =
         std::bind(&WorkerJobTemplate::handleResult,
-                  std::dynamic_pointer_cast<WorkerJobTemplate>(shared_from_this()), nextClientNonce_,
+                  std::dynamic_pointer_cast<WorkerJobTemplate>(shared_from_this()),
+                  nextClientNonce_,
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
       job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), std::move(blob),
-                                /*difficulty_*/500000, resultHandler);
+                                targetDiff_, resultHandler);
       ++nextClientNonce_;
       //TODO connect ResultHandler
     }
@@ -172,6 +174,7 @@ private:
     std::cout << __PRETTY_FUNCTION__ << ", workerNonce, " << workerNonce << std::endl;
 
     JobResult modifiedResult = jobResult;
+    modifiedResult.setIsNodeJsResult_(true);
     modifiedResult.setWorkerNonce(workerNonce);
     modifiedResult.setJobId(jobIdentifier_);
     //TODO add intermediate submitStatusHandler
@@ -182,6 +185,7 @@ private:
   uint32_t nextClientNonce_;
   uint64_t difficulty_;
   uint32_t height_;
+  uint32_t targetDiff_;
 };
 
 // For pool templates which can be broken down into several WorkerJobTemplates
@@ -190,9 +194,9 @@ class MasterJobTemplate : public BaseJobTemplate
 {
 public:
   MasterJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob,
-                    uint64_t difficulty, uint32_t height)
+                    uint64_t difficulty, uint32_t height, uint32_t targetDiff)
     : BaseJobTemplate(identifier, jobIdentifier, blob), nextPoolNonce_(1), difficulty_(difficulty),
-      height_(height)
+      height_(height), targetDiff_(targetDiff)
   {
     std::cout << "MasterJobTemplate()" << std::endl;
   }
@@ -261,10 +265,12 @@ protected:
     blob.setClientPool(nextPoolNonce_);
     subTemplate =
       std::make_shared<WorkerJobTemplate>(workerIdentifier, generateJobIdentifier(), std::move(blob),
-                                          difficulty_, height_);
+                                          difficulty_, height_, targetDiff_);
     subTemplate->setJobResultHandler(
-      std::bind(&MasterJobTemplate::handleResult, std::dynamic_pointer_cast<MasterJobTemplate>(shared_from_this()),
-                nextPoolNonce_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+      std::bind(&MasterJobTemplate::handleResult,
+                std::dynamic_pointer_cast<MasterJobTemplate>(shared_from_this()),
+                nextPoolNonce_,
+                std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     ++nextPoolNonce_;
     //TODO connect ResultHandler
     return subTemplate;
@@ -280,6 +286,7 @@ private:
     std::cout << __PRETTY_FUNCTION__ << ", poolNonce, " << poolNonce << std::endl;
 
     JobResult modifiedResult = jobResult;
+    modifiedResult.setIsNodeJsResult_(true);
     modifiedResult.setPoolNonce(poolNonce);
     modifiedResult.setJobId(jobIdentifier_);
     //TODO add intermediate submitStatusHandler
@@ -292,6 +299,7 @@ private:
   WorkerJobTemplate::Ptr activeSubJobTemplate_;
   uint64_t difficulty_;
   uint32_t height_;
+  uint32_t targetDiff_;
 };
 
 // For pool jobs which can only be broken down by nice hash separation
@@ -476,9 +484,12 @@ JobTemplate::Ptr JobTemplate::create(const stratum::Job& stratumJob)
     // JobTemplate case
     uint32_t difficulty = boost::lexical_cast<uint64_t>(stratumJob.getDifficulty());
     uint32_t height = boost::lexical_cast<uint32_t>(stratumJob.getHeight());
+    uint32_t targetDiff = boost::lexical_cast<uint32_t>(stratumJob.getTargetDiff());
     if (blob.hasClientPoolOffset())
     {
-      jobTemplate = std::make_shared<MasterJobTemplate>(identifier, jobIdentifier, std::move(blob), difficulty, height);
+      jobTemplate =
+          std::make_shared<MasterJobTemplate>(identifier, jobIdentifier, std::move(blob),
+                                              difficulty, height, targetDiff);
     }
     else
     {

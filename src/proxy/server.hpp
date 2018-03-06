@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <boost/uuid/uuid.hpp>
+#include <boost/asio/io_service.hpp>
 
 #include "net/server/server.hpp"
 #include "proxy/client.hpp"
@@ -32,12 +33,14 @@ public:
   };
 
 public:
+  Server(const std::shared_ptr<boost::asio::io_service>& ioService);
   void start(const Configuration& configuration, const NewClientHandler& newClientHandler);
 
 public:
   void handleNewConnection(net::Connection::Ptr connection);
 
 private:
+  std::shared_ptr<boost::asio::io_service> ioService_;
   Configuration configuration_;
   NewClientHandler newClientHandler_;
   net::server::Server::Ptr server_;

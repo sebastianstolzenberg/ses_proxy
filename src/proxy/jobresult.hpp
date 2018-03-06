@@ -40,6 +40,7 @@ public:
             const std::string& workerNonce, const std::string& poolNonce);
 
   bool isNodeJsResult() const;
+  void setIsNodeJsResult_(bool isNodeJsResult_);
 
   std::string getNonceHexString() const;
   std::string getHashHexString() const;

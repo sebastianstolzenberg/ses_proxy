@@ -43,14 +43,16 @@ typedef std::function<void(const Job& job)> GetJobSuccessHandler;
 void parseGetJobResponse(const std::string& result, const std::string& error,
                          GetJobSuccessHandler successHandler, ErrorHandler errorHandler);
 
-std::string createSubmitRequest(const std::string& id, const std::string& jobId,
-                                const std::string& nonce, const std::string& result,
-                                const std::string& workerNonce = "",
-                                const std::string& poolNonce = "");
+std::string createSubmitParams(const std::string& id, const std::string& jobId,
+                               const std::string& nonce, const std::string& result,
+                               std::optional<uint32_t> workerNonce = std::optional<uint32_t>(),
+                               std::optional<uint32_t> poolNonce = std::optional<uint32_t>());
 
 typedef std::function<void(const std::string& status)> SubmitSuccessHandler;
 void parseSubmitResponse(const std::string& result, const std::string& error,
                          SubmitSuccessHandler successHandler, ErrorHandler errorHandler);
+
+std::string createKeepalivedParams(const std::string& id);
 
 typedef std::function<void(const Job& job)> NewJobHandler;
 void parseNotification(const std::string& method, const std::string& params, NewJobHandler newJobHandler);

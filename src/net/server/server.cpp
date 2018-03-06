@@ -75,14 +75,16 @@ private:
 class BoostServer : public Server
 {
 public:
-  BoostServer(const NewConnectionHandler& handler, const std::string& address, uint16_t port)
+  BoostServer(const std::shared_ptr<boost::asio::io_service>& ioService,
+              const NewConnectionHandler& handler, const std::string& address, uint16_t port)
     : newConnecionHandler_(handler)
-    , acceptor_(ioService_)
-    , nextSocket_(ioService_)
+    , ioService_(ioService)
+    , acceptor_(*ioService_)
+    , nextSocket_(*ioService_)
   {
     //TODO signal handling
 
-    boost::asio::ip::tcp::resolver resolver(ioService_);
+    boost::asio::ip::tcp::resolver resolver(*ioService_);
     boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve({address, std::to_string(port)});
     acceptor_.open(endpoint.protocol());
     acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
@@ -90,8 +92,6 @@ public:
     acceptor_.listen();
 
     accept();
-
-    std::thread([this]() { ioService_.run(); }).detach();
   }
 
 private:
@@ -118,16 +118,16 @@ private:
   }
 
 private:
+  std::shared_ptr<boost::asio::io_service> ioService_;
   NewConnectionHandler newConnecionHandler_;
-
-  boost::asio::io_service ioService_;
   boost::asio::ip::tcp::acceptor acceptor_;
   boost::asio::ip::tcp::socket nextSocket_;
 };
 
-Server::Ptr createServer(const NewConnectionHandler& handler, const EndPoint& endPoint)
+Server::Ptr createServer(const std::shared_ptr<boost::asio::io_service>& ioService,
+                         const NewConnectionHandler& handler, const EndPoint& endPoint)
 {
-  return std::make_shared<BoostServer>(handler, endPoint.host_, endPoint.port_);
+  return std::make_shared<BoostServer>(ioService, handler, endPoint.host_, endPoint.port_);
 }
 
 } //namespace server

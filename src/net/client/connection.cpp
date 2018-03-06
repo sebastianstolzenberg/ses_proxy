@@ -28,7 +28,8 @@ namespace ses {
 namespace net {
 namespace client {
 
-Connection::Ptr establishConnection(const EndPoint& endPoint,
+Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
+                                    const EndPoint& endPoint,
                                     const Connection::ReceivedDataHandler& receivedDataHandler,
                                     const Connection::ErrorHandler& errorHandler)
 {
@@ -45,11 +46,11 @@ Connection::Ptr establishConnection(const EndPoint& endPoint,
     switch (connectionType)
     {
       case CONNECTION_TYPE_TLS:
-        connection = establishBoostTlsConnection(endPoint.host_, endPoint.port_, receivedDataHandler, errorHandler);
+        connection = establishBoostTlsConnection(ioService, endPoint.host_, endPoint.port_, receivedDataHandler, errorHandler);
         break;
 
       case CONNECTION_TYPE_TCP:
-        connection = establishBoostTcpConnection(endPoint.host_, endPoint.port_, receivedDataHandler, errorHandler);
+        connection = establishBoostTcpConnection(ioService, endPoint.host_, endPoint.port_, receivedDataHandler, errorHandler);
 
       default:
         break;

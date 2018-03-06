@@ -8,16 +8,16 @@ namespace ses {
 namespace proxy {
 
 namespace {
-std::string toHexString(uint64_t target)
+std::string toHexString(uint32_t target)
 {
   std::string targetHex;
-  if (target <= std::numeric_limits<uint32_t>::max())
-  {
-    boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&target),
-                                reinterpret_cast<const uint8_t*>(&target) + sizeof(target) / 2,
-                                std::back_inserter(targetHex));
-  }
-  else
+//  if (target <= std::numeric_limits<uint32_t>::max())
+//  {
+//    boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&target),
+//                                reinterpret_cast<const uint8_t*>(&target) + sizeof(target) / 2,
+//                                std::back_inserter(targetHex));
+//  }
+//  else
   {
     boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&target),
                                 reinterpret_cast<const uint8_t*>(&target) + sizeof(target),
@@ -31,7 +31,7 @@ class MinerJob: public Job, public std::enable_shared_from_this<MinerJob>
 {
 public:
   MinerJob(const WorkerIdentifier& workerIdentifier, const std::string& jobIdentifier,
-           const Blob& blob, uint64_t target, const JobResult::Handler& jobResultHandler)
+           const Blob& blob, uint32_t target, const JobResult::Handler& jobResultHandler)
     : assignedWorker_(workerIdentifier), jobIdentifier_(jobIdentifier), blob_(blob), target_(target),
       jobResultHandler_(jobResultHandler)
   {
@@ -79,12 +79,12 @@ private:
   WorkerIdentifier assignedWorker_;
   std::string jobIdentifier_;
   Blob blob_;
-  uint64_t target_;
+  uint32_t target_;
 };
 
 
 Job::Ptr Job::createMinerJob(const WorkerIdentifier& workerIdentifier, const std::string& jobIdentifier,
-                        const Blob& blob, uint64_t target, const JobResult::Handler& jobResultHandler)
+                        const Blob& blob, uint32_t target, const JobResult::Handler& jobResultHandler)
 {
   return std::make_shared<MinerJob>(workerIdentifier, jobIdentifier, blob, target, jobResultHandler);
 }

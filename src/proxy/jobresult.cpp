@@ -43,6 +43,11 @@ bool JobResult::isNodeJsResult() const
   return isNodeJsResult_;
 }
 
+void JobResult::setIsNodeJsResult_(bool isNodeJsResult_)
+{
+  JobResult::isNodeJsResult_ = isNodeJsResult_;
+}
+
 std::string JobResult::getNonceHexString() const
 {
   std::string hex;

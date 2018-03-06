@@ -10,22 +10,21 @@ template<class SOCKET>
 class BoostConnection : public Connection
 {
 public:
-  BoostConnection(const std::string &server, uint16_t port,
+  BoostConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
+                  const std::string &server, uint16_t port,
                   const Connection::ReceivedDataHandler& receivedDataHandler,
                   const Connection::ErrorHandler& errorHandler)
-    : Connection(receivedDataHandler, errorHandler)
-      , socket_(ioService_)
+    : Connection(receivedDataHandler, errorHandler),
+      ioService_(ioService), socket_(*ioService)
   {
     std::cout << "Connecting BoostConnection ... ";
-    boost::asio::ip::tcp::resolver resolver(ioService_);
+    boost::asio::ip::tcp::resolver resolver(*ioService_);
     boost::asio::ip::tcp::resolver::query query(server, std::to_string(port));
     boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
     socket_.connect(iterator);
 
     triggerRead();
-
-    std::thread([this]() { ioService_.run(); }).detach();
     std::cout << " success\n";
   }
 
@@ -90,7 +89,7 @@ public:
   }
 
 private:
-  boost::asio::io_service ioService_;
+  std::shared_ptr<boost::asio::io_service> ioService_;
   SOCKET socket_;
   char receiveBuffer_[2048];
 };

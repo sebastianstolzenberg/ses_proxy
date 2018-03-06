@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -13,17 +14,17 @@ namespace pt = boost::property_tree;
 
 std::string request(const std::string& id, const std::string& method, const std::string& params)
 {
-  pt::ptree requestTree;
-  requestTree.put("id", id);
-  requestTree.put("jsonrpc", "2.0");
-  requestTree.put("method", method);
-
+  std::ostringstream request;
+  request << "{"
+          << "\"id\":\"" << id << "\","
+          << "\"jsonrpc\":\"2.0\","
+          << "\"method\":\"" << method << "\"";
   if (!params.empty())
   {
-    requestTree.put_child("params", util::boostpropertytree::stringToPtree(params));
+    request << ",\"params\":" << params;
   }
-
-  return util::boostpropertytree::ptreeToString(requestTree, false);
+  request << "}\n";
+  return request.str();
 }
 
 std::string notification(const std::string& method, const std::string& params)

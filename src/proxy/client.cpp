@@ -8,8 +8,9 @@
 namespace ses {
 namespace proxy {
 
-Client::Client(const WorkerIdentifier& id, Algorithm defaultAlgorithm)
-  : identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN)
+Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
+               const WorkerIdentifier& id, Algorithm defaultAlgorithm)
+  : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN)
 {
 }
 
@@ -47,6 +48,7 @@ WorkerType Client::getType() const
 void Client::assignJob(const Job::Ptr& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   if (job)
   {
 //    job->setAssignedWorker(identifier_);
@@ -64,6 +66,7 @@ bool Client::canHandleJobTemplates() const
 void Client::assignJobTemplate(const JobTemplate::Ptr& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   if (job)
   {
     //job->setAssignedWorker(identifier_);
@@ -94,6 +97,8 @@ void Client::handleReceived(char* data, std::size_t size)
 
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
+
   net::jsonrpc::parse(
     std::string(data, size),
     [this](const std::string& id, const std::string& method, const std::string& params)
@@ -121,7 +126,7 @@ void Client::handleReceived(char* data, std::size_t size)
 
 void Client::handleError(const std::string& error)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  std::cout << __PRETTY_FUNCTION__ << " " << error << std::endl;
 }
 
 void Client::handleLogin(const std::string& jsonRequestId, const std::string& login, const std::string& pass, const std::string& agent)
@@ -228,6 +233,7 @@ void Client::handleUnknownMethod(const std::string& jsonRequestId)
 
 void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::SubmitStatus submitStatus)
 {
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   switch (submitStatus)
   {
     case JobResult::SUBMIT_REJECTED_IP_BANNED:
@@ -263,16 +269,19 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
 
 void Client::sendSuccessResponse(const std::string& jsonRequestId, const std::string& status)
 {
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   connection_->send(net::jsonrpc::statusResponse(jsonRequestId, status));
 }
 
 void Client::sendErrorResponse(const std::string& jsonRequestId, const std::string& message)
 {
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   connection_->send(net::jsonrpc::errorResponse(jsonRequestId, -1, message));
 }
 
 void Client::sendJobNotification()
 {
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
   if (currentJob_)
   {
     connection_->send(

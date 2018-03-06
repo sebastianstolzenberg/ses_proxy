@@ -6,6 +6,7 @@
 #include <mutex>
 #include <functional>
 #include <boost/uuid/uuid.hpp>
+#include <boost/asio/io_service.hpp>
 
 #include "net/connection.hpp"
 #include "proxy/algorithm.hpp"
@@ -22,7 +23,8 @@ public:
   typedef std::shared_ptr<Client> Ptr;
 
 public:
-  Client(const WorkerIdentifier& id, Algorithm defaultAlgorithm);
+  Client(const std::shared_ptr<boost::asio::io_service>& ioService,
+         const WorkerIdentifier& id, Algorithm defaultAlgorithm);
 
   void setConnection(const net::Connection::Ptr& connection);
 
@@ -62,6 +64,8 @@ private:
   void sendJobNotification();
 
 private:
+  std::shared_ptr<boost::asio::io_service> ioService_;
+
   std::recursive_mutex mutex_;
 
   net::Connection::Ptr connection_;

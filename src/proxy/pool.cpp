@@ -16,10 +16,16 @@ namespace proxy {
 
 //TODO solo mode with reservedOffset
 
+Pool::Pool(const std::shared_ptr<boost::asio::io_service>& ioService)
+  : ioService_(ioService), keepaliveTimer_(*ioService_)
+{
+}
+
 void Pool::connect(const Configuration& configuration)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
-  connection_ = net::client::establishConnection(configuration.endPoint_,
+  connection_ = net::client::establishConnection(ioService_,
+                                                 configuration.endPoint_,
                                                  std::bind(&Pool::handleReceived, this,
                                                            std::placeholders::_1, std::placeholders::_2),
                                                  std::bind(&Pool::handleError, this, std::placeholders::_1));
@@ -41,7 +47,7 @@ void Pool::handleReceived(char* data, std::size_t size)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+//  std::cout << __PRETTY_FUNCTION__ << std::endl;
   using namespace std::placeholders;
 
   net::jsonrpc::parse(
@@ -92,6 +98,7 @@ void Pool::handleReceived(char* data, std::size_t size)
     {
       stratum::client::parseNotification(method, params, std::bind(&Pool::handleNewJob, this, _1));
     });
+  triggerKeepaliveTimer();
 }
 
 void Pool::handleError(const std::string& error)
@@ -214,6 +221,10 @@ Pool::RequestIdentifier Pool::sendRequest(Pool::RequestType type, const std::str
       method = "submit";
       break;
 
+    case REQUEST_TYPE_KEEPALIVE:
+      method = "keepalived";
+      break;
+
     default:
       // unknown request type
       return 0;
@@ -223,6 +234,7 @@ Pool::RequestIdentifier Pool::sendRequest(Pool::RequestType type, const std::str
   ++nextRequestIdentifier_;
   outstandingRequests_[id] = type;
   connection_->send(net::jsonrpc::request(std::to_string(id), method, params));
+  triggerKeepaliveTimer();
   return id;
 }
 
@@ -310,7 +322,7 @@ void Pool::login()
   sendRequest(REQUEST_TYPE_LOGIN,
               stratum::client::createLoginRequest(configuration_.user_,
                                                   configuration_.pass_,
-                                                  "ses-proxy/0.1"));// with xmr-node-proxy support"));
+                                                  "ses-proxy/0.1 with xmr-node-proxy support"));
 }
 
 void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandler& submitStatusHandler)
@@ -323,11 +335,25 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
   {
     //TODO further result verification
     //TODO job template specific response
-    RequestIdentifier id =
-      sendRequest(REQUEST_TYPE_SUBMIT,
-                stratum::client::createSubmitRequest(workerIdentifier_, jobIt->second->getJobIdentifier(),
-                                                     jobResult.getNonceHexString(), jobResult.getHashHexString(),
-                                                     jobResult.getWorkerNonceHexString(), jobResult.getPoolNonceHexString()));
+    RequestIdentifier id = 0;
+    if (jobResult.isNodeJsResult())
+    {
+      id = sendRequest(REQUEST_TYPE_SUBMIT,
+                       stratum::client::createSubmitParams(workerIdentifier_,
+                                                           jobIt->second->getJobIdentifier(),
+                                                           jobResult.getNonceHexString(),
+                                                           jobResult.getHashHexString(),
+                                                           jobResult.getWorkerNonce(),
+                                                           jobResult.getPoolNonce()));
+    }
+    else
+    {
+      id = sendRequest(REQUEST_TYPE_SUBMIT,
+                       stratum::client::createSubmitParams(workerIdentifier_,
+                                                           jobIt->second->getJobIdentifier(),
+                                                           jobResult.getNonceHexString(),
+                                                           jobResult.getHashHexString()));
+    }
     if (id != 0)
     {
       outstandingSubmits_[id] = std::tie(jobResult.getJobIdentifier(), submitStatusHandler);
@@ -338,6 +364,21 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     submitStatusHandler(JobResult::SUBMIT_REJECTED_INVALID_JOB_ID);
     //TODO send new job to miner
   }
+}
+
+void Pool::triggerKeepaliveTimer()
+{
+  keepaliveTimer_.expires_from_now(boost::posix_time::seconds(30));
+  keepaliveTimer_.async_wait(
+      [this](const boost::system::error_code& error)
+      {
+        if (!error)
+        {
+          sendRequest(REQUEST_TYPE_KEEPALIVE,
+                      stratum::client::createKeepalivedParams(workerIdentifier_));
+          triggerKeepaliveTimer();
+        }
+      });
 }
 
 } // namespace proxy

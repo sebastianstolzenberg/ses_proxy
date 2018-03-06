@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <list>
 #include <mutex>
+#include <boost/asio/deadline_timer.hpp>
 
 #include "net/connection.hpp"
 #include "stratum/stratum.hpp"
@@ -35,6 +36,7 @@ public:
   };
 
 public:
+  Pool(const std::shared_ptr<boost::asio::io_service>& ioService);
   void connect(const Configuration& configuration);
 
   bool addWorker(const Worker::Ptr& worker);
@@ -67,7 +69,8 @@ private:
   {
     REQUEST_TYPE_LOGIN,
     REQUEST_TYPE_GETJOB,
-    REQUEST_TYPE_SUBMIT
+    REQUEST_TYPE_SUBMIT,
+    REQUEST_TYPE_KEEPALIVE
   };
   RequestIdentifier sendRequest(RequestType type, const std::string& params = "");
   void setJob(const stratum::Job& job);
@@ -76,13 +79,16 @@ private:
   bool assignJobToWorker(const Worker::Ptr& worker);
   void login();
   void submit(const JobResult& jobResult, const JobResult::SubmitStatusHandler& submitStatusHandler);
+  void triggerKeepaliveTimer();
 
 private:
+  std::shared_ptr<boost::asio::io_service> ioService_;
   std::recursive_mutex mutex_;
 
   Configuration configuration_;
 
   net::Connection::Ptr connection_;
+  boost::asio::deadline_timer keepaliveTimer_;
   RequestIdentifier nextRequestIdentifier_ = 1;
   std::unordered_map<RequestIdentifier, RequestType> outstandingRequests_;
   std::unordered_map<RequestIdentifier,

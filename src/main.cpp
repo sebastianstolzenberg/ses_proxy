@@ -1,46 +1,15 @@
 #include <iostream>
 #include <memory>
+#include <thread>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
 
 #include "proxy/proxy.hpp"
 
-//class MainServerHandler : public ses::net::server::ServerHandler,
-//                          public ses::net::ConnectionHandler
-//{
-//public:
-//  virtual void handleNewConnection(const ses::net::Connection::Ptr& connection)
-//  {
-//    std::cout << "New Connection" << std::endl;
-//    connection_ = connection;
-//    connection_->send("Server Hello");
-//  }
-//
-//  virtual void handleReceived(char* data, size_t size)
-//  {
-//    std::cout << "handleReceived ";
-//    std::cout.write(data, size);
-//    std::cout << std::endl;
-//  }
-//
-//  virtual void handleError(const std::string &error)
-//  {
-//
-//  }
-//
-//  virtual void handleDisconnected()
-//  {
-//
-//  }
-//
-//private:
-//  ses::net::Connection::Ptr connection_;
-//};
-
-void waitForSignal()
+void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
 {
   // waits for signals ending program
-  boost::asio::io_service ioService;
+
   boost::asio::signal_set signals(ioService);
   signals.add(SIGINT);
   signals.add(SIGTERM);
@@ -51,25 +20,26 @@ void waitForSignal()
       std::cout << "Signal " << signo << " received ... exiting" << std::endl;
       ioService.stop();
     });
+
+  const uint32_t numThreads = std::thread::hardware_concurrency();
+  std::cout << std::endl << "Launching " << numThreads << " worker threads." << std::endl;
+  // runs io_service on a reasonable number of threads
+  for (uint32_t threadCount = 1; threadCount < numThreads; ++threadCount)
+  {
+    std::thread thread(
+        std::bind(static_cast<size_t (boost::asio::io_service::*)()>(&boost::asio::io_service::run),
+                  &ioService));
+    thread.detach();
+  }
+  // this run call uses the main thread
   ioService.run();
 }
 
 int main()
 {
-//  std::shared_ptr<MainServerHandler> handler = std::make_shared<MainServerHandler>();
-//  ses::net::server::Server::Ptr server =
-//    ses::net::server::createServer(handler, "127.0.0.1", 55555);
-//
-//  ses::net::Connection::Ptr clientCon =
-//    ses::net::client::establishConnection(handler, "127.0.0.1", 55555);
-//
-//  clientCon->send("Client Hello");
-//
-//  sleep(1);
+  std::shared_ptr<boost::asio::io_service> ioService = std::make_shared<boost::asio::io_service>();
 
-  ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>();
-
-
+  ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>(ioService);
 
 //  proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("127.0.0.1", 5555),
 //                                                 "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
@@ -83,19 +53,9 @@ int main()
   proxy->addServer(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12345),
                                                      ses::proxy::ALGORITHM_CRYPTONIGHT));
 
-//  ses::proxy::Server::Ptr proxyServer = std::make_shared<ses::proxy::Server>();
-//  proxyServer->start(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12345),
-//                                                       ses::proxy::ALGORITHM_CRYPTONIGHT),
-//                     handleNewClient);
-//
-//
-//  ses::proxy::Pool::Ptr pool = std::make_shared<ses::proxy::Pool>();
-//  pool->connect(ses::proxy::Pool::Configuration(ses::net::EndPoint("127.0.0.1", 5555),
-//                                                "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
-//                                                "ses-proxy-test",
-//                                                ses::proxy::ALGORITHM_CRYPTONIGHT));
+  waitForSignalAndMaxPossibleThreads(*ioService);
 
-  waitForSignal();
+
 
   return 0;
 }

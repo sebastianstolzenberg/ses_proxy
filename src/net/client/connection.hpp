@@ -5,6 +5,7 @@
 #include <string>
 
 #include <boost/noncopyable.hpp>
+#include <boost/asio/io_service.hpp>
 
 #include "net/connection.hpp"
 #include "net/endpoint.hpp"
@@ -13,7 +14,8 @@ namespace ses {
 namespace net {
 namespace client {
 
-Connection::Ptr establishConnection(const EndPoint& endPoint,
+Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
+                                    const EndPoint& endPoint,
                                     const Connection::ReceivedDataHandler& receivedDataHandler,
                                     const Connection::ErrorHandler& errorHandler);
 

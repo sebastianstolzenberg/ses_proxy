@@ -6,7 +6,8 @@ namespace ses {
 namespace net {
 namespace client {
 
-Connection::Ptr establishBoostTcpConnection(const std::string& host, uint16_t port,
+Connection::Ptr establishBoostTcpConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
+                                            const std::string& host, uint16_t port,
                                             const Connection::ReceivedDataHandler& receivedDataHandler,
                                             const Connection::ErrorHandler& errorHandler);
 

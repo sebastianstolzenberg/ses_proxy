@@ -133,11 +133,13 @@ Job parseJob(const pt::ptree& tree)
 
 std::string createLoginRequest(const std::string& login, const std::string& pass, const std::string& agent)
 {
-  pt::ptree tree;
-  tree.put("login", login);
-  tree.put("pass", pass);
-  tree.put("agent", agent);
-  return util::boostpropertytree::ptreeToString(tree);
+  std::ostringstream request;
+  request << "{"
+          << "\"login\":\"" << login << "\","
+          << "\"pass\":\"" << pass << "\","
+          << "\"agent\":\"" << agent << "\""
+          << "}";
+  return request.str();
 }
 
 void parseLoginResponse(const std::string& result, const std::string& error,
@@ -174,25 +176,27 @@ void parseGetJobResponse(const std::string& result, const std::string& error,
   }
 }
 
-std::string createSubmitRequest(const std::string& id, const std::string& jobId,
-                                const std::string& nonce, const std::string& result,
-                                const std::string& workerNonce, const std::string& poolNonce)
+std::string createSubmitParams(const std::string& id, const std::string& jobId,
+                               const std::string& nonce, const std::string& result,
+                               std::optional<uint32_t> workerNonce,
+                               std::optional<uint32_t> poolNonce)
 {
-  pt::ptree tree;
-  tree.put("id", id);
-  tree.put("job_id", jobId);
-  tree.put("nonce", nonce);
-  tree.put("result", result);
-  if (!workerNonce.empty())
+  std::ostringstream request;
+  request << "{"
+          << "\"id\":\"" << id << "\","
+          << "\"job_id\":\"" << jobId << "\","
+          << "\"nonce\":\"" << nonce << "\","
+          << "\"result\":\"" << result << "\"";
+  if (workerNonce)
   {
-    tree.put("workerNonce", workerNonce);
+    request << ",\"workerNonce\":" << *workerNonce;
   }
-  if (!poolNonce.empty())
+  if (poolNonce)
   {
-    tree.put("poolNonce", poolNonce);
+    request << ",\"poolNonce\":" << *poolNonce;
   }
-  return util::boostpropertytree::ptreeToString(tree);
-
+  request << "}";
+  return request.str();
 }
 
 void parseSubmitResponse(const std::string& result, const std::string& error,
@@ -208,6 +212,15 @@ void parseSubmitResponse(const std::string& result, const std::string& error,
     auto status = tree.get<std::string>("status", "");
     successHandler(status);
   }
+}
+
+std::string createKeepalivedParams(const std::string& id)
+{
+  std::ostringstream request;
+  request << "{"
+          << "\"id\":\"" << id << "\""
+          << "}";
+  return request.str();
 }
 
 void parseNotification(const std::string& method, const std::string& params, NewJobHandler newJobHandler)

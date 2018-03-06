@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <boost/core/noncopyable.hpp>
+#include <boost/asio/io_service.hpp>
 
 #include "net/endpoint.hpp"
 #include "net/connection.hpp"
@@ -23,7 +24,8 @@ public:
   virtual ~Server() {};
 };
 
-Server::Ptr createServer(const NewConnectionHandler& handler, const EndPoint& endPoint);
+Server::Ptr createServer(const std::shared_ptr<boost::asio::io_service>& ioService,
+                         const NewConnectionHandler& handler, const EndPoint& endPoint);
 
 
 } //namespace server
