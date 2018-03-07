@@ -4,6 +4,7 @@
 #include "net/jsonrpc/jsonrpc.hpp"
 #include "stratum/stratum.hpp"
 #include "proxy/client.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace proxy {
@@ -48,7 +49,7 @@ WorkerType Client::getType() const
 void Client::assignJob(const Job::Ptr& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_DEBUG << __PRETTY_FUNCTION__;
   if (job)
   {
 //    job->setAssignedWorker(identifier_);
@@ -66,7 +67,7 @@ bool Client::canHandleJobTemplates() const
 void Client::assignJobTemplate(const JobTemplate::Ptr& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_DEBUG << __PRETTY_FUNCTION__;
   if (job)
   {
     //job->setAssignedWorker(identifier_);
@@ -97,14 +98,12 @@ void Client::handleReceived(char* data, std::size_t size)
 
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-
   net::jsonrpc::parse(
     std::string(data, size),
     [this](const std::string& id, const std::string& method, const std::string& params)
     {
-//      std::cout << "proxy::Client::handleReceived request, id, " << id << ", method, " << method
-//                << ", params, " << params << std::endl;
+//      LOG_DEBUG << "proxy::Client::handleReceived request, id, " << id << ", method, " << method
+//                << ", params, " << params;
       stratum::server::parseRequest(id, method, params,
                                     std::bind(&Client::handleLogin, this, _1, _2, _3, _4),
                                     std::bind(&Client::handleGetJob, this, _1),
@@ -114,27 +113,27 @@ void Client::handleReceived(char* data, std::size_t size)
     },
     [this](const std::string& id, const std::string& result, const std::string& error)
     {
-      std::cout << "proxy::Client::handleReceived response, id, " << id << ", result, " << result
-                << ", error, " << error << std::endl;
+      LOG_DEBUG << "proxy::Client::handleReceived response, id, " << id << ", result, " << result
+                << ", error, " << error;
     },
     [this](const std::string& method, const std::string& params)
     {
-      std::cout << "proxy::Client::handleReceived notification, method, " << method << ", params, "
-                << params << std::endl;
+      LOG_DEBUG << "proxy::Client::handleReceived notification, method, " << method << ", params, "
+                << params;
     });
 }
 
 void Client::handleError(const std::string& error)
 {
-  std::cout << __PRETTY_FUNCTION__ << " " << error << std::endl;
+  LOG_DEBUG << __PRETTY_FUNCTION__ << " " << error;
 }
 
 void Client::handleLogin(const std::string& jsonRequestId, const std::string& login, const std::string& pass, const std::string& agent)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl
-            << " login = " << login << std::endl
-            << " pass = " << pass << std::endl
-            << " agent = " << agent << std::endl;
+  LOG_DEBUG << "ses::proxy::Client::handleLogin()"
+            << ", login, " << login
+            << ", pass, " << pass
+            << ", agent, " << agent;
 
   if (login.empty())
   {
@@ -168,16 +167,13 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
       stratum::server::createLoginResponse(boost::uuids::to_string(identifier_),
                                            currentJob_ ? currentJob_->asStratumJob() : std::optional<stratum::Job>());
 
-    std::string response = net::jsonrpc::response(jsonRequestId, responseResult, "");
-    std::cout << " response = " << response << std::endl;
-
-    connection_->send(response);
+    connection_->send(net::jsonrpc::response(jsonRequestId, responseResult, ""));
   }
 }
 
 void Client::handleGetJob(const std::string& jsonRequestId)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_DEBUG << __PRETTY_FUNCTION__;
 
   if (currentJob_)
   {
@@ -198,18 +194,20 @@ void Client::handleSubmit(const std::string& jsonRequestId,
                           const std::string& workerNonce, const std::string& poolNonce)
 {
   //TODO extend for JobTemplate receiver
-  std::cout << __PRETTY_FUNCTION__ << std::endl
-            << " identifier = " << identifier << std::endl
-            << " jobIdentifier = " << jobIdentifier << std::endl
-            << " nonce = " << nonce << std::endl
-            << " result = " << result << std::endl
-            << " workerNonce = " << workerNonce << std::endl
-            << " poolNonce = " << poolNonce << std::endl;
+  LOG_DEBUG << "ses::proxy::Client::handleSubmit()"
+            << ", identifier, " << identifier
+            << ", jobIdentifier, " << jobIdentifier
+            << ", nonce, " << nonce
+            << ", result, " << result
+            << ", workerNonce, " << workerNonce
+            << ", poolNonce, " << poolNonce;
 
   auto jobIt = jobs_.find(jobIdentifier);
   if (jobIt != jobs_.end())
   {
-    jobIt->second->submitResult(JobResult(jobIdentifier, nonce, result),
+    JobResult jobResult(jobIdentifier, nonce, result);
+    LOG_DEBUG << " difficulty = " << jobResult.getDifficulty();
+    jobIt->second->submitResult(jobResult,
                                 std::bind(&Client::handleUpstreamSubmitStatus, shared_from_this(),
                                           jsonRequestId, std::placeholders::_1));
   }
@@ -221,19 +219,17 @@ void Client::handleSubmit(const std::string& jsonRequestId,
 
 void Client::handleKeepAliveD(const std::string& jsonRequestId, const std::string& identifier)
 {
-  std::cout << __PRETTY_FUNCTION__ << ", identifier, " << identifier << std::endl;
+  LOG_DEBUG << "ses::proxy::Client::handleKeepAliveD(), identifier, " << identifier;
   sendSuccessResponse(jsonRequestId, "KEEPALIVED");
 }
 
 void Client::handleUnknownMethod(const std::string& jsonRequestId)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
   sendErrorResponse(jsonRequestId, "invalid method");
 }
 
 void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::SubmitStatus submitStatus)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
   switch (submitStatus)
   {
     case JobResult::SUBMIT_REJECTED_IP_BANNED:
@@ -269,19 +265,16 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
 
 void Client::sendSuccessResponse(const std::string& jsonRequestId, const std::string& status)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
   connection_->send(net::jsonrpc::statusResponse(jsonRequestId, status));
 }
 
 void Client::sendErrorResponse(const std::string& jsonRequestId, const std::string& message)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
   connection_->send(net::jsonrpc::errorResponse(jsonRequestId, -1, message));
 }
 
 void Client::sendJobNotification()
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
   if (currentJob_)
   {
     connection_->send(

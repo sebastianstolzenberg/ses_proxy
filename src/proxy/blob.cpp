@@ -1,9 +1,12 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/hex.hpp>
+#include <boost/endian/conversion.hpp>
 
 #include "cryptonote/cryptonote.hpp"
 
-#include "blob.hpp"
+#include "proxy/blob.hpp"
+#include "util/log.hpp"
+#include "util/hex.hpp"
 
 namespace ses {
 namespace proxy {
@@ -110,7 +113,10 @@ uint32_t Blob::getReservedNonce() const
   uint32_t reservedNonce = 0;
   if (hasReservedOffset())
   {
-    reservedNonce = *(reinterpret_cast<const uint32_t*>(blob_.data() + reservedOffset_));
+    std::memcpy(reinterpret_cast<uint8_t*>(&reservedNonce),
+                blob_.data() + reservedOffset_,
+                sizeof(reservedNonce));
+    reservedNonce = boost::endian::big_to_native(*(reinterpret_cast<const uint32_t*>(blob_.data() + reservedOffset_)));
   }
   return reservedNonce;
 }
@@ -119,7 +125,7 @@ void Blob::setReservedNonce(uint32_t reservedNonce)
 {
   if (hasReservedOffset())
   {
-    *(reinterpret_cast<uint32_t*>(blob_.data() + reservedOffset_)) = reservedNonce;
+    *(reinterpret_cast<uint32_t*>(blob_.data() + reservedOffset_)) = boost::endian::native_to_big(reservedNonce);
   }
 }
 
@@ -133,7 +139,7 @@ uint32_t Blob::getClientNonce() const
   uint32_t clientNonce = 0;
   if (hasClientNonceOffset())
   {
-    clientNonce = *(reinterpret_cast<const uint32_t*>(blob_.data() + clientNonceOffset_));
+    clientNonce = boost::endian::big_to_native(*(reinterpret_cast<const uint32_t*>(blob_.data() + clientNonceOffset_)));
   }
   return clientNonce;
 }
@@ -142,7 +148,7 @@ void Blob::setClientNonce(uint32_t clientNonce)
 {
   if (hasClientNonceOffset())
   {
-    *(reinterpret_cast<uint32_t*>(blob_.data() + clientNonceOffset_)) = clientNonce;
+    *(reinterpret_cast<uint32_t*>(blob_.data() + clientNonceOffset_)) = boost::endian::native_to_big(clientNonce);
   }
 }
 
@@ -156,7 +162,7 @@ uint32_t Blob::getClientPool() const
   uint32_t clientPool = 0;
   if (hasClientPoolOffset())
   {
-    clientPool = *(reinterpret_cast<const uint32_t*>(blob_.data() + clientPoolOffset_));
+    clientPool = boost::endian::big_to_native(*(reinterpret_cast<const uint32_t*>(blob_.data() + clientPoolOffset_)));
   }
   return clientPool;
 }
@@ -165,7 +171,7 @@ void Blob::setClientPool(uint32_t clientPool)
 {
   if (hasClientPoolOffset())
   {
-    *(reinterpret_cast<uint32_t*>(blob_.data() + clientPoolOffset_)) = clientPool;
+    *(reinterpret_cast<uint32_t*>(blob_.data() + clientPoolOffset_)) = boost::endian::native_to_big(clientPool);
   }
 }
 

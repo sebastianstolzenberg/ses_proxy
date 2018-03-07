@@ -58,6 +58,8 @@ public:
 
   uint8_t getNiceHash() const;
 
+  uint32_t getDifficulty() const;
+
 private:
   std::string jobId_;
   uint32_t nonce_;

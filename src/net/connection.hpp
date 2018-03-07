@@ -25,19 +25,20 @@ protected:
   virtual ~Connection() = default;
 
   void notifyRead(char* data, size_t size);
-
   void notifyError(const std::string& error);
 
 public:
   void setHandler(const ReceivedDataHandler& receivedDataHandler, const ErrorHandler& errorHandler);
   void resetHandler();
 
-  virtual bool connected() const = 0;
-
-  virtual std::string connectedIp() const = 0;
+  virtual bool isConnected() const = 0;
+  virtual std::string getConnectedIp() const = 0;
 
   virtual bool send(const char* data, std::size_t size) = 0;
   bool send(const std::string& data) {return send(data.data(), data.size());}
+
+protected:
+  virtual void startReading() = 0;
 
 private:
   ReceivedDataHandler receivedDataHandler_;

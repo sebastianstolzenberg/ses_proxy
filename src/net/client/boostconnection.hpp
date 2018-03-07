@@ -1,6 +1,7 @@
 #pragma once
 
 #include "net/client/connection.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace net {
@@ -17,39 +18,37 @@ public:
     : Connection(receivedDataHandler, errorHandler),
       ioService_(ioService), socket_(*ioService)
   {
-    std::cout << "Connecting BoostConnection ... ";
+    LOG_DEBUG << "Connecting BoostConnection ... ";
     boost::asio::ip::tcp::resolver resolver(*ioService_);
     boost::asio::ip::tcp::resolver::query query(server, std::to_string(port));
     boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
     socket_.connect(iterator);
-
-    triggerRead();
-    std::cout << " success\n";
+    startReading();
+    LOG_DEBUG << " success";
   }
 
   ~BoostConnection()
   {
   }
 
-  bool connected() const override
+  bool isConnected() const override
   {
     return socket_.get().lowest_layer().is_open();
 
   }
 
-  std::string connectedIp() const override
+  std::string getConnectedIp() const override
   {
-    return connected() ?
+    return isConnected() ?
            socket_.get().lowest_layer().remote_endpoint().address().to_string() :
            "";
   }
 
   bool send(const char *data, std::size_t size) override
   {
-    std::cout << "net::client::BoostConnection::send: ";
-    std::cout.write(data, size);
-    std::cout << "\n";
+    LOG_DEBUG << "net::client::BoostConnection::send: ";
+    LOG_DEBUG.write(data, size);
 
     boost::system::error_code error;
     boost::asio::write(socket_.get(), boost::asio::buffer(data, size), error);
@@ -60,6 +59,13 @@ public:
     return !error;
   }
 
+protected:
+  void startReading() override
+  {
+    triggerRead();
+  }
+
+private:
   void triggerRead()
   {
     boost::asio::async_read(socket_.get(),
@@ -75,15 +81,14 @@ public:
   {
     if (!error)
     {
-      std::cout << "net::client::BoostConnection::handleRead: ";
-      std::cout.write(receiveBuffer_, bytes_transferred);
-      //std::cout << "\n";
+      LOG_DEBUG << "net::client::BoostConnection::handleRead: ";
+      LOG_DEBUG.write(receiveBuffer_, bytes_transferred);
       notifyRead(receiveBuffer_, bytes_transferred);
       triggerRead();
     }
     else
     {
-      std::cout << "Read failed: " << error.message() << "\n";
+      LOG_DEBUG << "Read failed: " << error.message();
       notifyError(error.message());
     }
   }

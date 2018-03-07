@@ -24,13 +24,13 @@ std::vector<uint8_t> convert_blob(const std::vector<uint8_t>& templateBlob)
         }
         else
         {
-            std::cout << "Failed to create mining block" << std::endl;
+            //TODO
 //            return THROW_ERROR_EXCEPTION("Failed to create mining block");
         }
     }
     else
     {
-        std::cout << "Failed to parse block" << std::endl;
+        //TODO
 //    return THROW_ERROR_EXCEPTION("Failed to parse block");
     }
     return result;
@@ -54,13 +54,13 @@ std::vector<uint8_t> convert_blob(const std::vector<uint8_t>& templateBlob)
 //        }
 //        else
 //        {
-//            std::cout << "Failed to convert block to blob" << std::endl;
+//            LOG_DEBUG << "Failed to convert block to blob";
 ////            return THROW_ERROR_EXCEPTION("Failed to convert block to blob");
 //        }
 //    }
 //    else
 //    {
-//        std::cout << "Failed to parse block" << std::endl;
+//        LOG_DEBUG << "Failed to parse block";
 ////        return THROW_ERROR_EXCEPTION("Failed to parse block");
 //    }
 //    return result;

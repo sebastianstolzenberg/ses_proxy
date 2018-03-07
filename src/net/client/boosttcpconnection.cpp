@@ -24,6 +24,7 @@
 
 #include "net/client/boostconnection.hpp"
 #include "net/client/boosttcpconnection.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace net {

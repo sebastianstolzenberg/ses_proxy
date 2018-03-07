@@ -3,6 +3,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include "proxy/job.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace proxy {
@@ -35,7 +36,6 @@ public:
     : assignedWorker_(workerIdentifier), jobIdentifier_(jobIdentifier), blob_(blob), target_(target),
       jobResultHandler_(jobResultHandler)
   {
-    std::cout << "MinerJob()" << std::endl;
   }
 
   void submitResult(const JobResult& result,

@@ -38,6 +38,7 @@ void Connection::setHandler(const ReceivedDataHandler& receivedDataHandler, cons
 {
   receivedDataHandler_ = receivedDataHandler;
   errorHandler_ = errorHandler;
+  startReading();
 }
 
 void Connection::resetHandler()

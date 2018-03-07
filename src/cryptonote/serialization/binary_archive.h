@@ -66,7 +66,7 @@ struct binary_archive<false> : public binary_archive_base<std::istream, false>
     T ret = 0;
     unsigned shift = 0;
     for (size_t i = 0; i < width; i++) {
-      //std::cerr << "tell: " << stream_.tellg() << " value: " << ret << std::endl;
+      //std::cerr << "tell: " << stream_.tellg() << " value: " << ret;
       char c;
       stream_.get(c);
       T b = (unsigned char)c;
@@ -108,7 +108,7 @@ struct binary_archive<false> : public binary_archive_base<std::istream, false>
   size_t remaining_bytes() {
     if (!stream_.good())
       return 0;
-    //std::cerr << "tell: " << stream_.tellg() << std::endl;
+    //std::cerr << "tell: " << stream_.tellg();
     assert(stream_.tellg() <= eof_pos_);
     return eof_pos_ - stream_.tellg();
   }

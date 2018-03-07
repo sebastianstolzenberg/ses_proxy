@@ -7,6 +7,7 @@
 #include <boost/asio.hpp>
 
 #include "net/server/server.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace net {
@@ -18,29 +19,33 @@ public:
   explicit BoostConnection(boost::asio::ip::tcp::socket socket)
     : socket_(std::move(socket))
   {
-    triggerRead();
   }
 
 public:
-  virtual bool connected() const
+  virtual bool isConnected() const override
   {
     return socket_.lowest_layer().is_open();
   }
 
-  virtual std::string connectedIp() const
+  virtual std::string getConnectedIp() const override
   {
-    return connected() ?
+    return isConnected() ?
            socket_.lowest_layer().remote_endpoint().address().to_string() :
            "";
   }
 
-  virtual bool send(const char* data, std::size_t size)
+  virtual bool send(const char* data, std::size_t size) override
   {
-    std::cout << "net::server::BoostConnection::send:  ";
-    std::cout.write(data, size);
-    std::cout << "\n";
+    LOG_DEBUG << "net::server::BoostConnection::send:  ";
+    LOG_DEBUG.write(data, size);
 
     socket_.send(boost::asio::buffer(data, size));
+  }
+
+protected:
+  void startReading() override
+  {
+    triggerRead();
   }
 
 private:
@@ -53,15 +58,14 @@ private:
                             {
                               if (!error)
                               {
-                                std::cout << "net::server::BoostConnection received :";
-                                std::cout.write(receiveBuffer_, bytes_transferred);
-                                std::cout << "\n";
+                                LOG_DEBUG << "net::server::BoostConnection received :";
+                                LOG_DEBUG.write(receiveBuffer_, bytes_transferred);
                                 notifyRead(receiveBuffer_, bytes_transferred);
                                 triggerRead();
                               }
                               else
                               {
-                                std::cout << "net::server::BoostConnection Read failed: " << error.message() << "\n";
+                                LOG_DEBUG << "net::server::BoostConnection Read failed: " << error.message();
                                 notifyError(error.message());
                               }
                             });

@@ -9,9 +9,14 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Threads)
 find_package(OpenSSL REQUIRED)
-find_package(Boost REQUIRED system)
+SET(Boost_USE_STATIC_LIBS ON)
+find_package(Boost COMPONENTS log system REQUIRED)
 
 include_directories(src)
+
+add_library(ses_proxy_util
+        STATIC
+        src/util/difficulty.cpp)
 
 add_library(ses_proxy_net
         STATIC
@@ -38,13 +43,18 @@ add_executable(ses_proxy
         src/proxy/job.cpp
         src/proxy/jobtemplate.cpp
         src/proxy/worker.cpp
-        src/proxy/blob.cpp src/proxy/workeridentifier.cpp)
+        src/proxy/blob.cpp
+        src/proxy/workeridentifier.cpp)
 target_link_libraries(ses_proxy
         ses_proxy_net
         ses_proxy_stratum
+        ses_proxy_util
         cryptonote
+        Boost::log
         Boost::system
         OpenSSL::SSL
         OpenSSL::Crypto
         ${CMAKE_THREAD_LIBS_INIT})
 #add_dependencies(ses_proxy cryptonote)
+
+add_subdirectory(test EXCLUDE_FROM_ALL)

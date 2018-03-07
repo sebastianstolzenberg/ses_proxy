@@ -6,7 +6,8 @@
 #include "proxy/jobtemplate.hpp"
 #include "proxy/blob.hpp"
 #include "proxy/workeridentifier.hpp"
-#include "difficulty.hpp"
+#include "util/difficulty.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace proxy {
@@ -119,7 +120,6 @@ public:
     : BaseJobTemplate(identifier, jobIdentifier, blob), nextClientNonce_(1), difficulty_(difficulty),
       height_(height), targetDiff_(targetDiff)
   {
-    std::cout << "WorkerJobTemplate()" << std::endl;
   }
 
   void submitResult(const JobResult& result,
@@ -143,7 +143,7 @@ public:
 protected:
   Job::Ptr getNextSubJob(const WorkerIdentifier& workerIdentifier, WorkerType workerType) override
   {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    LOG_DEBUG << __PRETTY_FUNCTION__;
     Job::Ptr job;
     if (workerType != WorkerType::PROXY)
     {
@@ -157,7 +157,7 @@ protected:
                   nextClientNonce_,
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
       job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), std::move(blob),
-                                targetDiff_, resultHandler);
+                                util::difficultyToTarget(targetDiff_), resultHandler);
       ++nextClientNonce_;
       //TODO connect ResultHandler
     }
@@ -171,14 +171,21 @@ private:
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    std::cout << __PRETTY_FUNCTION__ << ", workerNonce, " << workerNonce << std::endl;
+//    LOG_DEBUG << __PRETTY_FUNCTION__ << ", workerNonce, " << workerNonce;
 
-    JobResult modifiedResult = jobResult;
-    modifiedResult.setIsNodeJsResult_(true);
-    modifiedResult.setWorkerNonce(workerNonce);
-    modifiedResult.setJobId(jobIdentifier_);
-    //TODO add intermediate submitStatusHandler
-    jobResultHandler_(identifier_, modifiedResult, submitStatusHandler);
+    if (jobResult.getDifficulty() < targetDiff_)
+    {
+      submitStatusHandler(JobResult::SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE);
+    }
+    else
+    {
+      JobResult modifiedResult = jobResult;
+      modifiedResult.setIsNodeJsResult_(true);
+      modifiedResult.setWorkerNonce(workerNonce);
+      modifiedResult.setJobId(jobIdentifier_);
+      //TODO add intermediate submitStatusHandler
+      jobResultHandler_(identifier_, modifiedResult, submitStatusHandler);
+    }
   }
 
 private:
@@ -198,7 +205,6 @@ public:
     : BaseJobTemplate(identifier, jobIdentifier, blob), nextPoolNonce_(1), difficulty_(difficulty),
       height_(height), targetDiff_(targetDiff)
   {
-    std::cout << "MasterJobTemplate()" << std::endl;
   }
 
   void submitResult(const JobResult& result,
@@ -283,7 +289,7 @@ private:
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    std::cout << __PRETTY_FUNCTION__ << ", poolNonce, " << poolNonce << std::endl;
+//    LOG_DEBUG << __PRETTY_FUNCTION__ << ", poolNonce, " << poolNonce;
 
     JobResult modifiedResult = jobResult;
     modifiedResult.setIsNodeJsResult_(true);
@@ -311,19 +317,18 @@ public:
                       const Blob& blob, uint64_t target)
     : BaseJobTemplate(identifier, jobIdentifier, blob), target_(target), lastNiceHash_(0)
   {
-    std::cout << "NiceHashJobTemplate()" << std::endl;
   }
 
   void submitResult(const JobResult& result,
                     const JobResult::SubmitStatusHandler& submitStatusHandler) override
   {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    LOG_DEBUG << __PRETTY_FUNCTION__;
   }
 
 private:
   Job::Ptr getNextSubJob(const WorkerIdentifier& workerIdentifier, WorkerType workerType) override
   {
-    std::cout << __PRETTY_FUNCTION__ << " " << typeid(this).name() << std::endl;
+    LOG_DEBUG << __PRETTY_FUNCTION__ << " " << typeid(this).name();
     Job::Ptr job;
     if (workerType != WorkerType::PROXY)
     {
@@ -348,7 +353,7 @@ private:
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+//    LOG_DEBUG << __PRETTY_FUNCTION__;
 
     if (foundNonces_.count(jobResult.getNonce()) > 0)
     {
@@ -372,7 +377,7 @@ private:
 
   void handleSubmitStatus(JobResult::SubmitStatus submitStatus, JobResult::SubmitStatusHandler handler, uint32_t nonce)
   {
-    std::cout << __PRETTY_FUNCTION__ << " " << submitStatus << " " << nonce << std::endl;
+    LOG_DEBUG << __PRETTY_FUNCTION__ << " " << submitStatus << " " << nonce;
     if (submitStatus == JobResult::SUBMIT_ACCEPTED)
     {
       foundNonces_.insert(nonce);
@@ -395,7 +400,6 @@ public:
                   const Blob& blob, uint64_t target)
     : BaseJobTemplate(identifier, jobIdentifier, blob), target_(target)
   {
-    std::cout << "SoloJobTemplate()" << std::endl;
   }
 
   void submitResult(const JobResult& result,
@@ -428,7 +432,7 @@ protected:
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
+//    LOG_DEBUG << __PRETTY_FUNCTION__;
 
     if (foundNonces_.count(jobResult.getNonce()) > 0)
     {
@@ -457,7 +461,7 @@ protected:
 
   void handleSubmitStatus(JobResult::SubmitStatus submitStatus, JobResult::SubmitStatusHandler handler, uint32_t nonce)
   {
-    std::cout << __PRETTY_FUNCTION__ << " " << submitStatus << " " << nonce << std::endl;
+    LOG_DEBUG << __PRETTY_FUNCTION__ << " " << submitStatus << " " << nonce;
     if (submitStatus == JobResult::SUBMIT_ACCEPTED)
     {
       foundNonces_.insert(nonce);

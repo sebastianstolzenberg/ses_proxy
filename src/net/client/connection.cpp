@@ -22,7 +22,7 @@
 #include "net/client/connection.hpp"
 #include "net/client/boosttlsconnection.hpp"
 #include "net/client/boosttcpconnection.hpp"
-
+#include "util/log.hpp"
 
 namespace ses {
 namespace net {
@@ -58,7 +58,7 @@ Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_servic
   }
   catch (...)
   {
-    std::cout << boost::current_exception_diagnostic_information();
+    LOG_DEBUG << boost::current_exception_diagnostic_information();
   }
   return connection;
 }

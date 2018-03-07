@@ -1,7 +1,3 @@
-//
-// Created by ses on 18.02.18.
-//
-
 #include <iostream>
 #include <functional>
 #include <boost/lexical_cast.hpp>
@@ -10,6 +6,7 @@
 #include "net/client/connection.hpp"
 #include "net/jsonrpc/jsonrpc.hpp"
 #include "proxy/pool.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace proxy {
@@ -23,7 +20,7 @@ Pool::Pool(const std::shared_ptr<boost::asio::io_service>& ioService)
 
 void Pool::connect(const Configuration& configuration)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_DEBUG << __PRETTY_FUNCTION__;
   connection_ = net::client::establishConnection(ioService_,
                                                  configuration.endPoint_,
                                                  std::bind(&Pool::handleReceived, this,
@@ -47,15 +44,15 @@ void Pool::handleReceived(char* data, std::size_t size)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-//  std::cout << __PRETTY_FUNCTION__ << std::endl;
+//  LOG_DEBUG << __PRETTY_FUNCTION__;
   using namespace std::placeholders;
 
   net::jsonrpc::parse(
     std::string(data, size),
     [this](const std::string& id, const std::string& method, const std::string& params)
     {
-      std::cout << "proxy::Pool::handleReceived request, id, " << id << ", method, " << method
-                << ", params, " << params << std::endl;
+      LOG_DEBUG << "proxy::Pool::handleReceived request, id, " << id << ", method, " << method
+                << ", params, " << params;
     },
     [this](const std::string& id, const std::string& result, const std::string& error)
     {
@@ -103,12 +100,12 @@ void Pool::handleReceived(char* data, std::size_t size)
 
 void Pool::handleError(const std::string& error)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_DEBUG << __PRETTY_FUNCTION__;
 }
 
 void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job)
 {
-  std::cout << "proxy::Pool::handleLoginSuccess, id, " << id << std::endl;
+  LOG_DEBUG << "proxy::Pool::handleLoginSuccess, id, " << id;
 
   workerIdentifier_ = id;
   if (job)
@@ -119,24 +116,24 @@ void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum
 
 void Pool::handleLoginError(int code, const std::string& message)
 {
-  std::cout << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message<< std::endl;
+  LOG_DEBUG << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message<< std::endl;
 }
 
 void Pool::handleGetJobSuccess(const stratum::Job& job)
 {
-  std::cout << "proxy::Pool::handleGetJobSuccess" << std::endl;
+  LOG_DEBUG << "proxy::Pool::handleGetJobSuccess";
   setJob(job);
 }
 
 void Pool::handleGetJobError(int code, const std::string& message)
 {
-  std::cout << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message << std::endl;
+  LOG_DEBUG << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message;
 }
 
 void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                                const std::string& status)
 {
-  std::cout << "proxy::Pool::handleSubmitSuccess, status, " << status << std::endl;
+  LOG_DEBUG << "proxy::Pool::handleSubmitSuccess, status, " << status;
   if (submitStatusHandler)
   {
     submitStatusHandler(JobResult::SUBMIT_ACCEPTED);
@@ -145,14 +142,14 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
   auto job = jobTemplates_[jobId];
   if (job)
   {
-    std::cout << "proxy::Pool, job " << job->getJobIdentifier() << ", numHashes " << job->numHashesFound() << std::endl;
+    LOG_DEBUG << "proxy::Pool, job " << job->getJobIdentifier() << ", numHashes " << job->numHashesFound();
   }
 }
 
 void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                              int code, const std::string& message)
 {
-  std::cout << "proxy::Pool::handleSubmitError, code, " << code << ", message, " << message << std::endl;
+  LOG_DEBUG << "proxy::Pool::handleSubmitError, code, " << code << ", message, " << message;
 
   if (submitStatusHandler)
   {
@@ -191,7 +188,7 @@ void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitSt
 
 void Pool::handleNewJob(const stratum::Job& job)
 {
-  std::cout << "proxy::Pool::handleNewJob, job.jobIdentifier_, " << job.getJobIdentifier() << std::endl;
+  LOG_DEBUG << "proxy::Pool::handleNewJob, job.jobIdentifier_, " << job.getJobIdentifier();
   setJob(job);
 }
 
@@ -199,7 +196,7 @@ JobResult::SubmitStatus Pool::handleJobResult(const WorkerIdentifier& workerIden
                                               const JobResult& jobResult,
                                               const JobResult::SubmitStatusHandler& submitStatusHandler)
 {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_DEBUG << __PRETTY_FUNCTION__;
 
   submit(jobResult, submitStatusHandler);
 }
@@ -242,15 +239,9 @@ void Pool::setJob(const stratum::Job& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-  std::cout << __PRETTY_FUNCTION__
-            << ", jobId, " << job.getJobIdentifier()
-            << ", target, " << job.getTarget()
-            << std::endl;
-
   auto knownJob = jobTemplates_.find(job.getJobIdentifier());
   if (knownJob == jobTemplates_.end())
   {
-    std::cout << __PRETTY_FUNCTION__ << " New job template" << std::endl;
     try
     {
       auto newJobTemplate = JobTemplate::create(job);
@@ -262,17 +253,17 @@ void Pool::setJob(const stratum::Job& job)
     }
     catch (...)
     {
-      std::cout << boost::current_exception_diagnostic_information();
+      LOG_DEBUG << boost::current_exception_diagnostic_information();
     }
   }
   else if (activeJobTemplate_ && job.getJobIdentifier() != activeJobTemplate_->getJobIdentifier())
   {
-    std::cout << __PRETTY_FUNCTION__ << " Known job template, setting it as active job template" << std::endl;
+    LOG_DEBUG << __PRETTY_FUNCTION__ << " Known job template, setting it as active job template";
     activateJob(knownJob->second);
   }
   else
   {
-    std::cout << __PRETTY_FUNCTION__ << " Known job template which is active already" << std::endl;
+    LOG_DEBUG << __PRETTY_FUNCTION__ << " Known job template which is active already";
   }
 }
 
@@ -328,7 +319,7 @@ void Pool::login()
 void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandler& submitStatusHandler)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  LOG_DEBUG << __PRETTY_FUNCTION__;
 
   auto jobIt = jobTemplates_.find(jobResult.getJobIdentifier());
   if (jobIt != jobTemplates_.end())

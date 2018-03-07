@@ -1,6 +1,8 @@
 #include <boost/algorithm/hex.hpp>
 
-#include "jobresult.hpp"
+#include "proxy/jobresult.hpp"
+#include "util/difficulty.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace proxy {
@@ -125,6 +127,11 @@ void JobResult::setPoolNonce(uint32_t poolNonce)
 uint8_t JobResult::getNiceHash() const
 {
   return static_cast<uint8_t>((getNonce() >> (sizeof(uint32_t) - sizeof(uint8_t))) & 0x000000ff);
+}
+
+uint32_t JobResult::getDifficulty() const
+{
+  return util::difficultyFromHashBuffer(hash_.data(), hash_.size());
 }
 
 } // namespace proxy
