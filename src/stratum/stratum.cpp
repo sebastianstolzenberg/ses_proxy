@@ -96,7 +96,7 @@ std::string createLoginResponse(const std::string& id, const std::optional<Job>&
   response << "{\"id\":\"" << id << "\",";
   if (job)
   {
-    response << getJobTree(*job) << ",";
+    response << "\"job\":" << getJobTree(*job) << ",";
   }
   response << "\"status\":\"OK\"}";
   return response.str();

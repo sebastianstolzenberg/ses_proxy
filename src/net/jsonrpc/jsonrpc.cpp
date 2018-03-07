@@ -66,7 +66,7 @@ std::string statusResponse(const std::string& id, const std::string& status)
   response << "{"
            << "\"id\":" << id << ","
            << "\"jsonrpc\":\"2.0\""
-           << ",\"result\":{\"status\":\"" << status << "\"}\n";
+           << ",\"result\":{\"status\":\"" << status << "\"}}\n";
   return response.str();
 }
 

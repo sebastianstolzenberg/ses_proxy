@@ -286,11 +286,12 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
     default:
     {
       sendSuccessResponse(jsonRequestId, "OK");
-      std::chrono::time_point<std::chrono::system_clock> now;
+      std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
       std::chrono::milliseconds diff =
           std::chrono::duration_cast<std::chrono::milliseconds>(now - lastShareTimePoint_);
       lastShareTimePoint_ = now;
       shareTimeDiffs_.push_back(diff);
+      LOG_DEBUG << "Client submit success " << connection_->getConnectedIp() << ", td, " << diff.count() << "ms";
       break;
     }
   }
@@ -308,11 +309,11 @@ void Client::sendErrorResponse(const std::string& jsonRequestId, const std::stri
 
 void Client::sendJobNotification()
 {
-  if (currentJob_)
+  if (currentJob_ && connection_)
   {
     connection_->send(
       net::jsonrpc::notification("job", stratum::server::createJobNotification(currentJob_->asStratumJob())));
-
+    lastShareTimePoint_ = std::chrono::system_clock::now();
   }
 }
 

@@ -25,11 +25,12 @@ void Server::handleNewConnection(net::Connection::Ptr connection)
   auto workerId = boost::uuids::random_generator()();
   auto client = std::make_shared<Client>(ioService_, workerId, configuration_.defaultAlgorithm_,
                                          configuration_.defaultDifficulty_);
-  client->setConnection(connection);
   if (newClientHandler_)
   {
     newClientHandler_(client);
   }
+  // assigns the connection after calling newClientHandler, so that a job can be assigned before the client's submit is processed
+  client->setConnection(connection);
 }
 
 } // namespace proxy

@@ -3,8 +3,10 @@
 #include <thread>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/log/expressions.hpp>
 
 #include "proxy/proxy.hpp"
+#include "util/log.hpp"
 
 void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
 {
@@ -37,6 +39,11 @@ void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
 
 int main()
 {
+  boost::log::core::get()->set_filter
+  (
+    boost::log::trivial::severity >= boost::log::trivial::debug
+  );
+
   std::shared_ptr<boost::asio::io_service> ioService = std::make_shared<boost::asio::io_service>();
 
   ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>(ioService);

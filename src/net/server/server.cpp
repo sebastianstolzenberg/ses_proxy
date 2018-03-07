@@ -36,8 +36,8 @@ public:
 
   virtual bool send(const char* data, std::size_t size) override
   {
-    LOG_DEBUG << "net::server::BoostConnection::send:  ";
-    LOG_DEBUG.write(data, size);
+    LOG_TRACE << "net::server::BoostConnection::send: ";
+    LOG_TRACE.write(data, size);
 
     socket_.send(boost::asio::buffer(data, size));
   }
@@ -58,14 +58,14 @@ private:
                             {
                               if (!error)
                               {
-                                LOG_DEBUG << "net::server::BoostConnection received :";
-                                LOG_DEBUG.write(receiveBuffer_, bytes_transferred);
+                                LOG_TRACE << "net::server::BoostConnection received :";
+                                LOG_TRACE.write(receiveBuffer_, bytes_transferred);
                                 notifyRead(receiveBuffer_, bytes_transferred);
                                 triggerRead();
                               }
                               else
                               {
-                                LOG_DEBUG << "net::server::BoostConnection Read failed: " << error.message();
+                                LOG_ERROR << "net::server::BoostConnection Read failed: " << error.message();
                                 notifyError(error.message());
                               }
                             });

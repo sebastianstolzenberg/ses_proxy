@@ -18,14 +18,13 @@ public:
     : Connection(receivedDataHandler, errorHandler),
       ioService_(ioService), socket_(*ioService)
   {
-    LOG_DEBUG << "Connecting BoostConnection ... ";
+    LOG_TRACE << "Connecting net::client::BoostConnection to " << server << ":" << port;
     boost::asio::ip::tcp::resolver resolver(*ioService_);
     boost::asio::ip::tcp::resolver::query query(server, std::to_string(port));
     boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
     socket_.connect(iterator);
     startReading();
-    LOG_DEBUG << " success";
   }
 
   ~BoostConnection()
@@ -47,8 +46,8 @@ public:
 
   bool send(const char *data, std::size_t size) override
   {
-    LOG_DEBUG << "net::client::BoostConnection::send: ";
-    LOG_DEBUG.write(data, size);
+    LOG_TRACE << "net::client::BoostConnection::send: ";
+    LOG_TRACE.write(data, size);
 
     boost::system::error_code error;
     boost::asio::write(socket_.get(), boost::asio::buffer(data, size), error);
@@ -81,14 +80,14 @@ private:
   {
     if (!error)
     {
-      LOG_DEBUG << "net::client::BoostConnection::handleRead: ";
-      LOG_DEBUG.write(receiveBuffer_, bytes_transferred);
+      LOG_TRACE << "net::client::BoostConnection::handleRead: ";
+      LOG_TRACE.write(receiveBuffer_, bytes_transferred);
       notifyRead(receiveBuffer_, bytes_transferred);
       triggerRead();
     }
     else
     {
-      LOG_DEBUG << "Read failed: " << error.message();
+      LOG_ERROR << "Read failed: " << error.message();
       notifyError(error.message());
     }
   }
