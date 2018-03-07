@@ -23,13 +23,14 @@ public:
   struct Configuration
   {
     Configuration() : defaultAlgorithm_(ALGORITHM_CRYPTONIGHT) {}
-    Configuration(const net::EndPoint& endPoint, Algorithm defaultAlgorithm)
-      : endPoint_(endPoint), defaultAlgorithm_(defaultAlgorithm)
+    Configuration(const net::EndPoint& endPoint, Algorithm defaultAlgorithm, uint32_t defaultDifficulty)
+      : endPoint_(endPoint), defaultAlgorithm_(defaultAlgorithm), defaultDifficulty_(defaultDifficulty)
     {
     }
 
     net::EndPoint endPoint_;
     Algorithm defaultAlgorithm_;
+    uint32_t defaultDifficulty_;
   };
 
 public:

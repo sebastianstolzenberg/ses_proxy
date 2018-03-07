@@ -24,7 +24,7 @@ public:
 
 public:
   Client(const std::shared_ptr<boost::asio::io_service>& ioService,
-         const WorkerIdentifier& id, Algorithm defaultAlgorithm);
+         const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty);
 
   void setConnection(const net::Connection::Ptr& connection);
 
@@ -73,17 +73,21 @@ private:
 
   WorkerIdentifier identifier_;
   Algorithm algorithm_;
-
   WorkerType type_;
   std::string useragent_;
   std::string username_;
   std::string password_;
+
+  uint32_t difficulty_;
 
   Job::Ptr currentJob_;
   std::map<std::string, Job::Ptr> jobs_;
 
   JobTemplate::Ptr currentJobTemplate_;
   std::map<std::string, JobTemplate::Ptr> jobTemplates_;
+
+  std::chrono::time_point<std::chrono::system_clock> lastShareTimePoint_;
+  std::list<std::chrono::milliseconds> shareTimeDiffs_;
 
 //  std::string subscribedExtraNone1_;
 //  Difficulty suggestedDifficulty_;

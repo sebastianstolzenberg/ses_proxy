@@ -16,7 +16,7 @@ std::string request(const std::string& id, const std::string& method, const std:
 {
   std::ostringstream request;
   request << "{"
-          << "\"id\":\"" << id << "\","
+          << "\"id\":" << id << ","
           << "\"jsonrpc\":\"2.0\","
           << "\"method\":\"" << method << "\"";
   if (!params.empty())
@@ -29,54 +29,57 @@ std::string request(const std::string& id, const std::string& method, const std:
 
 std::string notification(const std::string& method, const std::string& params)
 {
-  pt::ptree notificationTree;
-  notificationTree.put("method", method);
-  notificationTree.put("jsonrpc", "2.0");
-
+  std::ostringstream notification;
+  notification << "{"
+               << "\"jsonrpc\":\"2.0\","
+               << "\"method\":\"" << method << "\"";
   if (!params.empty())
   {
-    notificationTree.put_child("params", util::boostpropertytree::stringToPtree(params));
+    notification << ",\"params\":" << params;
   }
+  notification << "}\n";
 
-  return util::boostpropertytree::ptreeToString(notificationTree, false);
+  return notification.str();
 }
 
 std::string response(const std::string& id, const std::string& result, const std::string& error)
 {
-  pt::ptree responseTree;
-  responseTree.put("id", id);
-  responseTree.put("jsonrpc", "2.0");
-
+  std::ostringstream response;
+  response << "{"
+          << "\"id\":" << id << ","
+          << "\"jsonrpc\":\"2.0\"";
   if (!result.empty())
   {
-    responseTree.put_child("result", util::boostpropertytree::stringToPtree(result));
+    response << ",\"result\":" << result;
   }
-
   if (!error.empty())
   {
-    responseTree.put_child("error", util::boostpropertytree::stringToPtree(error));
+    response << ",\"error\":" << error;
   }
-
-  return util::boostpropertytree::ptreeToString(responseTree, false);
+  response << "}\n";
+  return response.str();
 }
 
 std::string statusResponse(const std::string& id, const std::string& status)
 {
-  pt::ptree responseTree;
-  responseTree.put("id", id);
-  responseTree.put("jsonrpc", "2.0");
-  responseTree.put("result.status", status);
-  return util::boostpropertytree::ptreeToString(responseTree, false);
+  std::ostringstream response;
+  response << "{"
+           << "\"id\":" << id << ","
+           << "\"jsonrpc\":\"2.0\""
+           << ",\"result\":{\"status\":\"" << status << "\"}\n";
+  return response.str();
 }
 
 std::string errorResponse(const std::string& id, int code, const std::string& message)
 {
-  pt::ptree responseTree;
-  responseTree.put("id", id);
-  responseTree.put("jsonrpc", "2.0");
-  responseTree.put("error.code", code);
-  responseTree.put("error.message", message);
-  return util::boostpropertytree::ptreeToString(responseTree, false);
+  std::ostringstream response;
+  response << "{"
+           << "\"id\":" << id << ","
+           << "\"jsonrpc\":\"2.0\""
+           << ",\"error\":{"
+           << "\"code\":" << code << ","
+           << "\"message\":\"" << message << "\"}}\n";
+  return response.str();
 }
 
 bool parse(const std::string& jsonrpc,

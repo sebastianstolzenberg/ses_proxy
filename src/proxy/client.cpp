@@ -10,8 +10,9 @@ namespace ses {
 namespace proxy {
 
 Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
-               const WorkerIdentifier& id, Algorithm defaultAlgorithm)
-  : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN)
+               const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty)
+  : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm),
+    type_(WorkerType::UNKNOWN), difficulty_(defaultDifficulty)
 {
 }
 
@@ -193,7 +194,6 @@ void Client::handleSubmit(const std::string& jsonRequestId,
                           const std::string& nonce, const std::string& result,
                           const std::string& workerNonce, const std::string& poolNonce)
 {
-  //TODO extend for JobTemplate receiver
   LOG_DEBUG << "ses::proxy::Client::handleSubmit()"
             << ", identifier, " << identifier
             << ", jobIdentifier, " << jobIdentifier
@@ -202,25 +202,49 @@ void Client::handleSubmit(const std::string& jsonRequestId,
             << ", workerNonce, " << workerNonce
             << ", poolNonce, " << poolNonce;
 
-  auto jobIt = jobs_.find(jobIdentifier);
-  if (jobIt != jobs_.end())
+  if (identifier != toString(identifier_))
   {
-    JobResult jobResult(jobIdentifier, nonce, result);
-    LOG_DEBUG << " difficulty = " << jobResult.getDifficulty();
-    jobIt->second->submitResult(jobResult,
-                                std::bind(&Client::handleUpstreamSubmitStatus, shared_from_this(),
-                                          jsonRequestId, std::placeholders::_1));
+    sendErrorResponse(jsonRequestId, "Unauthenticated");
   }
   else
   {
-    sendErrorResponse(jsonRequestId, "Invalid job id");
+    auto jobIt = jobs_.find(jobIdentifier);
+    if (jobIt != jobs_.end())
+    {
+      JobResult jobResult(jobIdentifier, nonce, result);
+      uint32_t resultDifficulty = jobResult.getDifficulty();
+      LOG_DEBUG << " difficulty = " << jobResult.getDifficulty();
+
+      if (resultDifficulty < difficulty_)
+      {
+        sendErrorResponse(jsonRequestId, "Low difficulty share");
+      }
+      else
+      {
+        jobIt->second->submitResult(jobResult,
+                                    std::bind(&Client::handleUpstreamSubmitStatus,
+                                              shared_from_this(),
+                                              jsonRequestId, std::placeholders::_1));
+      }
+    }
+    else
+    {
+      sendErrorResponse(jsonRequestId, "Invalid job id");
+    }
   }
 }
 
 void Client::handleKeepAliveD(const std::string& jsonRequestId, const std::string& identifier)
 {
   LOG_DEBUG << "ses::proxy::Client::handleKeepAliveD(), identifier, " << identifier;
-  sendSuccessResponse(jsonRequestId, "KEEPALIVED");
+  if (identifier != toString(identifier_))
+  {
+    sendErrorResponse(jsonRequestId, "Unauthenticated");
+  }
+  else
+  {
+    sendSuccessResponse(jsonRequestId, "KEEPALIVED");
+  }
 }
 
 void Client::handleUnknownMethod(const std::string& jsonRequestId)
@@ -230,6 +254,8 @@ void Client::handleUnknownMethod(const std::string& jsonRequestId)
 
 void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::SubmitStatus submitStatus)
 {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+
   switch (submitStatus)
   {
     case JobResult::SUBMIT_REJECTED_IP_BANNED:
@@ -258,8 +284,15 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
 
     case JobResult::SUBMIT_ACCEPTED:
     default:
+    {
       sendSuccessResponse(jsonRequestId, "OK");
+      std::chrono::time_point<std::chrono::system_clock> now;
+      std::chrono::milliseconds diff =
+          std::chrono::duration_cast<std::chrono::milliseconds>(now - lastShareTimePoint_);
+      lastShareTimePoint_ = now;
+      shareTimeDiffs_.push_back(diff);
       break;
+    }
   }
 }
 

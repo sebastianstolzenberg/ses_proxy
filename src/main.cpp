@@ -51,7 +51,7 @@ int main()
                                                  ses::proxy::ALGORITHM_CRYPTONIGHT));
 
   proxy->addServer(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12345),
-                                                     ses::proxy::ALGORITHM_CRYPTONIGHT));
+                                                     ses::proxy::ALGORITHM_CRYPTONIGHT, 5000));
 
   waitForSignalAndMaxPossibleThreads(*ioService);
 

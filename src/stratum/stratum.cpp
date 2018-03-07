@@ -38,27 +38,29 @@ void parseKeepaliveD(const std::string& jsonRequestId, const std::string& params
   handler(jsonRequestId, identifier);
 }
 
-pt::ptree getJobTree(const Job& job)
+std::string getJobTree(const Job& job)
 {
-  pt::ptree tree;
-  tree.put("id", job.getId());
-  tree.put("job_id", job.getJobIdentifier());
+  std::ostringstream jobTree;
+  jobTree << "{"
+          << "\"id\":\"" << job.getId() << "\","
+          << "\"job_id\":\"" << job.getJobIdentifier() << "\",";
   if (job.isBlockTemplate())
   {
-    tree.put("blocktemplate_blob", job.getBlocktemplateBlob());
-    tree.put("difficulty", job.getDifficulty());
-    tree.put("height", job.getHeight());
-    tree.put("reserved_offset", job.getReservedOffset());
-    tree.put("client_nonce_offset", job.getClientNonceOffset()); //TODO should be left out when sending a template which is not a MasterJobTemplate
-    tree.put("client_pool_offset", job.getClientPoolOffset());
-    tree.put("target_diff", job.getTargetDiffHex());
+    jobTree << "\"blocktemplate_blob\":\"" << job.getBlocktemplateBlob() << "\","
+            << "\"difficulty\":" << job.getDifficulty() << ","
+            << "\"height\":" << job.getHeight() << ","
+            << "\"reserved_offset\":" << job.getReservedOffset() << ","
+            << "\"client_nonce_offset\":" << job.getClientNonceOffset() << ","
+            << "\"client_pool_offset\":" << job.getClientPoolOffset() << ","
+            << "\"target_diff\":" << job.getTargetDiff();
   }
   else
   {
-    tree.put("blob", job.getBlob());
-    tree.put("target", job.getTarget());
+    jobTree << "\"blob\":\"" << job.getBlob() << "\","
+            << "\"target\":\"" << job.getTarget() << "\"";
   }
-  return tree;
+  jobTree << "}";
+  return jobTree.str();
 }
 }
 
@@ -90,19 +92,19 @@ void parseRequest(const std::string& jsonRequestId, const std::string& method, c
 
 std::string createLoginResponse(const std::string& id, const std::optional<Job>& job)
 {
-  pt::ptree tree;
-  tree.put("id", id);
+  std::ostringstream response;
+  response << "{\"id\":\"" << id << "\",";
   if (job)
   {
-    tree.put_child("job", getJobTree(*job));
+    response << getJobTree(*job) << ",";
   }
-  tree.put("status", "OK");
-  return util::boostpropertytree::ptreeToString(tree);
+  response << "\"status\":\"OK\"}";
+  return response.str();
 }
 
 std::string createJobNotification(const Job& job)
 {
-  return util::boostpropertytree::ptreeToString(getJobTree(job));
+  return getJobTree(job);
 }
 
 } // namespace server
