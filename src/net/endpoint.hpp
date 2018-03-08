@@ -15,6 +15,14 @@ public:
   {
   }
 
+  friend std::ostream& operator<<(std::ostream& stream, const EndPoint& endPoint)
+  {
+    stream << "host, " << endPoint.host_
+           << ", port, " << endPoint.port_
+           << ", type, " << endPoint.connectionType_;
+    return stream;
+  }
+
   std::string host_;
   uint16_t port_;
   ConnectionType connectionType_;

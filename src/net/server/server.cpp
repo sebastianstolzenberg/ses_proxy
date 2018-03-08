@@ -29,9 +29,12 @@ public:
 
   virtual std::string getConnectedIp() const override
   {
-    return isConnected() ?
-           socket_.lowest_layer().remote_endpoint().address().to_string() :
-           "";
+    return isConnected() ? socket_.lowest_layer().remote_endpoint().address().to_string() : "";
+  }
+
+  virtual uint16_t getConnectedPort() const override
+  {
+    return isConnected() ? socket_.lowest_layer().remote_endpoint().port() : 0;
   }
 
   virtual bool send(const char* data, std::size_t size) override

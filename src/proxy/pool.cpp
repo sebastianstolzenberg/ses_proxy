@@ -8,6 +8,8 @@
 #include "proxy/pool.hpp"
 #include "util/log.hpp"
 
+#define LOG_POOL_INFO LOG_INFO << "Pool " << poolName_ << ": "
+
 namespace ses {
 namespace proxy {
 
@@ -20,7 +22,7 @@ Pool::Pool(const std::shared_ptr<boost::asio::io_service>& ioService)
 
 void Pool::connect(const Configuration& configuration)
 {
-  LOG_DEBUG << __PRETTY_FUNCTION__;
+  LOG_INFO << "Connecting new pool - " << configuration;
   connection_ = net::client::establishConnection(ioService_,
                                                  configuration.endPoint_,
                                                  std::bind(&Pool::handleReceived, this,
@@ -100,14 +102,18 @@ void Pool::handleReceived(char* data, std::size_t size)
 
 void Pool::handleError(const std::string& error)
 {
-  LOG_DEBUG << __PRETTY_FUNCTION__;
+  LOG_TRACE << __PRETTY_FUNCTION__ << error;
 }
 
 void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job)
 {
-  LOG_DEBUG << "proxy::Pool::handleLoginSuccess, id, " << id;
+  LOG_TRACE << "proxy::Pool::handleLoginSuccess, id, " << id;
 
   workerIdentifier_ = id;
+  std::ostringstream poolNameStream;
+  poolNameStream << "<" << id << "@" << configuration_.endPoint_.host_ << ":"
+                 << configuration_.endPoint_.port_ << ">";
+  poolName_ = poolNameStream.str();
   if (job)
   {
     setJob(*job);
@@ -116,24 +122,24 @@ void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum
 
 void Pool::handleLoginError(int code, const std::string& message)
 {
-  LOG_DEBUG << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message<< std::endl;
+  LOG_WARN << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message<< std::endl;
 }
 
 void Pool::handleGetJobSuccess(const stratum::Job& job)
 {
-  LOG_DEBUG << "proxy::Pool::handleGetJobSuccess";
+  LOG_TRACE << "proxy::Pool::handleGetJobSuccess";
   setJob(job);
 }
 
 void Pool::handleGetJobError(int code, const std::string& message)
 {
-  LOG_DEBUG << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message;
+  LOG_WARN << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message;
 }
 
 void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                                const std::string& status)
 {
-  LOG_DEBUG << "proxy::Pool::handleSubmitSuccess, status, " << status;
+  LOG_TRACE << "proxy::Pool::handleSubmitSuccess, status, " << status;
   if (submitStatusHandler)
   {
     submitStatusHandler(JobResult::SUBMIT_ACCEPTED);
@@ -149,7 +155,7 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
 void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                              int code, const std::string& message)
 {
-  LOG_DEBUG << "proxy::Pool::handleSubmitError, code, " << code << ", message, " << message;
+  LOG_WARN << "proxy::Pool::handleSubmitError, code, " << code << ", message, " << message;
 
   if (submitStatusHandler)
   {
@@ -188,7 +194,7 @@ void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitSt
 
 void Pool::handleNewJob(const stratum::Job& job)
 {
-  LOG_DEBUG << "proxy::Pool::handleNewJob, job.jobIdentifier_, " << job.getJobIdentifier();
+  LOG_TRACE << "proxy::Pool::handleNewJob, job.jobIdentifier_, " << job.getJobIdentifier();
   setJob(job);
 }
 
@@ -245,6 +251,7 @@ void Pool::setJob(const stratum::Job& job)
     try
     {
       auto newJobTemplate = JobTemplate::create(job);
+      LOG_POOL_INFO << "Received new job: " << *newJobTemplate;
       newJobTemplate->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
                                                     std::placeholders::_1, std::placeholders::_2,
                                                     std::placeholders::_3));
@@ -269,6 +276,7 @@ void Pool::setJob(const stratum::Job& job)
 
 void Pool::activateJob(const JobTemplate::Ptr& job)
 {
+  LOG_POOL_INFO << "Activating job: " << *job;
   activeJobTemplate_ = job;
   for (const auto& worker : worker_)
   {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
 namespace ses {

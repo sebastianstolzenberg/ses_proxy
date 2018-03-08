@@ -19,12 +19,12 @@ void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
   signals.async_wait(
     [&](boost::system::error_code /*ec*/, int signo)
     {
-      std::cout << "Signal " << signo << " received ... exiting" << std::endl;
+      LOG_WARN << "Signal " << signo << " received ... exiting";
       ioService.stop();
     });
 
   const uint32_t numThreads = std::thread::hardware_concurrency();
-  std::cout << std::endl << "Launching " << numThreads << " worker threads." << std::endl;
+  LOG_DEBUG << "Launching " << numThreads << " worker threads.";
   // runs io_service on a reasonable number of threads
   for (uint32_t threadCount = 1; threadCount < numThreads; ++threadCount)
   {
@@ -55,7 +55,8 @@ int main()
   proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("pool.aeon.hashvault.pro", 443),
                                                  "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
                                                  "ses-proxy-test",
-                                                 ses::proxy::ALGORITHM_CRYPTONIGHT));
+                                                 ses::proxy::ALGORITHM_CRYPTONIGHT,
+                                                 10));
 
   proxy->addServer(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12345),
                                                      ses::proxy::ALGORITHM_CRYPTONIGHT, 5000));

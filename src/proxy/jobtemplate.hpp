@@ -25,6 +25,13 @@ public:
   virtual bool supportsWorkerType(WorkerType workerType) = 0;
   virtual Job::Ptr getJobFor(const WorkerIdentifier& workerIdentifier, WorkerType workerType) = 0;
 
+  virtual void toStream(std::ostream& stream) const = 0;
+  friend std::ostream& operator<<(std::ostream& stream, const JobTemplate& jobTemplate)
+  {
+    jobTemplate.toStream(stream);
+    return stream;
+  }
+
 protected:
   JobTemplate() = default;
   virtual ~JobTemplate() = default;

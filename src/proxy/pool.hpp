@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 #include <list>
@@ -24,15 +25,26 @@ public:
   {
     Configuration() : algorithm_(ALGORITHM_CRYPTONIGHT) {}
     Configuration(const net::EndPoint& endPoint, const std::string& user, const std::string& pass,
-                  Algorithm algorithm)
-      : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm)
+                  Algorithm algorithm, uint32_t weight)
+      : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm), weight_(weight)
     {
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const Configuration& configuration)
+    {
+      stream << configuration.endPoint_
+             << ", user, " << configuration.user_
+             << ", pass, " << configuration.pass_
+             << ", algorithm, " << configuration.algorithm_
+             << ", weight, " << configuration.weight_;
+      return stream;
     }
 
     net::EndPoint endPoint_;
     std::string user_;
     std::string pass_;
     Algorithm algorithm_;
+    uint32_t weight_;
   };
 
 public:
@@ -40,6 +52,8 @@ public:
   void connect(const Configuration& configuration);
 
   bool addWorker(const Worker::Ptr& worker);
+
+  std::string getDescriptor() const;
 
 private:
   void handleReceived(char* data, std::size_t size);
@@ -94,6 +108,7 @@ private:
   std::unordered_map<RequestIdentifier,
     std::tuple<std::string, JobResult::SubmitStatusHandler> > outstandingSubmits_;
 
+  std::string poolName_;
   std::string workerIdentifier_;
   JobTemplate::Ptr activeJobTemplate_;
   std::map<std::string, JobTemplate::Ptr> jobTemplates_;

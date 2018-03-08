@@ -33,6 +33,7 @@ public:
 
   virtual bool isConnected() const = 0;
   virtual std::string getConnectedIp() const = 0;
+  virtual uint16_t getConnectedPort() const = 0;
 
   virtual bool send(const char* data, std::size_t size) = 0;
   bool send(const std::string& data) {return send(data.data(), data.size());}
