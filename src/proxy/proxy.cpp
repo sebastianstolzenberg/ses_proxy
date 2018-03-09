@@ -7,6 +7,13 @@
 namespace ses {
 namespace proxy {
 
+namespace {
+void sortByWeightedWorkers(std::list<Pool>& pools)
+{
+
+}
+}
+
 Proxy::Proxy(const std::shared_ptr<boost::asio::io_service>& ioService)
   : ioService_(ioService)
 {
@@ -26,14 +33,51 @@ void Proxy::addServer(const Server::Configuration& configuration)
   servers_.push_back(server);
 }
 
-void Proxy::handleNewClient(Client::Ptr newClient)
+void Proxy::handleNewClient(const Client::Ptr& newClient)
 {
   if (newClient)
   {
     clients_[newClient->getIdentifier()] = newClient;
+
     if (!pools_.empty())
     {
-      pools_.front()->addWorker(newClient);
+      // sorts the pools to find the pool which needs the next miner the most
+      pools_.sort([newClient](const auto& a, const auto& b)
+                  {
+                    if (b->getAlgotrithm() != newClient->getAlgorithm())
+                    {
+                      return true;
+                    }
+                    else if (a->getAlgotrithm() != newClient->getAlgorithm())
+                    {
+                      return false;
+                    }
+                    float aWeighted = a->weightedWorkers();
+                    float bWeighted = b->weightedWorkers();
+                    if (a == b)
+                    {
+                      return a->getWeight() > b->getWeight();
+                    }
+                    else
+                    {
+                      return aWeighted < bWeighted;
+                    }
+                  });
+      for (auto pool : pools_)
+      {
+        if (pool->getAlgotrithm() == newClient->getAlgorithm() &&
+            pool->addWorker(newClient))
+        {
+          newClient->setDisconnectHandler(
+              [this, newClient]()
+              {
+                // removes the client from the pools when they disconnect
+                for (auto pool : pools_) pool->removeWorker(newClient);
+                clients_.erase(newClient->getIdentifier());
+              });
+          break;
+        }
+      }
     }
   }
 }

@@ -23,7 +23,7 @@ public:
 
   struct Configuration
   {
-    Configuration() : algorithm_(ALGORITHM_CRYPTONIGHT) {}
+    Configuration() : algorithm_(ALGORITHM_CRYPTONIGHT), weight_(0) {}
     Configuration(const net::EndPoint& endPoint, const std::string& user, const std::string& pass,
                   Algorithm algorithm, uint32_t weight)
       : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm), weight_(weight)
@@ -49,15 +49,22 @@ public:
 
 public:
   Pool(const std::shared_ptr<boost::asio::io_service>& ioService);
+  ~Pool();
   void connect(const Configuration& configuration);
 
   bool addWorker(const Worker::Ptr& worker);
+  bool removeWorker(const Worker::Ptr& worker);
 
-  std::string getDescriptor() const;
+  const std::string& getDescriptor() const;
+  Algorithm getAlgotrithm() const;
+  uint32_t getWeight() const;
+
+  size_t numWorkers() const;
+  float weightedWorkers() const;
 
 private:
   void handleReceived(char* data, std::size_t size);
-  void handleError(const std::string& error);
+  void handleDisconnect(const std::string& error);
 
   void handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job);
   void handleLoginError(int code, const std::string& message);
@@ -113,7 +120,7 @@ private:
   JobTemplate::Ptr activeJobTemplate_;
   std::map<std::string, JobTemplate::Ptr> jobTemplates_;
 
-  std::list<Worker::Ptr> worker_;
+  std::list<Worker::Ptr> workers_;
 };
 
 } // namespace proxy

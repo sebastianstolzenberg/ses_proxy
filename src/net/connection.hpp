@@ -15,22 +15,26 @@ class Connection : private boost::noncopyable
 {
 public:
   typedef std::shared_ptr<Connection> Ptr;
+  typedef std::weak_ptr<Connection> WeakPtr;
   typedef std::function<void(char* data, std::size_t size)> ReceivedDataHandler;
-  typedef std::function<void(const std::string& error)> ErrorHandler;
+  typedef std::function<void(const std::string& error)> DisconnectHandler;
 
 protected:
   Connection() = default;
   Connection(const Connection::ReceivedDataHandler& receivedDataHandler,
-             const Connection::ErrorHandler& errorHandler);
+             const Connection::DisconnectHandler& errorHandler);
   virtual ~Connection() = default;
 
   void notifyRead(char* data, size_t size);
   void notifyError(const std::string& error);
 
 public:
-  void setHandler(const ReceivedDataHandler& receivedDataHandler, const ErrorHandler& errorHandler);
+  void setHandler(const ReceivedDataHandler& receivedDataHandler, const DisconnectHandler& errorHandler);
+
   void resetHandler();
 
+  virtual void setSelfSustainingUntilDisconnect(bool selfSustain) = 0;
+  virtual void disconnect() = 0;
   virtual bool isConnected() const = 0;
   virtual std::string getConnectedIp() const = 0;
   virtual uint16_t getConnectedPort() const = 0;
@@ -43,7 +47,7 @@ protected:
 
 private:
   ReceivedDataHandler receivedDataHandler_;
-  ErrorHandler errorHandler_;
+  DisconnectHandler errorHandler_;
 };
 
 } //namespace net

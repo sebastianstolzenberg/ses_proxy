@@ -71,7 +71,7 @@ private:
 Connection::Ptr establishBoostTlsConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                                             const std::string &host, uint16_t port,
                                             const Connection::ReceivedDataHandler& receivedDataHandler,
-                                            const Connection::ErrorHandler& errorHandler)
+                                            const Connection::DisconnectHandler& errorHandler)
 {
   //return std::make_shared<BoostTlsConnection>(listener, server, port);
   return std::make_shared<BoostConnection < BoostTlsSocket> > (ioService, host, port, receivedDataHandler, errorHandler);

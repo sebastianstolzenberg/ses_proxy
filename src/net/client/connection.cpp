@@ -31,7 +31,7 @@ namespace client {
 Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                                     const EndPoint& endPoint,
                                     const Connection::ReceivedDataHandler& receivedDataHandler,
-                                    const Connection::ErrorHandler& errorHandler)
+                                    const Connection::DisconnectHandler& errorHandler)
 {
   Connection::Ptr connection;
 
@@ -58,7 +58,7 @@ Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_servic
   }
   catch (...)
   {
-    LOG_DEBUG << boost::current_exception_diagnostic_information();
+    LOG_CURRENT_EXCEPTION;
   }
   return connection;
 }

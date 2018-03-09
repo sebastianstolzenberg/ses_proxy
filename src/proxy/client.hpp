@@ -21,11 +21,13 @@ class Client : public Worker,
 {
 public:
   typedef std::shared_ptr<Client> Ptr;
+  typedef std::function<void()> DisconnectHandler;
 
 public:
   Client(const std::shared_ptr<boost::asio::io_service>& ioService,
          const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty);
 
+  void setDisconnectHandler(const DisconnectHandler& disconnectHandler);
   void setConnection(const net::Connection::Ptr& connection);
 
 public: // from Worker
@@ -43,7 +45,7 @@ public:
 
 private:
   void handleReceived(char* data, std::size_t size);
-  void handleError(const std::string& error);
+  void handleDisconnect(const std::string& error);
 
   void handleLogin(const std::string& jsonRequestId,
                    const std::string& login, const std::string& pass, const std::string& agent);
@@ -59,6 +61,7 @@ private:
 
 
 private:
+  void sendResponse(const std::string& jsonRequestId, const std::string& response);
   void sendSuccessResponse(const std::string& jsonRequestId, const std::string& status);
   void sendErrorResponse(const std::string& jsonRequestId, const std::string& message);
   void sendJobNotification();
@@ -68,7 +71,9 @@ private:
 
   std::recursive_mutex mutex_;
 
-  net::Connection::Ptr connection_;
+  DisconnectHandler disconnectHandler_;
+
+  net::Connection::WeakPtr connection_;
   std::map<std::string, std::string> outstandingRequests_;
 
   WorkerIdentifier identifier_;

@@ -3,7 +3,6 @@
 #include <thread>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
-#include <boost/log/expressions.hpp>
 
 #include "proxy/proxy.hpp"
 #include "util/log.hpp"
@@ -39,10 +38,7 @@ void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
 
 int main()
 {
-  boost::log::core::get()->set_filter
-  (
-    boost::log::trivial::severity >= boost::log::trivial::debug
-  );
+  ses::log::setMinimumLogLevel(boost::log::trivial::severity_level::info);
 
   std::shared_ptr<boost::asio::io_service> ioService = std::make_shared<boost::asio::io_service>();
 
@@ -55,11 +51,25 @@ int main()
   proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("pool.aeon.hashvault.pro", 443),
                                                  "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
                                                  "ses-proxy-test",
+                                                 ses::proxy::ALGORITHM_CRYPTONIGHT_LITE,
+                                                 10));
+
+  proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("pool.monero.hashvault.pro", 443, ses::net::CONNECTION_TYPE_TCP),
+                                                 "48fAeJSo6yTitJ8KVmVFzAB5Pj7Vf5hEybRupdGejGnfK93yJccnaQ6jidiQqtj1LTWy1J95HuFAMg46eUKLahEKLBFpn85",
+                                                 "ses-proxy-test",
+                                                 ses::proxy::ALGORITHM_CRYPTONIGHT,
+                                                 50));
+
+  proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("pool.intense.hashvault.pro", 443),
+                                                 "iz5w2C5AjmnM8ArCcBRryETYEMYnJWGVmKMDFbP5HkzLN3oZsf3grtwGykdzCVj23Thco232PGrwHL6uQProtvsa28bojsNFG",
+                                                 "ses-proxy-test",
                                                  ses::proxy::ALGORITHM_CRYPTONIGHT,
                                                  10));
 
   proxy->addServer(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12345),
                                                      ses::proxy::ALGORITHM_CRYPTONIGHT, 5000));
+  proxy->addServer(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12346),
+                                                     ses::proxy::ALGORITHM_CRYPTONIGHT_LITE, 5000));
 
   waitForSignalAndMaxPossibleThreads(*ioService);
 

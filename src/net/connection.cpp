@@ -28,13 +28,14 @@ namespace ses {
 namespace net {
 
 Connection::Connection(const Connection::ReceivedDataHandler& receivedDataHandler,
-                       const Connection::ErrorHandler& errorHandler)
+                       const Connection::DisconnectHandler& errorHandler)
   : receivedDataHandler_(receivedDataHandler)
   , errorHandler_(errorHandler)
 {
 }
 
-void Connection::setHandler(const ReceivedDataHandler& receivedDataHandler, const ErrorHandler& errorHandler)
+void Connection::setHandler(const ReceivedDataHandler& receivedDataHandler,
+                            const DisconnectHandler& errorHandler)
 {
   receivedDataHandler_ = receivedDataHandler;
   errorHandler_ = errorHandler;
@@ -43,7 +44,7 @@ void Connection::setHandler(const ReceivedDataHandler& receivedDataHandler, cons
 
 void Connection::resetHandler()
 {
-  setHandler(ReceivedDataHandler(), ErrorHandler());
+  setHandler(ReceivedDataHandler(), DisconnectHandler());
 }
 
 void Connection::notifyRead(char *data, size_t size)

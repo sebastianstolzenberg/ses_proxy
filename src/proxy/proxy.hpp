@@ -22,7 +22,7 @@ public:
   void addServer(const Server::Configuration& configuration);
 
 public:
-  void handleNewClient(Client::Ptr newClient);
+  void handleNewClient(const Client::Ptr& newClient);
 
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;

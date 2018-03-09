@@ -17,7 +17,7 @@ namespace client {
 Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                                     const EndPoint& endPoint,
                                     const Connection::ReceivedDataHandler& receivedDataHandler,
-                                    const Connection::ErrorHandler& errorHandler);
+                                    const Connection::DisconnectHandler& errorHandler);
 
 } //namespace client
 } //namespace net

@@ -16,19 +16,26 @@ Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
 {
 }
 
+void Client::setDisconnectHandler(const DisconnectHandler& disconnectHandler)
+{
+  disconnectHandler_ = disconnectHandler;
+}
+
 void Client::setConnection(const net::Connection::Ptr& connection)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-  if (connection_)
+  auto oldConnection = connection_.lock();
+  if (oldConnection && oldConnection != connection)
   {
-    connection_->resetHandler();
+    oldConnection->disconnect();
   }
   connection_ = connection;
-  if (connection_)
+  if (connection)
   {
-    connection_->setHandler(std::bind(&Client::handleReceived, this, std::placeholders::_1, std::placeholders::_2),
-                            std::bind(&Client::handleError, this, std::placeholders::_1));
+    connection->setSelfSustainingUntilDisconnect(true);
+    connection->setHandler(std::bind(&Client::handleReceived, this, std::placeholders::_1, std::placeholders::_2),
+                           std::bind(&Client::handleDisconnect, this, std::placeholders::_1));
   }
 }
 
@@ -124,9 +131,10 @@ void Client::handleReceived(char* data, std::size_t size)
     });
 }
 
-void Client::handleError(const std::string& error)
+void Client::handleDisconnect(const std::string& error)
 {
-  LOG_DEBUG << __PRETTY_FUNCTION__ << " " << error;
+  LOG_TRACE << __PRETTY_FUNCTION__ << " " << error;
+  disconnectHandler_();
 }
 
 void Client::handleLogin(const std::string& jsonRequestId, const std::string& login, const std::string& pass, const std::string& agent)
@@ -167,8 +175,7 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
     std::string responseResult =
       stratum::server::createLoginResponse(boost::uuids::to_string(identifier_),
                                            currentJob_ ? currentJob_->asStratumJob() : std::optional<stratum::Job>());
-
-    connection_->send(net::jsonrpc::response(jsonRequestId, responseResult, ""));
+    sendResponse(jsonRequestId, responseResult);
   }
 }
 
@@ -178,10 +185,7 @@ void Client::handleGetJob(const std::string& jsonRequestId)
 
   if (currentJob_)
   {
-    connection_->send(
-      net::jsonrpc::response(jsonRequestId,
-                             stratum::server::createJobNotification(currentJob_->asStratumJob()),
-                             ""));
+    sendResponse(jsonRequestId, stratum::server::createJobNotification(currentJob_->asStratumJob()));
   }
   else
   {
@@ -291,27 +295,44 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
           std::chrono::duration_cast<std::chrono::milliseconds>(now - lastShareTimePoint_);
       lastShareTimePoint_ = now;
       shareTimeDiffs_.push_back(diff);
-      LOG_DEBUG << "Client submit success " << connection_->getConnectedIp() << ", td, " << diff.count() << "ms";
+      LOG_DEBUG << "Client submit success "
+                << (connection_.expired() ? "<no-ip>" : connection_.lock()->getConnectedIp())
+                << ", td, " << diff.count() << "ms";
       break;
     }
   }
 }
 
+void Client::sendResponse(const std::string& jsonRequestId, const std::string& response)
+{
+  if (auto connection = connection_.lock())
+  {
+    connection->send(net::jsonrpc::response(jsonRequestId, response, ""));
+  }
+}
+
 void Client::sendSuccessResponse(const std::string& jsonRequestId, const std::string& status)
 {
-  connection_->send(net::jsonrpc::statusResponse(jsonRequestId, status));
+  if (auto connection = connection_.lock())
+  {
+    connection->send(net::jsonrpc::statusResponse(jsonRequestId, status));
+  }
 }
 
 void Client::sendErrorResponse(const std::string& jsonRequestId, const std::string& message)
 {
-  connection_->send(net::jsonrpc::errorResponse(jsonRequestId, -1, message));
+  if (auto connection = connection_.lock())
+  {
+    connection->send(net::jsonrpc::errorResponse(jsonRequestId, -1, message));
+  }
 }
 
 void Client::sendJobNotification()
 {
-  if (currentJob_ && connection_)
+  auto connection = connection_.lock();
+  if (currentJob_ && connection)
   {
-    connection_->send(
+    connection->send(
       net::jsonrpc::notification("job", stratum::server::createJobNotification(currentJob_->asStratumJob())));
     lastShareTimePoint_ = std::chrono::system_clock::now();
   }

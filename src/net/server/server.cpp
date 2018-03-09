@@ -13,31 +13,48 @@ namespace ses {
 namespace net {
 namespace server {
 
-class BoostConnection : public Connection
+class BoostConnection : public Connection,
+                        public std::enable_shared_from_this<BoostConnection>
 {
 public:
   explicit BoostConnection(boost::asio::ip::tcp::socket socket)
-    : socket_(std::move(socket))
+    : socket_(std::move(socket)), selfSustainUntilDisconnect_(false)
   {
   }
 
+  ~BoostConnection()
+  {
+    LOG_INFO << __PRETTY_FUNCTION__;
+  }
+
 public:
-  virtual bool isConnected() const override
+  void setSelfSustainingUntilDisconnect(bool selfSustain) override
+  {
+    selfSustainUntilDisconnect_ = selfSustain;
+  }
+
+  void disconnect() override
+  {
+    resetHandler();
+    socket_.close();
+  }
+
+  bool isConnected() const override
   {
     return socket_.lowest_layer().is_open();
   }
 
-  virtual std::string getConnectedIp() const override
+  std::string getConnectedIp() const override
   {
     return isConnected() ? socket_.lowest_layer().remote_endpoint().address().to_string() : "";
   }
 
-  virtual uint16_t getConnectedPort() const override
+  uint16_t getConnectedPort() const override
   {
     return isConnected() ? socket_.lowest_layer().remote_endpoint().port() : 0;
   }
 
-  virtual bool send(const char* data, std::size_t size) override
+  bool send(const char* data, std::size_t size) override
   {
     LOG_TRACE << "net::server::BoostConnection::send: ";
     LOG_TRACE.write(data, size);
@@ -54,10 +71,12 @@ protected:
 private:
   void triggerRead()
   {
+    // captures a shared pointer to keep the connection object alive until it is disconnected
+    auto self = selfSustainUntilDisconnect_ ? shared_from_this() : BoostConnection::Ptr();
     boost::asio::async_read(socket_,
                             boost::asio::buffer(receiveBuffer_, sizeof(receiveBuffer_)),
                             boost::asio::transfer_at_least(1),
-                            [this](boost::system::error_code error, size_t bytes_transferred)
+                            [this, self](boost::system::error_code error, size_t bytes_transferred)
                             {
                               if (!error)
                               {
@@ -68,7 +87,7 @@ private:
                               }
                               else
                               {
-                                LOG_ERROR << "net::server::BoostConnection Read failed: " << error.message();
+                                LOG_TRACE << "net::server::BoostConnection Read failed: " << error.message();
                                 notifyError(error.message());
                               }
                             });
@@ -77,6 +96,7 @@ private:
 private:
   boost::asio::ip::tcp::socket socket_;
   char receiveBuffer_[2048];
+  bool selfSustainUntilDisconnect_;
 };
 
 class BoostServer : public Server

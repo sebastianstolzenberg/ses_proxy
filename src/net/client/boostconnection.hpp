@@ -8,13 +8,13 @@ namespace net {
 namespace client {
 
 template<class SOCKET>
-class BoostConnection : public Connection
+class BoostConnection : public Connection, public std::enable_shared_from_this<BoostConnection<SOCKET> >
 {
 public:
   BoostConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                   const std::string &server, uint16_t port,
                   const Connection::ReceivedDataHandler& receivedDataHandler,
-                  const Connection::ErrorHandler& errorHandler)
+                  const Connection::DisconnectHandler& errorHandler)
     : Connection(receivedDataHandler, errorHandler),
       ioService_(ioService), socket_(*ioService)
   {
@@ -31,10 +31,20 @@ public:
   {
   }
 
+  void setSelfSustainingUntilDisconnect(bool selfSustain)
+  {
+    selfSustainUntilDisconnect_ = selfSustain;
+  }
+
+  void disconnect() override
+  {
+    resetHandler();
+    socket_.get().lowest_layer().close();
+  }
+
   bool isConnected() const override
   {
     return socket_.get().lowest_layer().is_open();
-
   }
 
   std::string getConnectedIp() const override
@@ -70,35 +80,34 @@ protected:
 private:
   void triggerRead()
   {
+    // captures a shared pointer to keep the connection object alive until it is disconnected
+    auto self = selfSustainUntilDisconnect_ ? this->shared_from_this() : BoostConnection<SOCKET>::Ptr();
     boost::asio::async_read(socket_.get(),
                             boost::asio::buffer(receiveBuffer_, sizeof(receiveBuffer_)),
                             boost::asio::transfer_at_least(1),
-                            boost::bind(&BoostConnection::handleRead, this,
-                                        boost::asio::placeholders::error,
-                                        boost::asio::placeholders::bytes_transferred));
-  }
-
-  void handleRead(const boost::system::error_code &error,
-                  size_t bytes_transferred)
-  {
-    if (!error)
-    {
-      LOG_TRACE << "net::client::BoostConnection::handleRead: ";
-      LOG_TRACE.write(receiveBuffer_, bytes_transferred);
-      notifyRead(receiveBuffer_, bytes_transferred);
-      triggerRead();
-    }
-    else
-    {
-      LOG_ERROR << "Read failed: " << error.message();
-      notifyError(error.message());
-    }
+                            [this, self](const boost::system::error_code &error,
+                                         size_t bytes_transferred)
+                            {
+                              if (!error)
+                              {
+                                LOG_TRACE << "net::client::BoostConnection::handleRead: ";
+                                LOG_TRACE.write(receiveBuffer_, bytes_transferred);
+                                notifyRead(receiveBuffer_, bytes_transferred);
+                                triggerRead();
+                              }
+                              else
+                              {
+                                LOG_ERROR << "Read failed: " << error.message();
+                                notifyError(error.message());
+                              }
+                            });
   }
 
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;
   SOCKET socket_;
   char receiveBuffer_[2048];
+  bool selfSustainUntilDisconnect_;
 };
 
 } //namespace client

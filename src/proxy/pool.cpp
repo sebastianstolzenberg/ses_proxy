@@ -26,20 +26,74 @@ void Pool::connect(const Configuration& configuration)
   connection_ = net::client::establishConnection(ioService_,
                                                  configuration.endPoint_,
                                                  std::bind(&Pool::handleReceived, this,
-                                                           std::placeholders::_1, std::placeholders::_2),
-                                                 std::bind(&Pool::handleError, this, std::placeholders::_1));
+                                                           std::placeholders::_1,
+                                                           std::placeholders::_2),
+                                                 std::bind(&Pool::handleDisconnect, this,
+                                                           std::placeholders::_1));
   configuration_ = configuration;
   login();
 }
 
+Pool::~Pool()
+{
+  if (connection_)
+  {
+    connection_->disconnect();
+  }
+}
+
 bool Pool::addWorker(const Worker::Ptr& worker)
 {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
   bool accepted = assignJobToWorker(worker);
   if (accepted)
   {
-    worker_.push_back(worker);
+    LOG_POOL_INFO << "Added worker " << worker->getIdentifier();
+    workers_.push_back(worker);
   }
   return accepted;
+}
+
+bool Pool::removeWorker(const Worker::Ptr& worker)
+{
+  bool removed = false;
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  auto workerIt = std::find(workers_.begin(), workers_.end(), worker);
+  if (workerIt != workers_.end())
+  {
+    workers_.erase(workerIt);
+    removed = true;
+    LOG_POOL_INFO << "Removed worker " << worker->getIdentifier();
+  }
+  return removed;
+}
+
+const std::string& Pool::getDescriptor() const
+{
+  return poolName_;
+}
+
+Algorithm Pool::getAlgotrithm() const
+{
+  return configuration_.algorithm_;
+}
+
+uint32_t Pool::getWeight() const
+{
+  return configuration_.weight_;
+}
+
+size_t Pool::numWorkers() const
+{
+  return workers_.size();
+}
+
+float Pool::weightedWorkers() const
+{
+  float weightedWorkers = numWorkers();
+  weightedWorkers /= getWeight();
+  LOG_POOL_INFO << "Weighted workers, " << weightedWorkers << ", number of workers, " << numWorkers();
+  return weightedWorkers;
 }
 
 void Pool::handleReceived(char* data, std::size_t size)
@@ -100,9 +154,9 @@ void Pool::handleReceived(char* data, std::size_t size)
   triggerKeepaliveTimer();
 }
 
-void Pool::handleError(const std::string& error)
+void Pool::handleDisconnect(const std::string& error)
 {
-  LOG_TRACE << __PRETTY_FUNCTION__ << error;
+  LOG_WARN << __PRETTY_FUNCTION__ << error;
 }
 
 void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job)
@@ -209,36 +263,43 @@ JobResult::SubmitStatus Pool::handleJobResult(const WorkerIdentifier& workerIden
 
 Pool::RequestIdentifier Pool::sendRequest(Pool::RequestType type, const std::string& params)
 {
-  std::string method;
-  switch (type)
+  if (connection_)
   {
-    case REQUEST_TYPE_LOGIN:
-      method = "login";
-      break;
+    std::string method;
+    switch (type)
+    {
+      case REQUEST_TYPE_LOGIN:
+        method = "login";
+        break;
 
-    case REQUEST_TYPE_GETJOB:
-      method = "getjob";
-      break;
+      case REQUEST_TYPE_GETJOB:
+        method = "getjob";
+        break;
 
-    case REQUEST_TYPE_SUBMIT:
-      method = "submit";
-      break;
+      case REQUEST_TYPE_SUBMIT:
+        method = "submit";
+        break;
 
-    case REQUEST_TYPE_KEEPALIVE:
-      method = "keepalived";
-      break;
+      case REQUEST_TYPE_KEEPALIVE:
+        method = "keepalived";
+        break;
 
-    default:
-      // unknown request type
-      return 0;
+      default:
+        // unknown request type
+        return 0;
+    }
+
+    auto id = nextRequestIdentifier_;
+    ++nextRequestIdentifier_;
+    outstandingRequests_[id] = type;
+    connection_->send(net::jsonrpc::request(std::to_string(id), method, params));
+    triggerKeepaliveTimer();
+    return id;
   }
-
-  auto id = nextRequestIdentifier_;
-  ++nextRequestIdentifier_;
-  outstandingRequests_[id] = type;
-  connection_->send(net::jsonrpc::request(std::to_string(id), method, params));
-  triggerKeepaliveTimer();
-  return id;
+  else
+  {
+    return 0;
+  }
 }
 
 void Pool::setJob(const stratum::Job& job)
@@ -278,7 +339,7 @@ void Pool::activateJob(const JobTemplate::Ptr& job)
 {
   LOG_POOL_INFO << "Activating job: " << *job;
   activeJobTemplate_ = job;
-  for (const auto& worker : worker_)
+  for (const auto& worker : workers_)
   {
     assignJobToWorker(worker);
   }
