@@ -1,6 +1,7 @@
 #pragma once
 
 #include "proxy/jobtemplatebase.hpp"
+#include "util/target.hpp"
 
 namespace ses {
 namespace proxy {
@@ -11,7 +12,7 @@ class NiceHashJobTemplate : public BaseJobTemplate
 {
 public:
   NiceHashJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier,
-                      const Blob& blob, uint64_t target)
+                      const Blob& blob, const util::Target target)
     : BaseJobTemplate(identifier, jobIdentifier, blob), target_(target), lastNiceHash_(0)
   {
   }
@@ -24,7 +25,8 @@ public:
 
   void toStream(std::ostream& stream) const override
   {
-    stream << "NiceHashJobTemplate, jobId, " << jobIdentifier_;
+    stream << "NiceHashJobTemplate, jobId, " << jobIdentifier_
+           << ", target, " << target_.toHexString();
   }
 
 private:
@@ -88,7 +90,7 @@ private:
   }
 
 private:
-  uint64_t target_;
+  util::Target target_;
   uint8_t lastNiceHash_;
   std::set<uint32_t> foundNonces_;
 };

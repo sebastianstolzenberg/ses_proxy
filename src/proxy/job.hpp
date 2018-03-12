@@ -13,6 +13,7 @@
 #include "proxy/workeridentifier.hpp"
 #include "proxy/jobresult.hpp"
 #include "proxy/blob.hpp"
+#include "util/target.hpp"
 
 namespace ses {
 namespace proxy {
@@ -24,7 +25,7 @@ public:
 
 public:
   Job::Ptr createMinerJob(const WorkerIdentifier& workerIdentifier, const std::string& jobIdentifier,
-                          const Blob& blob, uint32_t target, const JobResult::Handler& jobResultHandler);
+                          const Blob& blob, const util::Target& target, const JobResult::Handler& jobResultHandler);
 
   virtual ~Job() = default;
 

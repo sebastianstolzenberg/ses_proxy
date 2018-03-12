@@ -61,6 +61,7 @@ private:
 
 
 private:
+  void updateName();
   void sendResponse(const std::string& jsonRequestId, const std::string& response);
   void sendSuccessResponse(const std::string& jsonRequestId, const std::string& status);
   void sendErrorResponse(const std::string& jsonRequestId, const std::string& message);
@@ -76,6 +77,7 @@ private:
   net::Connection::WeakPtr connection_;
   std::map<std::string, std::string> outstandingRequests_;
 
+  std::string clientName_;
   WorkerIdentifier identifier_;
   Algorithm algorithm_;
   WorkerType type_;

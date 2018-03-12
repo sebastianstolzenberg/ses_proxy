@@ -1,7 +1,6 @@
 #include <iostream>
 #include <functional>
 #include <boost/lexical_cast.hpp>
-#include <boost/exception/diagnostic_information.hpp>
 
 #include "net/client/connection.hpp"
 #include "net/jsonrpc/jsonrpc.hpp"
@@ -321,7 +320,7 @@ void Pool::setJob(const stratum::Job& job)
     }
     catch (...)
     {
-      LOG_DEBUG << boost::current_exception_diagnostic_information();
+      LOG_CURRENT_EXCEPTION;
     }
   }
   else if (activeJobTemplate_ && job.getJobIdentifier() != activeJobTemplate_->getJobIdentifier())

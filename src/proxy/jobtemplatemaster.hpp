@@ -11,9 +11,9 @@ class MasterJobTemplate : public BaseJobTemplate
 {
 public:
   MasterJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob,
-                    uint64_t difficulty, uint32_t height, uint32_t targetDiff)
+                    uint64_t difficulty, uint32_t height, uint32_t targetDifficulty)
     : BaseJobTemplate(identifier, jobIdentifier, blob), nextPoolNonce_(1), difficulty_(difficulty),
-      height_(height), targetDiff_(targetDiff)
+      height_(height), targetDifficulty_(targetDifficulty)
   {
   }
 
@@ -86,7 +86,7 @@ protected:
     blob.setClientPool(nextPoolNonce_);
     subTemplate =
       std::make_shared<WorkerJobTemplate>(workerIdentifier, generateJobIdentifier(), std::move(blob),
-                                          difficulty_, height_, targetDiff_);
+                                          difficulty_, height_, targetDifficulty_);
     subTemplate->setJobResultHandler(
       std::bind(&MasterJobTemplate::handleResult,
                 std::dynamic_pointer_cast<MasterJobTemplate>(shared_from_this()),
@@ -120,7 +120,7 @@ private:
   WorkerJobTemplate::Ptr activeSubJobTemplate_;
   uint64_t difficulty_;
   uint32_t height_;
-  uint32_t targetDiff_;
+  uint32_t targetDifficulty_;
 };
 
 } // namespace proxy

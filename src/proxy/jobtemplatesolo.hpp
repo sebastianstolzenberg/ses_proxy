@@ -1,6 +1,7 @@
 #pragma once
 
 #include "proxy/jobtemplatebase.hpp"
+#include "util/target.hpp"
 
 namespace ses {
 namespace proxy {
@@ -11,7 +12,7 @@ class SoloJobTemplate : public BaseJobTemplate
 {
 public:
   SoloJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier,
-                  const Blob& blob, uint64_t target)
+                  const Blob& blob, const util::Target& target)
     : BaseJobTemplate(identifier, jobIdentifier, blob), target_(target)
   {
   }
@@ -89,7 +90,7 @@ protected:
   }
 
 private:
-  uint64_t target_;
+  util::Target target_;
   std::set<uint32_t> foundNonces_;
 };
 

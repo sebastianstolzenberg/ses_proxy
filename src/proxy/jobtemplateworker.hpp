@@ -12,9 +12,9 @@ class WorkerJobTemplate : public BaseJobTemplate
 {
 public:
   WorkerJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob,
-                    uint64_t difficulty, uint32_t height, uint32_t targetDiff)
+                    uint64_t difficulty, uint32_t height, uint32_t targetDifficulty)
     : BaseJobTemplate(identifier, jobIdentifier, blob), nextClientNonce_(1), difficulty_(difficulty),
-      height_(height), targetDiff_(targetDiff)
+      height_(height), targetDifficulty_(targetDifficulty)
   {
   }
 
@@ -58,7 +58,7 @@ protected:
                   nextClientNonce_,
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
       job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), std::move(blob),
-                                util::difficultyToTarget(targetDiff_), resultHandler);
+                                util::difficultyToTarget(targetDifficulty_), resultHandler);
       ++nextClientNonce_;
       //TODO connect ResultHandler
     }
@@ -74,7 +74,7 @@ private:
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     LOG_TRACE << __PRETTY_FUNCTION__ << ", workerNonce, " << workerNonce;
 
-    if (jobResult.getDifficulty() < targetDiff_)
+    if (jobResult.getDifficulty() < targetDifficulty_)
     {
       submitStatusHandler(JobResult::SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE);
     }
@@ -93,7 +93,7 @@ private:
   uint32_t nextClientNonce_;
   uint64_t difficulty_;
   uint32_t height_;
-  uint32_t targetDiff_;
+  uint32_t targetDifficulty_;
 };
 
 } // namespace proxy

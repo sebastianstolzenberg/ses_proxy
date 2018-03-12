@@ -14,7 +14,7 @@ inline std::string toHex(const boost::multiprecision::uint256_t& t)
   return ses::util::toHex<boost::multiprecision::limb_type>(t.backend().limbs(), t.backend().size());
 }
 
-boost::multiprecision::uint256_t uint256FromTarget(uint32_t target)
+boost::multiprecision::uint256_t uint256FromTarget(uint64_t target)
 {
   boost::multiprecision::uint256_t bigNum = std::numeric_limits<boost::multiprecision::uint256_t>::max();
   bigNum = std::numeric_limits<boost::multiprecision::uint256_t>::max();
@@ -26,9 +26,9 @@ boost::multiprecision::uint256_t uint256FromTarget(uint32_t target)
   return bigNum;
 }
 
-uint32_t extractTargetFromUint256(const boost::multiprecision::uint256_t& bigNum)
+uint64_t extractTargetFromUint256(const boost::multiprecision::uint256_t& bigNum)
 {
-  uint32_t target;
+  uint64_t target;
   const uint8_t* limb = reinterpret_cast<const uint8_t*>(bigNum.backend().limbs());
   size_t limbSize = sizeof(boost::multiprecision::limb_type) * bigNum.backend().size();
   const uint8_t* targetInLimb = limb + limbSize - sizeof(target);
@@ -37,16 +37,15 @@ uint32_t extractTargetFromUint256(const boost::multiprecision::uint256_t& bigNum
 }
 }
 
-uint32_t targetToDifficulty(uint32_t target)
+uint32_t targetToDifficulty(const Target& target)
 {
   return (std::numeric_limits<boost::multiprecision::uint256_t>::max() /
-          uint256FromTarget(target)).convert_to<uint32_t>();
+          uint256FromTarget(target.getRaw())).convert_to<uint32_t>();
 }
 
-uint32_t difficultyToTarget(uint32_t difficulty)
+Target difficultyToTarget(uint32_t difficulty)
 {
-  return extractTargetFromUint256(std::numeric_limits<boost::multiprecision::uint256_t>::max() /
-                                  difficulty);
+  return Target(extractTargetFromUint256(std::numeric_limits<boost::multiprecision::uint256_t>::max() / difficulty));
 }
 
 uint32_t difficultyFromHashBuffer(const uint8_t* data, size_t size)

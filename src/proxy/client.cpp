@@ -1,10 +1,13 @@
 
 #include <iostream>
+#include <sstream>
 
 #include "net/jsonrpc/jsonrpc.hpp"
 #include "stratum/stratum.hpp"
 #include "proxy/client.hpp"
 #include "util/log.hpp"
+
+#define LOG_CLIENT_INFO LOG_INFO << "Client " << clientName_ << ": "
 
 namespace ses {
 namespace proxy {
@@ -133,7 +136,7 @@ void Client::handleReceived(char* data, std::size_t size)
 
 void Client::handleDisconnect(const std::string& error)
 {
-  LOG_TRACE << __PRETTY_FUNCTION__ << " " << error;
+  LOG_CLIENT_INFO << "Disconnected";
   disconnectHandler_();
 }
 
@@ -171,6 +174,10 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
 
     //TODO login parsing: <wallet>[.<payment id>][+<difficulty>]
     //TODO password parsing: <identifier>[:<email>]
+
+    updateName();
+
+    LOG_CLIENT_INFO << "Logged in as " << username_ << " with " << useragent_;
 
     std::string responseResult =
       stratum::server::createLoginResponse(boost::uuids::to_string(identifier_),
@@ -301,6 +308,17 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
       break;
     }
   }
+}
+
+void Client::updateName()
+{
+  std::ostringstream clientNameStream;
+  clientNameStream << "<" << identifier_;
+  if (auto connection = connection_.lock())
+  {
+    clientNameStream << "@" << connection->getConnectedIp() << ":" << connection->getConnectedPort() << ">";
+  }
+  clientName_ = clientNameStream.str();
 }
 
 void Client::sendResponse(const std::string& jsonRequestId, const std::string& response)

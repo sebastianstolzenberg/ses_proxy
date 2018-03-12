@@ -59,7 +59,7 @@ public:
 
   bool send(const char *data, std::size_t size) override
   {
-    LOG_TRACE << "net::client::BoostConnection::send: ";
+    LOG_TRACE << "net::client::BoostConnection<" << getConnectedIp() << ":" << getConnectedPort() << ">::send: ";
     LOG_TRACE.write(data, size);
 
     boost::system::error_code error;
@@ -90,14 +90,16 @@ private:
                             {
                               if (!error)
                               {
-                                LOG_TRACE << "net::client::BoostConnection::handleRead: ";
+                                LOG_TRACE << "net::client::BoostConnection<" << getConnectedIp() << ":"
+                                          << getConnectedPort() << ">::handleRead: ";
                                 LOG_TRACE.write(receiveBuffer_, bytes_transferred);
                                 notifyRead(receiveBuffer_, bytes_transferred);
                                 triggerRead();
                               }
                               else
                               {
-                                LOG_ERROR << "Read failed: " << error.message();
+                                LOG_ERROR << "<" << getConnectedIp() << ":" << getConnectedPort() << "> Read failed: "
+                                          << error.message();
                                 notifyError(error.message());
                               }
                             });
