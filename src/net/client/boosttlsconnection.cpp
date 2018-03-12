@@ -70,11 +70,13 @@ private:
 
 Connection::Ptr establishBoostTlsConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                                             const std::string &host, uint16_t port,
+                                            const Connection::ConnectHandler& connectHandler,
                                             const Connection::ReceivedDataHandler& receivedDataHandler,
                                             const Connection::DisconnectHandler& errorHandler)
 {
-  //return std::make_shared<BoostTlsConnection>(listener, server, port);
-  return std::make_shared<BoostConnection < BoostTlsSocket> > (ioService, host, port, receivedDataHandler, errorHandler);
+  auto connection = std::make_shared<BoostConnection<BoostTlsSocket> > (ioService, connectHandler, receivedDataHandler, errorHandler);
+  ioService->post(std::bind(&BoostConnection<BoostTlsSocket>::connect, connection, host, port));
+  return connection;
 }
 
 } //namespace client

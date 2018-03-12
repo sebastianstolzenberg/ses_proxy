@@ -36,6 +36,8 @@ public:
   uint32_t getClientPool() const;
   void setClientPool(uint32_t clientPool);
 
+  friend std::ostream& operator<<(std::ostream& stream, const Blob& blob);
+
 private:
   bool isTemplate_;
   std::vector<uint8_t> blob_;

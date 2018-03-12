@@ -38,7 +38,7 @@ void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
 
 int main()
 {
-  //ses::log::setMinimumLogLevel(boost::log::trivial::severity_level::info);
+  ses::log::setMinimumLogLevel(boost::log::trivial::severity_level::info);
 
   std::shared_ptr<boost::asio::io_service> ioService = std::make_shared<boost::asio::io_service>();
 
@@ -47,7 +47,8 @@ int main()
 //  proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("127.0.0.1", 5555),
 //                                                 "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
 //                                                 "ses-proxy-test",
-//                                                 ses::proxy::ALGORITHM_CRYPTONIGHT));
+//                                                 ses::proxy::ALGORITHM_CRYPTONIGHT_LITE,
+//                                                 10));
   proxy->addPool(ses::proxy::Pool::Configuration(ses::net::EndPoint("pool.aeon.hashvault.pro", 443),
                                                  "WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4",
                                                  "ses-proxy-test",

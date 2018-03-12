@@ -63,7 +63,8 @@ public:
   float weightedWorkers() const;
 
 private:
-  void handleReceived(char* data, std::size_t size);
+  void handleConnect();
+  void handleReceived(const std::string& data);
   void handleDisconnect(const std::string& error);
 
   void handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job);
@@ -93,6 +94,7 @@ private:
     REQUEST_TYPE_SUBMIT,
     REQUEST_TYPE_KEEPALIVE
   };
+  void updateName();
   RequestIdentifier sendRequest(RequestType type, const std::string& params = "");
   void setJob(const stratum::Job& job);
   void activateJob(const JobTemplate::Ptr& job);

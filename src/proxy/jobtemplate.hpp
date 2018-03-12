@@ -17,7 +17,7 @@ public:
   typedef std::shared_ptr<JobTemplate> Ptr;
 
 public:
-  static JobTemplate::Ptr create(const stratum::Job& stratumJob);
+  static JobTemplate::Ptr create(const std::string& workerIdentifier, const stratum::Job& stratumJob);
 
   virtual void setJobResultHandler(const JobResult::Handler& jobResultHandler) = 0;
 

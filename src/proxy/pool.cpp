@@ -24,13 +24,13 @@ void Pool::connect(const Configuration& configuration)
   LOG_INFO << "Connecting new pool - " << configuration;
   connection_ = net::client::establishConnection(ioService_,
                                                  configuration.endPoint_,
+                                                 std::bind(&Pool::handleConnect, this),
                                                  std::bind(&Pool::handleReceived, this,
-                                                           std::placeholders::_1,
-                                                           std::placeholders::_2),
+                                                           std::placeholders::_1),
                                                  std::bind(&Pool::handleDisconnect, this,
                                                            std::placeholders::_1));
   configuration_ = configuration;
-  login();
+  updateName();
 }
 
 Pool::~Pool()
@@ -95,7 +95,13 @@ float Pool::weightedWorkers() const
   return weightedWorkers;
 }
 
-void Pool::handleReceived(char* data, std::size_t size)
+void Pool::handleConnect()
+{
+  LOG_POOL_INFO << "Connected";
+  login();
+}
+
+void Pool::handleReceived(const std::string& data)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
@@ -103,7 +109,7 @@ void Pool::handleReceived(char* data, std::size_t size)
   using namespace std::placeholders;
 
   net::jsonrpc::parse(
-    std::string(data, size),
+    data,
     [this](const std::string& id, const std::string& method, const std::string& params)
     {
       LOG_DEBUG << "proxy::Pool::handleReceived request, id, " << id << ", method, " << method
@@ -163,10 +169,7 @@ void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum
   LOG_TRACE << "proxy::Pool::handleLoginSuccess, id, " << id;
 
   workerIdentifier_ = id;
-  std::ostringstream poolNameStream;
-  poolNameStream << "<" << id << "@" << configuration_.endPoint_.host_ << ":"
-                 << configuration_.endPoint_.port_ << ">";
-  poolName_ = poolNameStream.str();
+  updateName();
   if (job)
   {
     setJob(*job);
@@ -260,6 +263,14 @@ JobResult::SubmitStatus Pool::handleJobResult(const WorkerIdentifier& workerIden
   submit(jobResult, submitStatusHandler);
 }
 
+void Pool::updateName()
+{
+  std::ostringstream poolNameStream;
+  poolNameStream << "<" << workerIdentifier_ << "@"
+                 << configuration_.endPoint_.host_ << ":" << configuration_.endPoint_.port_ << ">";
+  poolName_ = poolNameStream.str();
+}
+
 Pool::RequestIdentifier Pool::sendRequest(Pool::RequestType type, const std::string& params)
 {
   if (connection_)
@@ -310,7 +321,7 @@ void Pool::setJob(const stratum::Job& job)
   {
     try
     {
-      auto newJobTemplate = JobTemplate::create(job);
+      auto newJobTemplate = JobTemplate::create(workerIdentifier_, job);
       LOG_POOL_INFO << "Received new job: " << *newJobTemplate;
       newJobTemplate->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
                                                     std::placeholders::_1, std::placeholders::_2,

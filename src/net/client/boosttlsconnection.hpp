@@ -8,6 +8,7 @@ namespace client {
 
 Connection::Ptr establishBoostTlsConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                                             const std::string& host, uint16_t port,
+                                            const Connection::ConnectHandler& connectHandler,
                                             const Connection::ReceivedDataHandler& receivedDataHandler,
                                             const Connection::DisconnectHandler& errorHandler);
 

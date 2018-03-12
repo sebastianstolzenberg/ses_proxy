@@ -12,7 +12,7 @@ SCENARIO("target conversions")
   uint32_t target32             = 0x00123456;
   std::string target32Hex       =  "56341200";
   uint64_t target64From32       = 0x0012345600000000;
-  std::string target64HexFrom32 =  "5634120000000000";
+  std::string target64HexFrom32 =  "0000000056341200";
   uint64_t target64Trim7        = 0x00123456789abc00;
   uint64_t target64Trim6        = 0x00123456789a0000;
   uint64_t target64Trim2        = 0x0012000000000000;

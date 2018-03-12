@@ -30,7 +30,11 @@ public:
 
   void toStream(std::ostream& stream) const override
   {
-    stream << "MasterJobTemplate, jobId, " << jobIdentifier_ << "";
+    stream << "MasterJobTemplate, jobId, " << jobIdentifier_
+           << ", difficulty, " << difficulty_
+           << ", height, " << height_
+           << ", targetDifficulty, " << targetDifficulty_
+           << ", blob, " << blob_.toHexString();
   }
 
 protected:

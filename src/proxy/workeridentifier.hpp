@@ -11,5 +11,7 @@ typedef boost::uuids::uuid WorkerIdentifier;
 std::string toString(const WorkerIdentifier& workerIdentifier);
 WorkerIdentifier toWorkerIdentifier(const std::string& workerIdentifier);
 
+WorkerIdentifier generateWorkerIdentifier();
+
 } // namespace proxy
 } // namespace ses

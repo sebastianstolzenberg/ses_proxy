@@ -30,6 +30,7 @@ namespace client {
 
 Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                                     const EndPoint& endPoint,
+                                    const Connection::ConnectHandler& connectHandler,
                                     const Connection::ReceivedDataHandler& receivedDataHandler,
                                     const Connection::DisconnectHandler& errorHandler)
 {
@@ -46,11 +47,13 @@ Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_servic
     switch (connectionType)
     {
       case CONNECTION_TYPE_TLS:
-        connection = establishBoostTlsConnection(ioService, endPoint.host_, endPoint.port_, receivedDataHandler, errorHandler);
+        connection = establishBoostTlsConnection(ioService, endPoint.host_, endPoint.port_,
+                                                 connectHandler, receivedDataHandler, errorHandler);
         break;
 
       case CONNECTION_TYPE_TCP:
-        connection = establishBoostTcpConnection(ioService, endPoint.host_, endPoint.port_, receivedDataHandler, errorHandler);
+        connection = establishBoostTcpConnection(ioService, endPoint.host_, endPoint.port_,
+                                                 connectHandler, receivedDataHandler, errorHandler);
 
       default:
         break;

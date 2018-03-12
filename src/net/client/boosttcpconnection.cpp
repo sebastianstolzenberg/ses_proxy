@@ -64,11 +64,13 @@ private:
 
 Connection::Ptr establishBoostTcpConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                                             const std::string &host, uint16_t port,
+                                            const Connection::ConnectHandler& connectHandler,
                                             const Connection::ReceivedDataHandler& receivedDataHandler,
                                             const Connection::DisconnectHandler& errorHandler)
 {
-  //return std::make_shared<BoostTcpConnection>(listener, server, port);
-  return std::make_shared<BoostConnection < BoostTcpSocket> > (ioService, host, port, receivedDataHandler, errorHandler);
+  auto connection = std::make_shared<BoostConnection<BoostTcpSocket> > (ioService, connectHandler, receivedDataHandler, errorHandler);
+  ioService->post(std::bind(&BoostConnection<BoostTcpSocket>::connect, connection, host, port));
+  return connection;
 }
 
 } //namespace client

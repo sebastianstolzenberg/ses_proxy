@@ -175,5 +175,17 @@ void Blob::setClientPool(uint32_t clientPool)
   }
 }
 
+std::ostream& operator<<(std::ostream& stream, const Blob& blob)
+{
+  stream << "blob, " << blob.toHexString();
+  if (blob.isTemplate())
+  {
+
+  }
+  else
+  {
+  }
+}
+
 } // namespace proxy
 } // namespace ses

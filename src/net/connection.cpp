@@ -47,11 +47,11 @@ void Connection::resetHandler()
   setHandler(ReceivedDataHandler(), DisconnectHandler());
 }
 
-void Connection::notifyRead(char *data, size_t size)
+void Connection::notifyRead(const std::string& data)
 {
   if (receivedDataHandler_)
   {
-    receivedDataHandler_(data, size);
+    receivedDataHandler_(data);
   }
 }
 

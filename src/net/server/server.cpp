@@ -73,29 +73,33 @@ private:
   {
     // captures a shared pointer to keep the connection object alive until it is disconnected
     auto self = selfSustainUntilDisconnect_ ? shared_from_this() : BoostConnection::Ptr();
-    boost::asio::async_read(socket_,
-                            boost::asio::buffer(receiveBuffer_, sizeof(receiveBuffer_)),
-                            boost::asio::transfer_at_least(1),
-                            [this, self](boost::system::error_code error, size_t bytes_transferred)
-                            {
-                              if (!error)
-                              {
-                                LOG_TRACE << "net::server::BoostConnection received :";
-                                LOG_TRACE.write(receiveBuffer_, bytes_transferred);
-                                notifyRead(receiveBuffer_, bytes_transferred);
-                                triggerRead();
-                              }
-                              else
-                              {
-                                LOG_TRACE << "net::server::BoostConnection Read failed: " << error.message();
-                                notifyError(error.message());
-                              }
-                            });
+    boost::asio::async_read_until(
+        socket_,
+        receiveBuffer_,
+        '\n',
+        [this, self](boost::system::error_code error, size_t bytes_transferred)
+        {
+          if (!error)
+          {
+            boost::asio::streambuf::const_buffers_type bufs = receiveBuffer_.data();
+            std::string data(boost::asio::buffers_begin(bufs),
+                             boost::asio::buffers_begin(bufs) + receiveBuffer_.size());
+            receiveBuffer_.consume(receiveBuffer_.size());
+            LOG_TRACE << "net::server::BoostConnection received : " << data;
+            notifyRead(data);
+            triggerRead();
+          }
+          else
+          {
+            LOG_TRACE << "net::server::BoostConnection Read failed: " << error.message();
+            notifyError(error.message());
+          }
+        });
   }
 
 private:
   boost::asio::ip::tcp::socket socket_;
-  char receiveBuffer_[2048];
+  boost::asio::streambuf receiveBuffer_;
   bool selfSustainUntilDisconnect_;
 };
 

@@ -15,18 +15,31 @@
 namespace ses {
 namespace proxy {
 
-JobTemplate::Ptr JobTemplate::create(const stratum::Job& stratumJob)
+JobTemplate::Ptr JobTemplate::create(const std::string& workerIdentifier,
+                                     const stratum::Job& stratumJob)
 {
   JobTemplate::Ptr jobTemplate;
 
   Blob blob(stratumJob);
-  WorkerIdentifier identifier = toWorkerIdentifier(stratumJob.getId());
+  WorkerIdentifier identifier;
+  if (!workerIdentifier.empty())
+  {
+    identifier = toWorkerIdentifier(workerIdentifier);
+  }
+  else if (!stratumJob.getId().empty())
+  {
+    identifier = toWorkerIdentifier(stratumJob.getId());
+  }
+  else
+  {
+    identifier = generateWorkerIdentifier();
+  }
   std::string jobIdentifier = stratumJob.getJobIdentifier();
 
   if (blob.isTemplate())
   {
     // JobTemplate case
-    uint32_t difficulty = boost::lexical_cast<uint32_t>(stratumJob.getDifficulty());
+    uint64_t difficulty = boost::lexical_cast<uint64_t>(stratumJob.getDifficulty());
     uint32_t height = boost::lexical_cast<uint32_t>(stratumJob.getHeight());
     uint32_t targetDifficulty = boost::lexical_cast<uint32_t>(stratumJob.getTargetDiff());
     if (blob.hasClientPoolOffset())

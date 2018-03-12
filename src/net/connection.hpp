@@ -16,7 +16,8 @@ class Connection : private boost::noncopyable
 public:
   typedef std::shared_ptr<Connection> Ptr;
   typedef std::weak_ptr<Connection> WeakPtr;
-  typedef std::function<void(char* data, std::size_t size)> ReceivedDataHandler;
+  typedef std::function<void()> ConnectHandler;
+  typedef std::function<void(const std::string& data)> ReceivedDataHandler;
   typedef std::function<void(const std::string& error)> DisconnectHandler;
 
 protected:
@@ -25,7 +26,7 @@ protected:
              const Connection::DisconnectHandler& errorHandler);
   virtual ~Connection() = default;
 
-  void notifyRead(char* data, size_t size);
+  void notifyRead(const std::string& data);
   void notifyError(const std::string& error);
 
 public:

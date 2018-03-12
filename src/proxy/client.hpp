@@ -44,7 +44,7 @@ public:
   const std::string& getPassword() const;
 
 private:
-  void handleReceived(char* data, std::size_t size);
+  void handleReceived(const std::string& data);
   void handleDisconnect(const std::string& error);
 
   void handleLogin(const std::string& jsonRequestId,

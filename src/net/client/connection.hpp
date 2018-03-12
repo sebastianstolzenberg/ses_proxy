@@ -16,6 +16,7 @@ namespace client {
 
 Connection::Ptr establishConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                                     const EndPoint& endPoint,
+                                    const Connection::ConnectHandler& connectHandler,
                                     const Connection::ReceivedDataHandler& receivedDataHandler,
                                     const Connection::DisconnectHandler& errorHandler);
 

@@ -37,7 +37,7 @@ void Client::setConnection(const net::Connection::Ptr& connection)
   if (connection)
   {
     connection->setSelfSustainingUntilDisconnect(true);
-    connection->setHandler(std::bind(&Client::handleReceived, this, std::placeholders::_1, std::placeholders::_2),
+    connection->setHandler(std::bind(&Client::handleReceived, this, std::placeholders::_1),
                            std::bind(&Client::handleDisconnect, this, std::placeholders::_1));
   }
 }
@@ -103,14 +103,14 @@ const std::string& Client::getPassword() const
   return password_;
 }
 
-void Client::handleReceived(char* data, std::size_t size)
+void Client::handleReceived(const std::string& data)
 {
   using namespace std::placeholders;
 
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
   net::jsonrpc::parse(
-    std::string(data, size),
+    data,
     [this](const std::string& id, const std::string& method, const std::string& params)
     {
 //      LOG_DEBUG << "proxy::Client::handleReceived request, id, " << id << ", method, " << method
@@ -137,7 +137,10 @@ void Client::handleReceived(char* data, std::size_t size)
 void Client::handleDisconnect(const std::string& error)
 {
   LOG_CLIENT_INFO << "Disconnected";
-  disconnectHandler_();
+  if (disconnectHandler_)
+  {
+    disconnectHandler_();
+  }
 }
 
 void Client::handleLogin(const std::string& jsonRequestId, const std::string& login, const std::string& pass, const std::string& agent)
