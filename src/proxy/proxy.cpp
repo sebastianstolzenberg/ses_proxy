@@ -1,6 +1,4 @@
-//
-// Created by ses on 24.02.18.
-//
+#include <future>
 
 #include "proxy.hpp"
 #include "util/log.hpp"
@@ -93,8 +91,8 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
 
 void Proxy::triggerLoadBalancerTimer()
 {
-  //TODO optimize duration
-  loadBalancerTimer_.expires_from_now(boost::posix_time::seconds(30));
+  //TODO optimize timer period
+  loadBalancerTimer_.expires_from_now(boost::posix_time::seconds(10));
   loadBalancerTimer_.async_wait(
     [this](const boost::system::error_code& error)
     {
@@ -109,20 +107,39 @@ void Proxy::triggerLoadBalancerTimer()
 void Proxy::balancePoolLoads()
 {
   //TODO balancing algorithm
+
+  typedef std::packaged_task<void(Pool::Ptr&)> PerPoolTask;
+  std::list<std::future<void> > perPoolTasks;
   for(auto& pool : pools_)
   {
-    LOG_INFO << " >>> balancePoolLoads - " << pool->getDescriptor()
-             << ", weightedHashRate, " << pool->weightedHashRate()
-             << ", hashRate, " << pool->hashRate()
-             << ", weightedWorkers, " << pool->weightedWorkers()
-             << ", weight, " << pool->getWeight()
-             << ", workers, " << pool->numWorkers()
-             << ", algorithm, " << pool->getAlgotrithm();
-    for (auto& worker : pool->getWorkersSortedByHashrateDescending())
-    {
+    std::shared_ptr<PerPoolTask> task =
+      std::make_shared<PerPoolTask>(
+        [](Pool::Ptr& pool)
+        {
+          LOG_INFO << " >>> balancePoolLoads - " << pool->getDescriptor()
+                   << ", weightedHashRate, " << pool->weightedHashRate()
+                   << ", hashRate, " << pool->hashRate()
+                   << ", weightedWorkers, " << pool->weightedWorkers()
+                   << ", weight, " << pool->getWeight()
+                   << ", workers, " << pool->numWorkers()
+                   << ", algorithm, " << pool->getAlgotrithm();
 
-    }
+          for (auto& worker : pool->getWorkersSortedByHashrateDescending())
+          {
+
+          }
+        }
+      );
+    ioService_->post(std::bind(&PerPoolTask::operator(), task, pool));
+    perPoolTasks.push_back(task->get_future());
   }
+
+  // waits for completion of the started tasks
+  for (auto& task : perPoolTasks)
+  {
+    task.wait();
+  }
+  LOG_INFO << " >>> balancePoolLoads done ";
 }
 
 } // namespace proxy
