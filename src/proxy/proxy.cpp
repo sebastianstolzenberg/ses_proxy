@@ -3,6 +3,7 @@
 //
 
 #include "proxy.hpp"
+#include "util/log.hpp"
 
 namespace ses {
 namespace proxy {
@@ -54,7 +55,7 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
                     }
                     float aWeighted = a->weightedWorkers();
                     float bWeighted = b->weightedWorkers();
-                    if (a == b)
+                    if (aWeighted == bWeighted)
                     {
                       return a->getWeight() > b->getWeight();
                     }
@@ -63,6 +64,12 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
                       return aWeighted < bWeighted;
                     }
                   });
+      LOG_INFO << "Ordered pools by weighted load:";
+      for (auto pool : pools_) LOG_INFO << "  " << pool->getDescriptor()
+                                        << ", weightedWorkers, " << pool->weightedWorkers()
+                                        << ", weight, " << pool->getWeight()
+                                        << ", workers, " << pool->numWorkers()
+                                        << ", algorithm, " << pool->getAlgotrithm();
       for (auto pool : pools_)
       {
         if (pool->getAlgotrithm() == newClient->getAlgorithm() &&

@@ -91,7 +91,7 @@ float Pool::weightedWorkers() const
 {
   float weightedWorkers = numWorkers();
   weightedWorkers /= getWeight();
-  LOG_POOL_INFO << "Weighted workers, " << weightedWorkers << ", number of workers, " << numWorkers();
+//  LOG_POOL_INFO << "Weighted workers, " << weightedWorkers << ", number of workers, " << numWorkers();
   return weightedWorkers;
 }
 
@@ -161,7 +161,7 @@ void Pool::handleReceived(const std::string& data)
 
 void Pool::handleDisconnect(const std::string& error)
 {
-  LOG_WARN << __PRETTY_FUNCTION__ << error;
+  LOG_POOL_INFO << "Disconnected: " << error;
 }
 
 void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job)
@@ -195,7 +195,8 @@ void Pool::handleGetJobError(int code, const std::string& message)
 void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                                const std::string& status)
 {
-  LOG_TRACE << "proxy::Pool::handleSubmitSuccess, status, " << status;
+  LOG_POOL_INFO << "Submit success: job, " << jobId;
+
   if (submitStatusHandler)
   {
     submitStatusHandler(JobResult::SUBMIT_ACCEPTED);
@@ -211,7 +212,7 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
 void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                              int code, const std::string& message)
 {
-  LOG_WARN << "proxy::Pool::handleSubmitError, code, " << code << ", message, " << message;
+  LOG_POOL_INFO << "Submit failed: message, " << code << " " << message << ", job, " << jobId;
 
   if (submitStatusHandler)
   {
@@ -408,6 +409,11 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     RequestIdentifier id = 0;
     if (jobResult.isNodeJsResult())
     {
+      LOG_POOL_INFO << "Submitting hash: job, " << jobIt->second->getJobIdentifier()
+                    << ", nonce, " << jobResult.getNonceHexString()
+                    << ", workerNonce, " << jobResult.getWorkerNonce()
+                    << ", poolNonce, " << jobResult.getPoolNonce()
+                    << ", hash, " << jobResult.getHashHexString();
       id = sendRequest(REQUEST_TYPE_SUBMIT,
                        stratum::client::createSubmitParams(workerIdentifier_,
                                                            jobIt->second->getJobIdentifier(),
@@ -418,6 +424,9 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     }
     else
     {
+      LOG_POOL_INFO << "Submitting hash: job, " << jobIt->second->getJobIdentifier()
+                    << ", nonce, " << jobResult.getNonceHexString()
+                    << ", hash, " << jobResult.getHashHexString();
       id = sendRequest(REQUEST_TYPE_SUBMIT,
                        stratum::client::createSubmitParams(workerIdentifier_,
                                                            jobIt->second->getJobIdentifier(),

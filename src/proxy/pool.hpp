@@ -8,6 +8,7 @@
 #include <boost/asio/deadline_timer.hpp>
 
 #include "net/connection.hpp"
+#include "net/endpoint.hpp"
 #include "stratum/stratum.hpp"
 #include "proxy/algorithm.hpp"
 #include "proxy/jobtemplate.hpp"

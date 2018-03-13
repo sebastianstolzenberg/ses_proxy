@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/asio/read_until.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include "net/client/connection.hpp"
 #include "util/log.hpp"
@@ -28,14 +29,21 @@ public:
 
   void connect(const std::string &server, uint16_t port)
   {
-    LOG_TRACE << "Connecting net::client::BoostConnection to " << server << ":" << port;
-    boost::asio::ip::tcp::resolver resolver(*ioService_);
-    boost::asio::ip::tcp::resolver::query query(server, std::to_string(port));
-    boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+    try
+    {
+      LOG_TRACE << "Connecting net::client::BoostConnection to " << server << ":" << port;
+      boost::asio::ip::tcp::resolver resolver(*ioService_);
+      boost::asio::ip::tcp::resolver::query query(server, std::to_string(port));
+      boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
-    socket_.connect(iterator);
-    startReading();
-    connectHandler_();
+      socket_.connect(iterator);
+      startReading();
+      connectHandler_();
+    }
+    catch (...)
+    {
+      notifyError(boost::current_exception_diagnostic_information());
+    }
   }
 
   void setSelfSustainingUntilDisconnect(bool selfSustain)

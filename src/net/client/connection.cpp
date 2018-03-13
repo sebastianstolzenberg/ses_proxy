@@ -17,7 +17,6 @@
  */
 
 #include <iostream>
-#include <boost/exception/diagnostic_information.hpp>
 
 #include "net/client/connection.hpp"
 #include "net/client/boosttlsconnection.hpp"

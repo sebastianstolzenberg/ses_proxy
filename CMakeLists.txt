@@ -46,7 +46,7 @@ add_executable(ses_proxy
         src/proxy/jobtemplate.cpp
         src/proxy/worker.cpp
         src/proxy/blob.cpp
-        src/proxy/workeridentifier.cpp)
+        src/proxy/workeridentifier.cpp src/proxy/configurationfile.cpp src/proxy/configurationfile.hpp)
 
 target_link_libraries(ses_proxy
         ses_proxy_net
