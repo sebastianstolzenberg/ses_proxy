@@ -28,6 +28,14 @@ public:
     {
     }
 
+    friend std::ostream& operator<<(std::ostream& stream, const Configuration& configuration)
+    {
+      stream << configuration.endPoint_
+             << ", defaultAlgorithm, " << configuration.defaultAlgorithm_
+             << ", defaultDifficulty, " << configuration.defaultDifficulty_;
+      return stream;
+    }
+
     net::EndPoint endPoint_;
     Algorithm defaultAlgorithm_;
     uint32_t defaultDifficulty_;

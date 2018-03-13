@@ -16,7 +16,7 @@ void sortByWeightedWorkers(std::list<Pool>& pools)
 }
 
 Proxy::Proxy(const std::shared_ptr<boost::asio::io_service>& ioService)
-  : ioService_(ioService)
+  : ioService_(ioService), loadBalancerTimer_(*ioService)
 {
 }
 
@@ -25,6 +25,8 @@ void Proxy::addPool(const Pool::Configuration& configuration)
   auto pool = std::make_shared<Pool>(ioService_);
   pool->connect(configuration);
   pools_.push_back(pool);
+
+  triggerLoadBalancerTimer();
 }
 
 void Proxy::addServer(const Server::Configuration& configuration)
@@ -85,6 +87,40 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
           break;
         }
       }
+    }
+  }
+}
+
+void Proxy::triggerLoadBalancerTimer()
+{
+  //TODO optimize duration
+  loadBalancerTimer_.expires_from_now(boost::posix_time::seconds(30));
+  loadBalancerTimer_.async_wait(
+    [this](const boost::system::error_code& error)
+    {
+      if (!error)
+      {
+        triggerLoadBalancerTimer();
+        balancePoolLoads();
+      }
+    });
+}
+
+void Proxy::balancePoolLoads()
+{
+  //TODO balancing algorithm
+  for(auto& pool : pools_)
+  {
+    LOG_INFO << " >>> balancePoolLoads - " << pool->getDescriptor()
+             << ", weightedHashRate, " << pool->weightedHashRate()
+             << ", hashRate, " << pool->hashRate()
+             << ", weightedWorkers, " << pool->weightedWorkers()
+             << ", weight, " << pool->getWeight()
+             << ", workers, " << pool->numWorkers()
+             << ", algorithm, " << pool->getAlgotrithm();
+    for (auto& worker : pool->getWorkersSortedByHashrateDescending())
+    {
+
     }
   }
 }

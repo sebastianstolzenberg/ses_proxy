@@ -1,6 +1,7 @@
 #include <iostream>
 #include <functional>
 #include <boost/lexical_cast.hpp>
+#include <boost/range/numeric.hpp>
 
 #include "net/client/connection.hpp"
 #include "net/jsonrpc/jsonrpc.hpp"
@@ -67,6 +68,12 @@ bool Pool::removeWorker(const Worker::Ptr& worker)
   return removed;
 }
 
+const std::list<Worker::Ptr>& Pool::getWorkersSortedByHashrateDescending()
+{
+  workers_.sort([](const auto& a, const auto& b) { return a->getHashRate() > b->getHashRate(); });
+  return workers_;
+}
+
 const std::string& Pool::getDescriptor() const
 {
   return poolName_;
@@ -93,6 +100,19 @@ float Pool::weightedWorkers() const
   weightedWorkers /= getWeight();
 //  LOG_POOL_INFO << "Weighted workers, " << weightedWorkers << ", number of workers, " << numWorkers();
   return weightedWorkers;
+}
+
+uint32_t Pool::hashRate() const
+{
+  return boost::accumulate(workers_, 0,
+                           [](uint32_t sum, const auto& worker){ return sum + worker->getHashRate(); });
+}
+
+float Pool::weightedHashRate() const
+{
+  float weightedHashRate = hashRate();
+  weightedHashRate /= getWeight();
+  return weightedHashRate;
 }
 
 void Pool::handleConnect()

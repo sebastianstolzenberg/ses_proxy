@@ -35,8 +35,9 @@ public: // from Worker
   Algorithm getAlgorithm() const override;
   WorkerType getType() const override ;
   void assignJob(const Job::Ptr& job) override;
-  bool canHandleJobTemplates() const override;
-  void assignJobTemplate(const JobTemplate::Ptr& job) override;
+
+  bool isConnected() const override;
+  uint32_t getHashRate() const override;
 
 public:
   const std::string& getUseragent() const;

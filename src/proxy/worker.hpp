@@ -26,8 +26,9 @@ public:
   virtual Algorithm getAlgorithm() const = 0;
   virtual WorkerType getType() const = 0;
   virtual void assignJob(const Job::Ptr& job) = 0;
-  virtual bool canHandleJobTemplates() const;
-  virtual void assignJobTemplate(const JobTemplate::Ptr& job);
+
+  virtual bool isConnected() const = 0;
+  virtual uint32_t getHashRate() const = 0;
 };
 
 } // namespace proxy

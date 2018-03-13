@@ -25,7 +25,13 @@ public:
   void handleNewClient(const Client::Ptr& newClient);
 
 private:
+  void triggerLoadBalancerTimer();
+  void balancePoolLoads();
+
+private:
   std::shared_ptr<boost::asio::io_service> ioService_;
+  boost::asio::deadline_timer loadBalancerTimer_;
+
   std::list<Pool::Ptr> pools_;
   std::list<Server::Ptr> servers_;
   std::map<boost::uuids::uuid, Client::Ptr> clients_;

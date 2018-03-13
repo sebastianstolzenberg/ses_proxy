@@ -54,9 +54,21 @@ void parsePoolConfigurations(boost::property_tree::ptree& ptree, std::list<Pool:
 
 void parseServerConfigurations(boost::property_tree::ptree& ptree, std::list<Server::Configuration>& list)
 {
+  for (auto& pool : ptree.get_child("server"))
+  {
+    Server::Configuration configuration;
+    configuration.endPoint_.host_ = pool.second.get<std::string>("host");
+    configuration.endPoint_.port_ = pool.second.get<uint16_t>("port");
+    configuration.endPoint_.connectionType_ =
+      parseConnectionType(pool.second.get<std::string>("connectionType", "auto"));
+    configuration.defaultAlgorithm_ = parseAlgorithm(pool.second.get<std::string>("defaultAlgorithm", ""));
+    configuration.defaultDifficulty_ = pool.second.get<uint32_t>("defaultDifficulty", 0);
+    list.push_back(configuration);
+  }
+}
+}
 
-}
-}
+//TODO test malformed config files
 
 Configuration parseConfigurationFile(const std::string& fileName)
 {

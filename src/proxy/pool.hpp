@@ -55,6 +55,7 @@ public:
 
   bool addWorker(const Worker::Ptr& worker);
   bool removeWorker(const Worker::Ptr& worker);
+  const std::list<Worker::Ptr>& getWorkersSortedByHashrateDescending();
 
   const std::string& getDescriptor() const;
   Algorithm getAlgotrithm() const;
@@ -62,6 +63,9 @@ public:
 
   size_t numWorkers() const;
   float weightedWorkers() const;
+
+  uint32_t hashRate() const;
+  float weightedHashRate() const;
 
 private:
   void handleConnect();

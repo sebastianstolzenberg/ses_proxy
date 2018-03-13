@@ -70,22 +70,16 @@ void Client::assignJob(const Job::Ptr& job)
   }
 }
 
-bool Client::canHandleJobTemplates() const
+bool Client::isConnected() const
 {
-  return type_ == WorkerType::PROXY;
+  auto connection = connection_.lock();
+  return connection && connection->isConnected();
 }
 
-void Client::assignJobTemplate(const JobTemplate::Ptr& job)
+uint32_t Client::getHashRate() const
 {
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
-  LOG_DEBUG << __PRETTY_FUNCTION__;
-  if (job)
-  {
-    //job->setAssignedWorker(identifier_);
-    jobTemplates_[job->getJobIdentifier()] = job;
-    currentJobTemplate_ = job;
-    sendJobNotification();
-  }
+  //TODO implement
+  return 100;
 }
 
 const std::string& Client::getUseragent() const
