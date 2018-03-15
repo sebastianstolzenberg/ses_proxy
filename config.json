@@ -29,11 +29,19 @@
     },
     {
       "host":"pool.intense.hashvault.pro",
-      "port":5555,
+      "port":443,
       "username":"iz5w2C5AjmnM8ArCcBRryETYEMYnJWGVmKMDFbP5HkzLN3oZsf3grtwGykdzCVj23Thco232PGrwHL6uQProtvsa28bojsNFG+5000",
       "password":"ses-proxy-test",
       "algorithm":"cryptonight",
       "weight":1
+    },
+    {
+      "host":"killallasics.moneroworld.com",
+      "port":3333,
+      "username":"9v4vTVwqZzfjCFyPi7b9Uv1hHntJxycC4XvRyEscqwtq8aycw5xGpTxFyasurgf2KRBfbdAJY4AVcemL1JCegXU4EZfMtaz",
+      "password":"ses-proxy-test",
+      "algorithm":"cryptonight",
+      "weight":1000
     }
   ],
   "server":[
