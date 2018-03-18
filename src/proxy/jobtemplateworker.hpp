@@ -11,7 +11,7 @@ namespace proxy {
 class WorkerJobTemplate : public BaseJobTemplate
 {
 public:
-  WorkerJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob,
+  WorkerJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Blob& blob,
                     uint64_t difficulty, uint32_t height, uint32_t targetDifficulty)
     : BaseJobTemplate(identifier, jobIdentifier, blob), nextClientNonce_(1), difficulty_(difficulty),
       height_(height), targetDifficulty_(targetDifficulty)
@@ -29,7 +29,7 @@ public:
   stratum::Job asStratumJob() const
   {
     stratum::Job stratumJob = blob_.asStratumJob();
-    stratumJob.setId(toString(identifier_));
+    stratumJob.setId(identifier_);
     stratumJob.setJobIdentifier(jobIdentifier_);
     stratumJob.setDifficulty(std::to_string(difficulty_));
     stratumJob.setHeight(std::to_string(height_));
@@ -67,7 +67,7 @@ protected:
 
 private:
   void handleResult(uint32_t workerNonce,
-                    const WorkerIdentifier& workerIdentifier,
+                    const std::string& workerIdentifier,
                     const JobResult& jobResult,
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {

@@ -1,4 +1,5 @@
 #include <future>
+#include <boost/range/numeric.hpp>
 
 #include "proxy.hpp"
 #include "util/log.hpp"
@@ -38,6 +39,8 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
 {
   if (newClient)
   {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
     clients_[newClient->getIdentifier()] = newClient;
 
     if (!pools_.empty())
@@ -53,8 +56,8 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
                     {
                       return false;
                     }
-                    float aWeighted = a->weightedWorkers();
-                    float bWeighted = b->weightedWorkers();
+                    double aWeighted = a->weightedHashRate();
+                    double bWeighted = b->weightedHashRate();
                     if (aWeighted == bWeighted)
                     {
                       return a->getWeight() > b->getWeight();
@@ -66,7 +69,7 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
                   });
       LOG_INFO << "Ordered pools by weighted load:";
       for (auto pool : pools_) LOG_INFO << "  " << pool->getDescriptor()
-                                        << ", weightedWorkers, " << pool->weightedWorkers()
+                                        << ", weightedHashRate, " << pool->weightedHashRate()
                                         << ", weight, " << pool->getWeight()
                                         << ", workers, " << pool->numWorkers()
                                         << ", algorithm, " << pool->getAlgotrithm();
@@ -99,47 +102,129 @@ void Proxy::triggerLoadBalancerTimer()
       if (!error)
       {
         triggerLoadBalancerTimer();
-        balancePoolLoads();
+        std::thread(std::bind(&Proxy::balancePoolLoads, shared_from_this())).detach();
       }
     });
 }
 
 void Proxy::balancePoolLoads()
 {
-  //TODO balancing algorithm
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-  typedef std::packaged_task<void(Pool::Ptr&)> PerPoolTask;
-  std::list<std::future<void> > perPoolTasks;
+  if (pools_.size() <= 1) return;
+
+  // sort pools by weighted hashrate
+  typedef std::map<uint32_t, Pool::Ptr> PoolsByWeightedHashrate;
+  PoolsByWeightedHashrate poolsSortedByWeightedHashrate;
+  typedef std::packaged_task<PoolsByWeightedHashrate::value_type(Pool::Ptr&)> PoolHashrateTask;
+  std::vector<std::future<PoolsByWeightedHashrate::value_type> > poolHashrateTasks;
+  poolHashrateTasks.reserve(pools_.size());
   for(auto& pool : pools_)
   {
-    std::shared_ptr<PerPoolTask> task =
-      std::make_shared<PerPoolTask>(
-        [](Pool::Ptr& pool)
-        {
-          LOG_INFO << " >>> balancePoolLoads - " << pool->getDescriptor()
-                   << ", weightedHashRate, " << pool->weightedHashRate()
-                   << ", hashRate, " << pool->hashRate()
-                   << ", weightedWorkers, " << pool->weightedWorkers()
-                   << ", weight, " << pool->getWeight()
-                   << ", workers, " << pool->numWorkers()
-                   << ", algorithm, " << pool->getAlgotrithm();
-
-          for (auto& worker : pool->getWorkersSortedByHashrateDescending())
-          {
-
-          }
-        }
-      );
-    ioService_->post(std::bind(&PerPoolTask::operator(), task, pool));
-    perPoolTasks.push_back(task->get_future());
+    std::shared_ptr<PoolHashrateTask> task =
+      std::make_shared<PoolHashrateTask>(
+        [](Pool::Ptr& pool) { return PoolsByWeightedHashrate::value_type(pool->weightedHashRate(), pool); });
+    ioService_->post(std::bind(&PoolHashrateTask::operator(), task, pool));
+    poolHashrateTasks.push_back(std::move(task->get_future()));
   }
-
-  // waits for completion of the started tasks
-  for (auto& task : perPoolTasks)
+  // calculates average weighted hashrate
+  uint32_t averageWeightedHashrate = 0;
+  for (auto& task : poolHashrateTasks)
   {
-    task.wait();
+    auto taskResult = task.get();
+    poolsSortedByWeightedHashrate.insert(taskResult);
+    averageWeightedHashrate += taskResult.first;
   }
-  LOG_INFO << " >>> balancePoolLoads done ";
+  averageWeightedHashrate /= poolHashrateTasks.size();
+
+//  LOG_INFO << " >>> balancePoolLoads - " << pool->getDescriptor()
+//           << ", weightedHashRate, " << pool->weightedHashRate()
+//           << ", hashRate, " << pool->hashRate()
+//           << ", weight, " << pool->getWeight()
+//           << ", workers, " << pool->numWorkers()
+//           << ", algorithm, " << pool->getAlgotrithm();
+
+  //TODO const uint32_t allowedHashrateHystersis = 100;
+
+  // remove excessive hashrate from pools with too high load
+  typedef std::multimap<uint32_t, Worker::Ptr> AvailableWorkersByHashrate;
+  AvailableWorkersByHashrate availableWorkersByHashrate;
+  std::mutex availableWorkersMutex;
+  typedef std::packaged_task<void(Pool::Ptr&, uint32_t)> RemoveExcessiveHashrateTask;
+  std::list<std::future<void> > removeExcessiveHashrateTasks;
+  for(auto& pool : poolsSortedByWeightedHashrate)
+  {
+    if (pool.first > averageWeightedHashrate)
+    {
+      std::shared_ptr<RemoveExcessiveHashrateTask> task =
+        std::make_shared<RemoveExcessiveHashrateTask>(
+          [&availableWorkersByHashrate, &availableWorkersMutex](Pool::Ptr& pool, uint32_t excessiveWeightedHashrate)
+          {
+            excessiveWeightedHashrate *= pool->getWeight();
+            auto workersSortedByHashrateDescending =  pool->getWorkersSortedByHashrateDescending();
+            for (auto& worker : workersSortedByHashrateDescending)
+            {
+              if (worker->getHashRate() <= excessiveWeightedHashrate)
+              {
+                pool->removeWorker(worker);
+                excessiveWeightedHashrate -= worker->getHashRate();
+
+                std::lock_guard<std::mutex> lock(availableWorkersMutex);
+                availableWorkersByHashrate.insert(AvailableWorkersByHashrate::value_type(worker->getHashRate(), worker));
+                //TODO early abort once hashrate is low enough
+              }
+            }
+          });
+      ioService_->post(std::bind(&RemoveExcessiveHashrateTask::operator(), task, pool.second, (pool.first - averageWeightedHashrate)));
+      removeExcessiveHashrateTasks.push_back(std::move(task->get_future()));
+    }
+  }
+  // waits for completion of the started tasks
+  for (auto& task : removeExcessiveHashrateTasks) { task.wait(); }
+
+  // adds available workers to underloaded pools
+  auto lowHashratePoolsIterator = poolsSortedByWeightedHashrate.rbegin();
+  while (!availableWorkersByHashrate.empty() &&
+         lowHashratePoolsIterator != poolsSortedByWeightedHashrate.rend() &&
+         lowHashratePoolsIterator->first < 0)
+  {
+    uint32_t hashrateDeficit = averageWeightedHashrate - lowHashratePoolsIterator->first;
+
+    // iterator through available workers, starting with highest hashrates
+    auto availableWorkerIterator = availableWorkersByHashrate.rbegin();
+    while (availableWorkerIterator != availableWorkersByHashrate.rend()
+           // TODO abort condition based on hashrateDeficit threshold -> donation
+          )
+    {
+      uint32_t workerHashrate = availableWorkerIterator->first;
+      auto& worker = availableWorkerIterator->second;
+      if (workerHashrate < hashrateDeficit)
+      {
+        lowHashratePoolsIterator->second->addWorker(worker);
+        hashrateDeficit -= workerHashrate;
+        auto toBeRemoved = availableWorkerIterator.base();
+        availableWorkerIterator++;
+        availableWorkersByHashrate.erase(toBeRemoved);
+        availableWorkerIterator--;
+      }
+      else
+      {
+        availableWorkerIterator++;
+      }
+    }
+    lowHashratePoolsIterator++;
+  }
+
+  for (auto& pool : pools_)
+  {
+    LOG_INFO << "Proxy balanced pool: " << pool->getDescriptor()
+             << ", weightedHashRate, " << pool->weightedHashRate()
+             << ", hashRate, " << pool->hashRate()
+             << ", weight, " << pool->getWeight()
+             << ", workers, " << pool->numWorkers()
+             << ", algorithm, " << pool->getAlgotrithm();
+  }
+//  LOG_INFO << " >>> balancePoolLoads done ";
 }
 
 } // namespace proxy

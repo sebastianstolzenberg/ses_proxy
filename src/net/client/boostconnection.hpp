@@ -106,13 +106,10 @@ private:
         {
           if (!error)
           {
-            std::istringstream stringStream;
-            stringStream.get(receiveBuffer_, '\n');
-//            boost::asio::streambuf::const_buffers_type bufs = receiveBuffer_.data();
-//            std::string data(boost::asio::buffers_begin(bufs),
-//                             boost::asio::buffers_begin(bufs) + receiveBuffer_.size());
-            std::string data = stringStream.str();
-            receiveBuffer_.consume(receiveBuffer_.size());
+            std::string data(
+              boost::asio::buffers_begin(receiveBuffer_.data()),
+              boost::asio::buffers_begin(receiveBuffer_.data()) + bytes_transferred);
+            receiveBuffer_.consume(bytes_transferred);
             LOG_TRACE << "net::client::BoostConnection<" << getConnectedIp() << ":"
                       << getConnectedPort() << ">::handleRead: " << data;
             notifyRead(data);

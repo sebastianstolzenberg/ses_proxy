@@ -11,7 +11,7 @@ namespace proxy {
 class SoloJobTemplate : public BaseJobTemplate
 {
 public:
-  SoloJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier,
+  SoloJobTemplate(const std::string& identifier, const std::string& jobIdentifier,
                   const Blob& blob, const util::Target& target)
     : BaseJobTemplate(identifier, jobIdentifier, blob), target_(target)
   {
@@ -47,7 +47,7 @@ protected:
     return job;
   }
 
-  void handleResult(const WorkerIdentifier& workerIdentifier,
+  void handleResult(const std::string& workerIdentifier,
                     const JobResult& jobResult,
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {

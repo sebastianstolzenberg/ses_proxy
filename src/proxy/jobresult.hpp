@@ -29,7 +29,7 @@ public:
     SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE
   };
   typedef std::function<void(SubmitStatus submitStatus)> SubmitStatusHandler;
-  typedef std::function<void(const WorkerIdentifier& workerIdentifier,
+  typedef std::function<void(const std::string& workerIdentifier,
                              const JobResult& jobResult,
                              const SubmitStatusHandler& submitStatusHandler)> Handler;
 

@@ -12,6 +12,8 @@ struct Configuration
 {
   std::list<Pool::Configuration> pools_;
   std::list<Server::Configuration> server_;
+  uint32_t logLevel_;
+  size_t threads_;
 };
 
 Configuration parseConfigurationFile(const std::string& fileName);

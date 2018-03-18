@@ -3,7 +3,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include "proxy/job.hpp"
-#include "util/log.hpp"
+#include "util/difficulty.hpp"
 
 namespace ses {
 namespace proxy {
@@ -23,7 +23,7 @@ public:
   {
     if (jobResultHandler_ && result.getJobIdentifier() == jobIdentifier_)
     {
-      jobResultHandler_(assignedWorker_, result, submitStatusHandler);
+      jobResultHandler_(toString(assignedWorker_), result, submitStatusHandler);
     }
     else
     {
@@ -34,22 +34,32 @@ public:
     }
   }
 
-  size_t numHashesFound() const
+  size_t numHashesFound() const override
   {
     return 0;
   }
 
-  size_t currentHashRate() const
+  size_t currentHashRate() const override
   {
     return 0;
   }
 
-  const std::string& getJobIdentifier() const
+  const std::string& getJobIdentifier() const override
   {
     return jobIdentifier_;
   }
 
-  stratum::Job asStratumJob() const
+  util::Target getTarget() const override
+  {
+    return target_;
+  }
+
+  uint32_t getDifficulty() const override
+  {
+    return util::targetToDifficulty(getTarget());
+  }
+
+  stratum::Job asStratumJob() const override
   {
     return stratum::Job(toString(assignedWorker_), jobIdentifier_, blob_.toHexString(), target_.toHexString());
   }

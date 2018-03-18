@@ -21,18 +21,18 @@ JobTemplate::Ptr JobTemplate::create(const std::string& workerIdentifier,
   JobTemplate::Ptr jobTemplate;
 
   Blob blob(stratumJob);
-  WorkerIdentifier identifier;
+  std::string identifier;
   if (!workerIdentifier.empty())
   {
-    identifier = toWorkerIdentifier(workerIdentifier);
+    identifier = workerIdentifier;
   }
   else if (!stratumJob.getId().empty())
   {
-    identifier = toWorkerIdentifier(stratumJob.getId());
+    identifier = stratumJob.getId();
   }
   else
   {
-    identifier = generateWorkerIdentifier();
+    identifier = toString(generateWorkerIdentifier());
   }
   std::string jobIdentifier = stratumJob.getJobIdentifier();
 

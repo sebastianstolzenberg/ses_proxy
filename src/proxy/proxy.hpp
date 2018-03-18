@@ -31,6 +31,7 @@ private:
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;
   boost::asio::deadline_timer loadBalancerTimer_;
+  std::recursive_mutex mutex_;
 
   std::list<Pool::Ptr> pools_;
   std::list<Server::Ptr> servers_;

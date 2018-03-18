@@ -25,7 +25,8 @@ public:
 
 public:
   Client(const std::shared_ptr<boost::asio::io_service>& ioService,
-         const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty);
+         const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty,
+         uint32_t targetSecondsBetweenSubmits);
 
   void setDisconnectHandler(const DisconnectHandler& disconnectHandler);
   void setConnection(const net::Connection::Ptr& connection);
@@ -63,10 +64,12 @@ private:
 
 private:
   void updateName();
+  void updateHashrates(uint32_t difficulty);
   void sendResponse(const std::string& jsonRequestId, const std::string& response);
   void sendSuccessResponse(const std::string& jsonRequestId, const std::string& status);
   void sendErrorResponse(const std::string& jsonRequestId, const std::string& message);
   void sendJobNotification();
+  stratum::Job buildStratumJob();
 
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;
@@ -87,15 +90,21 @@ private:
   std::string password_;
 
   uint32_t difficulty_;
+  uint32_t targetSecondsBetweenSubmits_;
 
   Job::Ptr currentJob_;
-  std::map<std::string, Job::Ptr> jobs_;
+  std::map<std::string, std::pair<Job::Ptr, uint32_t> > jobs_;
 
-  JobTemplate::Ptr currentJobTemplate_;
-  std::map<std::string, JobTemplate::Ptr> jobTemplates_;
-
+  std::chrono::time_point<std::chrono::system_clock> initTimePoint_;
+  std::chrono::time_point<std::chrono::system_clock> lastJobTransmitTimePoint_;
   std::chrono::time_point<std::chrono::system_clock> lastShareTimePoint_;
   std::list<std::chrono::milliseconds> shareTimeDiffs_;
+
+  size_t submits_;
+  size_t hashes_;
+  double hashRateLastSubmit_;
+  double hashRateAverage1Minute_;
+  double hashRateAverage10Minutes_;
 
 //  std::string subscribedExtraNone1_;
 //  Difficulty suggestedDifficulty_;

@@ -5,6 +5,7 @@
 #include "net/jsonrpc/jsonrpc.hpp"
 #include "stratum/stratum.hpp"
 #include "proxy/client.hpp"
+#include "util/difficulty.hpp"
 #include "util/log.hpp"
 
 #define LOG_CLIENT_INFO LOG_INFO << "Client " << clientName_ << ": "
@@ -13,9 +14,12 @@ namespace ses {
 namespace proxy {
 
 Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
-               const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty)
-  : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm),
-    type_(WorkerType::UNKNOWN), difficulty_(defaultDifficulty)
+               const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty,
+               uint32_t targetSecondsBetweenSubmits)
+  : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN),
+    difficulty_(defaultDifficulty), targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits),
+    initTimePoint_(std::chrono::system_clock::now()), lastShareTimePoint_(std::chrono::system_clock::now()),
+    submits_(0), hashes_(0), hashRateLastSubmit_(0), hashRateAverage1Minute_(0), hashRateAverage10Minutes_(0)
 {
 }
 
@@ -64,8 +68,10 @@ void Client::assignJob(const Job::Ptr& job)
   if (job)
   {
 //    job->setAssignedWorker(identifier_);
-    jobs_[job->getJobIdentifier()] = job;
+    jobs_[job->getJobIdentifier()].first = job;
     currentJob_ = job;
+    //TODO dynamic difficulty adjustment
+    //difficulty_ = job->getDifficulty();//std::min(difficulty_, job->getDifficulty());
     sendJobNotification();
   }
 }
@@ -78,8 +84,7 @@ bool Client::isConnected() const
 
 uint32_t Client::getHashRate() const
 {
-  //TODO implement
-  return 100;
+  return hashRateAverage10Minutes_;
 }
 
 const std::string& Client::getUseragent() const
@@ -178,7 +183,7 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
 
     std::string responseResult =
       stratum::server::createLoginResponse(boost::uuids::to_string(identifier_),
-                                           currentJob_ ? currentJob_->asStratumJob() : std::optional<stratum::Job>());
+                                           currentJob_ ? buildStratumJob() : std::optional<stratum::Job>());
     sendResponse(jsonRequestId, responseResult);
   }
 }
@@ -189,7 +194,7 @@ void Client::handleGetJob(const std::string& jsonRequestId)
 
   if (currentJob_)
   {
-    sendResponse(jsonRequestId, stratum::server::createJobNotification(currentJob_->asStratumJob()));
+    sendResponse(jsonRequestId, stratum::server::createJobNotification(buildStratumJob()));
   }
   else
   {
@@ -223,16 +228,29 @@ void Client::handleSubmit(const std::string& jsonRequestId,
       uint32_t resultDifficulty = jobResult.getDifficulty();
       LOG_DEBUG << " difficulty = " << jobResult.getDifficulty();
 
-      if (resultDifficulty < difficulty_)
+      Job::Ptr& job = jobIt->second.first;
+      uint32_t anouncedDifficulty = jobIt->second.second;
+      uint32_t jobDifficulty = job->getDifficulty();
+
+      if (resultDifficulty < anouncedDifficulty)
       {
         sendErrorResponse(jsonRequestId, "Low difficulty share");
       }
       else
       {
-        jobIt->second->submitResult(jobResult,
-                                    std::bind(&Client::handleUpstreamSubmitStatus,
-                                              shared_from_this(),
-                                              jsonRequestId, std::placeholders::_1));
+        sendSuccessResponse(jsonRequestId, "OK");
+        updateHashrates(anouncedDifficulty);
+
+        if (resultDifficulty >= jobDifficulty)
+        {
+          jobIt->second.first->submitResult(jobResult,
+                                            std::bind(&Client::handleUpstreamSubmitStatus, shared_from_this(),
+                                                      jsonRequestId, std::placeholders::_1));
+        }
+        else
+        {
+          // ignores the submit
+        }
       }
     }
     else
@@ -264,44 +282,38 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
+  // Towards the client, the submit has already been reported as accepted ...
+  // TODO handling of malicious clients
+
   switch (submitStatus)
   {
     case JobResult::SUBMIT_REJECTED_IP_BANNED:
-      sendErrorResponse(jsonRequestId, "IP Address currently banned");
+//      sendErrorResponse(jsonRequestId, "IP Address currently banned");
       break;
 
     case JobResult::SUBMIT_REJECTED_UNAUTHENTICATED:
-      sendErrorResponse(jsonRequestId, "Unauthenticated");
+//      sendErrorResponse(jsonRequestId, "Unauthenticated");
       break;
 
     case JobResult::SUBMIT_REJECTED_DUPLICATE:
-      sendErrorResponse(jsonRequestId, "Duplicate share");
+//      sendErrorResponse(jsonRequestId, "Duplicate share");
       break;
 
     case JobResult::SUBMIT_REJECTED_EXPIRED:
-      sendErrorResponse(jsonRequestId, "Block expired");
+//      sendErrorResponse(jsonRequestId, "Block expired");
       break;
 
     case JobResult::SUBMIT_REJECTED_INVALID_JOB_ID:
-      sendErrorResponse(jsonRequestId, "Invalid job id");
+//      sendErrorResponse(jsonRequestId, "Invalid job id");
       break;
 
     case JobResult::SUBMIT_REJECTED_LOW_DIFFICULTY_SHARE:
-      sendErrorResponse(jsonRequestId, "Low difficulty share");
+//      sendErrorResponse(jsonRequestId, "Low difficulty share");
       break;
 
     case JobResult::SUBMIT_ACCEPTED:
     default:
     {
-      sendSuccessResponse(jsonRequestId, "OK");
-      std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-      std::chrono::milliseconds diff =
-          std::chrono::duration_cast<std::chrono::milliseconds>(now - lastShareTimePoint_);
-      lastShareTimePoint_ = now;
-      shareTimeDiffs_.push_back(diff);
-      LOG_DEBUG << "Client submit success "
-                << (connection_.expired() ? "<no-ip>" : connection_.lock()->getConnectedIp())
-                << ", td, " << diff.count() << "ms";
       break;
     }
   }
@@ -316,6 +328,71 @@ void Client::updateName()
     clientNameStream << "@" << connection->getConnectedIp() << ":" << connection->getConnectedPort() << ">";
   }
   clientName_ = clientNameStream.str();
+}
+
+void Client::updateHashrates(uint32_t difficulty)
+{
+  std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+  std::chrono::milliseconds diff =
+    std::chrono::duration_cast<std::chrono::milliseconds>(now - lastShareTimePoint_);
+  std::chrono::milliseconds timeSinceInit =
+    std::chrono::duration_cast<std::chrono::milliseconds>(now - initTimePoint_);
+  std::chrono::milliseconds timeLastJobTransmit =
+    std::chrono::duration_cast<std::chrono::milliseconds>(now - lastJobTransmitTimePoint_);
+  lastShareTimePoint_ = now;
+  shareTimeDiffs_.push_back(diff);
+  ++submits_;
+  hashes_ += difficulty;
+
+  if (diff.count() == 0)
+  {
+    return;
+  }
+
+  hashRateLastSubmit_ = static_cast<double>(difficulty * 1000) / diff.count();
+
+  if (hashRateAverage1Minute_ == 0)
+  {
+    hashRateAverage1Minute_ = hashRateLastSubmit_;
+  }
+  else
+  {
+    double diffFractionOf1Minute = static_cast<double>(diff.count()) /
+                                  std::min(std::chrono::milliseconds(std::chrono::minutes(1)), timeSinceInit).count();
+    diffFractionOf1Minute = std::min(diffFractionOf1Minute, 1.0);
+    hashRateAverage1Minute_ = (hashRateAverage1Minute_ * (1 - diffFractionOf1Minute)) +
+                              (hashRateLastSubmit_ * diffFractionOf1Minute);
+  }
+
+  if (hashRateAverage10Minutes_ == 0)
+  {
+    hashRateAverage10Minutes_ = hashRateLastSubmit_;
+  }
+  else
+  {
+    double diffFractionOf10Minutes = static_cast<double>(diff.count()) /
+                                    std::min(std::chrono::milliseconds(std::chrono::minutes(10)), timeSinceInit).count();
+    diffFractionOf10Minutes = std::min(diffFractionOf10Minutes, 1.0);
+    hashRateAverage10Minutes_ = (hashRateAverage10Minutes_ * (1 - diffFractionOf10Minutes)) +
+                                (hashRateLastSubmit_ * diffFractionOf10Minutes);
+  }
+
+  if (hashRateAverage10Minutes_ != 0 && timeSinceInit > std::chrono::seconds(10))
+  {
+    difficulty_ = hashRateAverage10Minutes_ * targetSecondsBetweenSubmits_;
+  }
+
+  LOG_CLIENT_INFO << "Submit success "
+                  << ", td, " << diff.count() << "ms" << ", submits, " << submits_ << ", hashes, " << hashes_
+                  << ", hashrate, " << hashRateLastSubmit_
+                  << ", hashrate1Min, " << hashRateAverage1Minute_
+                  << ", hashrate10Min, " << hashRateAverage10Minutes_
+                  << ", newClientDifficulty, " << difficulty_;
+
+  if (timeLastJobTransmit > std::chrono::seconds(30))
+  {
+    // TODO update job if necessary, especially if difficulty has to change
+  }
 }
 
 void Client::sendResponse(const std::string& jsonRequestId, const std::string& response)
@@ -348,9 +425,24 @@ void Client::sendJobNotification()
   if (currentJob_ && connection)
   {
     connection->send(
-      net::jsonrpc::notification("job", stratum::server::createJobNotification(currentJob_->asStratumJob())));
-    lastShareTimePoint_ = std::chrono::system_clock::now();
+      net::jsonrpc::notification("job", stratum::server::createJobNotification(buildStratumJob())));
   }
+}
+
+stratum::Job Client::buildStratumJob()
+{
+  uint32_t modifiedDifficulty = std::min(difficulty_, currentJob_->getDifficulty());
+  std::string modifiedTarget = util::difficultyToTarget(modifiedDifficulty).toHexString();
+  jobs_[currentJob_->getJobIdentifier()].second = modifiedDifficulty;
+  stratum::Job stratumJob = currentJob_->asStratumJob();
+  stratumJob.setTarget(modifiedTarget);
+  LOG_CLIENT_INFO << "Sending job to client"
+                  << ", id, " << currentJob_->getJobIdentifier()
+                  << ", clientDifficulty, " << modifiedDifficulty
+                  << ", jobDifficulty, " << currentJob_->getDifficulty()
+                  << ", target, " << modifiedTarget;
+  lastJobTransmitTimePoint_ = std::chrono::system_clock::now();
+  return stratumJob;
 }
 
 } // namespace proxy

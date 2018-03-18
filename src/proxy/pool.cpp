@@ -94,9 +94,9 @@ size_t Pool::numWorkers() const
   return workers_.size();
 }
 
-float Pool::weightedWorkers() const
+double Pool::weightedWorkers() const
 {
-  float weightedWorkers = numWorkers();
+  double weightedWorkers = numWorkers();
   weightedWorkers /= getWeight();
 //  LOG_POOL_INFO << "Weighted workers, " << weightedWorkers << ", number of workers, " << numWorkers();
   return weightedWorkers;
@@ -108,9 +108,9 @@ uint32_t Pool::hashRate() const
                            [](uint32_t sum, const auto& worker){ return sum + worker->getHashRate(); });
 }
 
-float Pool::weightedHashRate() const
+double Pool::weightedHashRate() const
 {
-  float weightedHashRate = hashRate();
+  double weightedHashRate = hashRate();
   weightedHashRate /= getWeight();
   return weightedHashRate;
 }
@@ -275,7 +275,7 @@ void Pool::handleNewJob(const stratum::Job& job)
   setJob(job);
 }
 
-JobResult::SubmitStatus Pool::handleJobResult(const WorkerIdentifier& workerIdentifier,
+JobResult::SubmitStatus Pool::handleJobResult(const std::string& workerIdentifier,
                                               const JobResult& jobResult,
                                               const JobResult::SubmitStatusHandler& submitStatusHandler)
 {
@@ -398,6 +398,7 @@ bool Pool::assignJobToWorker(const Worker::Ptr& worker)
   bool accepted = false;
   if (worker && activeJobTemplate_)
   {
+    //TODO PoW aware worker selection
     auto job = activeJobTemplate_->getJobFor(worker->getIdentifier(), worker->getType());
     if (job)
     {

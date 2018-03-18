@@ -10,7 +10,7 @@ namespace proxy {
 class MasterJobTemplate : public BaseJobTemplate
 {
 public:
-  MasterJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob,
+  MasterJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Blob& blob,
                     uint64_t difficulty, uint32_t height, uint32_t targetDifficulty)
     : BaseJobTemplate(identifier, jobIdentifier, blob), nextPoolNonce_(1), difficulty_(difficulty),
       height_(height), targetDifficulty_(targetDifficulty)
@@ -51,7 +51,7 @@ protected:
     {
       if (!activeSubJobTemplate_ || !(job = activeSubJobTemplate_->getJobFor(workerIdentifier, workerType)))
       {
-        activeSubJobTemplate_ = getNextSubjacentTemplate(identifier_);
+        activeSubJobTemplate_ = getNextSubjacentTemplate(generateWorkerIdentifier());
         //TODO connect ResultHandler
         if (activeSubJobTemplate_)
         {
@@ -73,6 +73,7 @@ protected:
     {
       // new worker
       subTemplate = getNextSubjacentTemplate(workerIdentifier);
+      subTemplates_[workerIdentifier] = subTemplate;
     }
     else
     {
@@ -89,7 +90,7 @@ protected:
     Blob blob = blob_;
     blob.setClientPool(nextPoolNonce_);
     subTemplate =
-      std::make_shared<WorkerJobTemplate>(workerIdentifier, generateJobIdentifier(), std::move(blob),
+      std::make_shared<WorkerJobTemplate>(toString(workerIdentifier), generateJobIdentifier(), std::move(blob),
                                           difficulty_, height_, targetDifficulty_);
     subTemplate->setJobResultHandler(
       std::bind(&MasterJobTemplate::handleResult,
@@ -103,7 +104,7 @@ protected:
 
 private:
   void handleResult(uint32_t poolNonce,
-                    const WorkerIdentifier& workerIdentifier,
+                    const std::string& workerIdentifier,
                     const JobResult& jobResult,
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {

@@ -11,7 +11,7 @@ namespace proxy {
 class NiceHashJobTemplate : public BaseJobTemplate
 {
 public:
-  NiceHashJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier,
+  NiceHashJobTemplate(const std::string& identifier, const std::string& jobIdentifier,
                       const Blob& blob, const util::Target target)
     : BaseJobTemplate(identifier, jobIdentifier, blob), target_(target), lastNiceHash_(0)
   {
@@ -52,7 +52,7 @@ private:
     return job;
   }
 
-  void handleResult(const WorkerIdentifier& workerIdentifier,
+  void handleResult(const std::string& workerIdentifier,
                     const JobResult& jobResult,
                     const JobResult::SubmitStatusHandler& submitStatusHandler)
   {

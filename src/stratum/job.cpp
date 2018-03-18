@@ -63,6 +63,11 @@ const std::string& Job::getTarget() const
   return target_;
 }
 
+void Job::setTarget(const std::string& target)
+{
+  target_ = target;
+}
+
 const std::string& Job::getBlocktemplateBlob() const
 {
   return blocktemplateBlob_;

@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <map>
+#include <boost/cstdint.hpp>
 
 #include "proxy/workeridentifier.hpp"
 #include "proxy/blob.hpp"
@@ -21,7 +22,7 @@ std::string generateJobIdentifier()
 class BaseJobTemplate : public JobTemplate, public std::enable_shared_from_this<BaseJobTemplate>
 {
 public:
-  BaseJobTemplate(const WorkerIdentifier& identifier, const std::string& jobIdentifier, const Blob& blob)
+  BaseJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Blob& blob)
     : identifier_(identifier), jobIdentifier_(jobIdentifier), blob_(std::move(blob))
   {
   }
@@ -61,6 +62,8 @@ public:
   }
   size_t numHashesFound() const override {return 0;}
   size_t currentHashRate() const override {return 0;}
+  util::Target getTarget() const override {return util::Target(UINT32_C(0));}
+  uint32_t getDifficulty() const override {return 0;}
   const std::string& getJobIdentifier() const override
   {
     return jobIdentifier_;
@@ -77,7 +80,7 @@ protected:
 protected:
   std::recursive_mutex mutex_;
 
-  WorkerIdentifier identifier_;
+  std::string identifier_;
   std::string jobIdentifier_;
   Blob blob_;
   JobResult::Handler jobResultHandler_;

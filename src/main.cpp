@@ -8,7 +8,33 @@
 #include "proxy/configurationfile.hpp"
 #include "util/log.hpp"
 
-void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
+void configureLogging(uint32_t logLevel)
+{
+  if (logLevel == 0)
+  {
+    boost::log::core::get()->set_logging_enabled(false);
+  }
+  else
+  {
+    logLevel = std::min(logLevel, UINT32_C(6));
+    boost::log::trivial::severity_level level = boost::log::trivial::severity_level::fatal;
+    switch (logLevel)
+    {
+      case 2: level = boost::log::trivial::severity_level::error; break;
+      case 3: level = boost::log::trivial::severity_level::warning; break;
+      case 4: level = boost::log::trivial::severity_level::info; break;
+      case 5: level = boost::log::trivial::severity_level::debug; break;
+      case 6: level = boost::log::trivial::severity_level::trace; break;
+      case 1: // fall through
+      default:
+        level = boost::log::trivial::severity_level::fatal; break;
+    }
+    ses::log::setMinimumLogLevel(level);
+  }
+
+}
+
+void waitForSignal(boost::asio::io_service& ioService, size_t numThreads)
 {
   // waits for signals ending program
 
@@ -23,7 +49,10 @@ void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
       ioService.stop();
     });
 
-  const uint32_t numThreads = std::thread::hardware_concurrency();
+  if (numThreads == 0)
+  {
+    numThreads = std::thread::hardware_concurrency();
+  }
   LOG_DEBUG << "Launching " << numThreads << " worker threads.";
   // runs io_service on a reasonable number of threads
   for (uint32_t threadCount = 1; threadCount < numThreads; ++threadCount)
@@ -39,16 +68,20 @@ void waitForSignalAndMaxPossibleThreads(boost::asio::io_service& ioService)
 
 int main()
 {
-  ses::log::setMinimumLogLevel(boost::log::trivial::severity_level::info);
-
   std::shared_ptr<boost::asio::io_service> ioService = std::make_shared<boost::asio::io_service>();
 
   ses::proxy::Configuration configuration = ses::proxy::parseConfigurationFile("config.json");
+
+  configureLogging(configuration.logLevel_);
+
   ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>(ioService);
 
   for (const auto& poolConfig : configuration.pools_)
   {
-    proxy->addPool(poolConfig);
+    if (poolConfig.weight_ != 0)
+    {
+      proxy->addPool(poolConfig);
+    }
   }
 
   for (const auto& serverConfig : configuration.server_)
@@ -56,14 +89,7 @@ int main()
     proxy->addServer(serverConfig);
   }
 
-//  proxy->addServer(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12345),
-//                                                     ses::proxy::ALGORITHM_CRYPTONIGHT, 5000));
-//  proxy->addServer(ses::proxy::Server::Configuration(ses::net::EndPoint("127.0.0.1", 12346),
-//                                                     ses::proxy::ALGORITHM_CRYPTONIGHT_LITE, 5000));
-
-  waitForSignalAndMaxPossibleThreads(*ioService);
-
-
+  waitForSignal(*ioService, configuration.threads_);
 
   return 0;
 }

@@ -35,6 +35,8 @@ public:
   virtual size_t numHashesFound() const = 0;
   virtual size_t currentHashRate() const = 0;
   virtual const std::string& getJobIdentifier() const = 0;
+  virtual util::Target getTarget() const = 0;
+  virtual uint32_t getDifficulty() const = 0;
   virtual stratum::Job asStratumJob() const = 0;
 
 protected:

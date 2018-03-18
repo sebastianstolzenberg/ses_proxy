@@ -46,7 +46,7 @@ void parsePoolConfigurations(boost::property_tree::ptree& ptree, std::list<Pool:
       parseConnectionType(pool.second.get<std::string>("connectionType", "auto"));
     configuration.user_ = pool.second.get<std::string>("username");
     configuration.pass_ = pool.second.get<std::string>("password");
-    configuration.weight_ = pool.second.get<uint32_t>("weight");
+    configuration.weight_ = pool.second.get<double>("weight");
     configuration.algorithm_ = parseAlgorithm(pool.second.get<std::string>("algorithm", ""));
     list.push_back(configuration);
   }
@@ -62,7 +62,8 @@ void parseServerConfigurations(boost::property_tree::ptree& ptree, std::list<Ser
     configuration.endPoint_.connectionType_ =
       parseConnectionType(pool.second.get<std::string>("connectionType", "auto"));
     configuration.defaultAlgorithm_ = parseAlgorithm(pool.second.get<std::string>("defaultAlgorithm", ""));
-    configuration.defaultDifficulty_ = pool.second.get<uint32_t>("defaultDifficulty", 0);
+    configuration.defaultDifficulty_ = pool.second.get<uint32_t>("defaultDifficulty", 5000);
+    configuration.targetSecondsBetweenSubmits_ = pool.second.get<uint32_t>("targetSecondsBetweenSubmits", 15);
     list.push_back(configuration);
   }
 }
@@ -78,6 +79,8 @@ Configuration parseConfigurationFile(const std::string& fileName)
   Configuration configuration;
   parsePoolConfigurations(ptree, configuration.pools_);
   parseServerConfigurations(ptree, configuration.server_);
+  configuration.logLevel_ = ptree.get<uint32_t>("logLevel", 4);
+  configuration.threads_ = ptree.get<size_t>("threads", 0);
   return configuration;
 }
 

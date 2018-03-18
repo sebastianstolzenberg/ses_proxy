@@ -22,9 +22,12 @@ public:
 
   struct Configuration
   {
-    Configuration() : defaultAlgorithm_(ALGORITHM_CRYPTONIGHT) {}
-    Configuration(const net::EndPoint& endPoint, Algorithm defaultAlgorithm, uint32_t defaultDifficulty)
-      : endPoint_(endPoint), defaultAlgorithm_(defaultAlgorithm), defaultDifficulty_(defaultDifficulty)
+    Configuration() : defaultAlgorithm_(ALGORITHM_CRYPTONIGHT), defaultDifficulty_(5000),
+      targetSecondsBetweenSubmits_(15) {}
+    Configuration(const net::EndPoint& endPoint, Algorithm defaultAlgorithm, uint32_t defaultDifficulty,
+                  uint32_t targetSecondsBetweenSubmits)
+      : endPoint_(endPoint), defaultAlgorithm_(defaultAlgorithm), defaultDifficulty_(defaultDifficulty),
+        targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits)
     {
     }
 
@@ -32,13 +35,15 @@ public:
     {
       stream << configuration.endPoint_
              << ", defaultAlgorithm, " << configuration.defaultAlgorithm_
-             << ", defaultDifficulty, " << configuration.defaultDifficulty_;
+             << ", defaultDifficulty, " << configuration.defaultDifficulty_
+             << ", targetSecondsBetweenSubmits, " << configuration.targetSecondsBetweenSubmits_;
       return stream;
     }
 
     net::EndPoint endPoint_;
     Algorithm defaultAlgorithm_;
     uint32_t defaultDifficulty_;
+    uint32_t targetSecondsBetweenSubmits_;
   };
 
 public:

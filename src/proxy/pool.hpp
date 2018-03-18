@@ -26,7 +26,7 @@ public:
   {
     Configuration() : algorithm_(ALGORITHM_CRYPTONIGHT), weight_(0) {}
     Configuration(const net::EndPoint& endPoint, const std::string& user, const std::string& pass,
-                  Algorithm algorithm, uint32_t weight)
+                  Algorithm algorithm, double weight)
       : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm), weight_(weight)
     {
     }
@@ -45,7 +45,7 @@ public:
     std::string user_;
     std::string pass_;
     Algorithm algorithm_;
-    uint32_t weight_;
+    double weight_;
   };
 
 public:
@@ -62,10 +62,10 @@ public:
   uint32_t getWeight() const;
 
   size_t numWorkers() const;
-  float weightedWorkers() const;
+  double weightedWorkers() const;
 
   uint32_t hashRate() const;
-  float weightedHashRate() const;
+  double weightedHashRate() const;
 
 private:
   void handleConnect();
@@ -85,7 +85,7 @@ private:
 
   void handleNewJob(const stratum::Job& job);
 
-  JobResult::SubmitStatus handleJobResult(const WorkerIdentifier& workerIdentifier,
+  JobResult::SubmitStatus handleJobResult(const std::string& workerIdentifier,
                                           const JobResult& jobResult,
                                           const JobResult::SubmitStatusHandler& submitStatusHandler);
 
