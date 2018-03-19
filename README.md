@@ -2,8 +2,8 @@
 
 ## TODO
 * Command line parameters
-** config file
-** log target
+  * config file
+  * log target
 * TLS server sockets
 * Memory leak analysis
 * Performance profiling to find bottlenecks
