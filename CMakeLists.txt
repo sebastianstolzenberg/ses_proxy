@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.0)
 project(ses_proxy)
 
 #add_subdirectory(cryptonote)
 
 add_subdirectory(src/cryptonote)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 find_package(Threads)
 find_package(OpenSSL REQUIRED)

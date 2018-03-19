@@ -183,7 +183,7 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
 
     std::string responseResult =
       stratum::server::createLoginResponse(boost::uuids::to_string(identifier_),
-                                           currentJob_ ? buildStratumJob() : std::optional<stratum::Job>());
+                                           currentJob_ ? buildStratumJob() : boost::optional<stratum::Job>());
     sendResponse(jsonRequestId, responseResult);
   }
 }

@@ -184,7 +184,7 @@ void Pool::handleDisconnect(const std::string& error)
   LOG_POOL_INFO << "Disconnected: " << error;
 }
 
-void Pool::handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job)
+void Pool::handleLoginSuccess(const std::string& id, const boost::optional<stratum::Job>& job)
 {
   LOG_TRACE << "proxy::Pool::handleLoginSuccess, id, " << id;
 

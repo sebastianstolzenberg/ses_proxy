@@ -72,7 +72,7 @@ private:
   void handleReceived(const std::string& data);
   void handleDisconnect(const std::string& error);
 
-  void handleLoginSuccess(const std::string& id, const std::optional<stratum::Job>& job);
+  void handleLoginSuccess(const std::string& id, const boost::optional<stratum::Job>& job);
   void handleLoginError(int code, const std::string& message);
 
   void handleGetJobSuccess(const stratum::Job& job);

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <functional>
-#include <optional>
+#include <boost/optional.hpp>
 
 #include "stratum/job.hpp"
 
@@ -26,7 +26,7 @@ void parseRequest(const std::string& jsonRequestId, const std::string& method, c
                   LoginHandler loginHandler, GetJobHandler getJobHandler, SubmitHandler submitHandler,
                   KeepAliveDHandler keepAliveDHandler, UnknownMethodHandler unknownMethodHandler);
 
-std::string createLoginResponse(const std::string& id, const std::optional<Job>& job = std::optional<Job>());
+std::string createLoginResponse(const std::string& id, const boost::optional<Job>& job = boost::optional<Job>());
 std::string createJobNotification(const Job& job);
 } // namespace server
 
@@ -35,7 +35,7 @@ namespace client {
 typedef std::function<void(int code, const std::string& message)> ErrorHandler;
 
 std::string createLoginRequest(const std::string& login, const std::string& pass, const std::string& agent);
-typedef std::function<void(const std::string& id, const std::optional<Job>& optionalJob)> LoginSuccessHandler;
+typedef std::function<void(const std::string& id, const boost::optional<Job>& optionalJob)> LoginSuccessHandler;
 void parseLoginResponse(const std::string& result, const std::string& error,
                         LoginSuccessHandler successHandler, ErrorHandler errorHandler);
 
@@ -45,8 +45,8 @@ void parseGetJobResponse(const std::string& result, const std::string& error,
 
 std::string createSubmitParams(const std::string& id, const std::string& jobId,
                                const std::string& nonce, const std::string& result,
-                               std::optional<uint32_t> workerNonce = std::optional<uint32_t>(),
-                               std::optional<uint32_t> poolNonce = std::optional<uint32_t>());
+                               boost::optional<uint32_t> workerNonce = boost::optional<uint32_t>(),
+                               boost::optional<uint32_t> poolNonce = boost::optional<uint32_t>());
 
 typedef std::function<void(const std::string& status)> SubmitSuccessHandler;
 void parseSubmitResponse(const std::string& result, const std::string& error,

@@ -90,7 +90,7 @@ void parseRequest(const std::string& jsonRequestId, const std::string& method, c
   }
 }
 
-std::string createLoginResponse(const std::string& id, const std::optional<Job>& job)
+std::string createLoginResponse(const std::string& id, const boost::optional<Job>& job)
 {
   std::ostringstream response;
   response << "{\"id\":\"" << id << "\",";
@@ -155,7 +155,7 @@ void parseLoginResponse(const std::string& result, const std::string& error,
   {
     auto tree = util::boostpropertytree::stringToPtree(result);
     auto identifier = tree.get<std::string>("id", "");
-    std::optional<Job> optionalJob;
+    boost::optional<Job> optionalJob;
     if (tree.count("job") > 0)
     {
       optionalJob = parseJob(tree.get_child("job"));
@@ -180,8 +180,8 @@ void parseGetJobResponse(const std::string& result, const std::string& error,
 
 std::string createSubmitParams(const std::string& id, const std::string& jobId,
                                const std::string& nonce, const std::string& result,
-                               std::optional<uint32_t> workerNonce,
-                               std::optional<uint32_t> poolNonce)
+                               boost::optional<uint32_t> workerNonce,
+                               boost::optional<uint32_t> poolNonce)
 {
   std::ostringstream request;
   request << "{"
