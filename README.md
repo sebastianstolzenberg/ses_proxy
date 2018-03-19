@@ -1,5 +1,8 @@
 # ses_proxy
 
+## Build
+apt install libssl-dev libboost-all-dev
+
 ## TODO
 * Command line parameters
   * config file
