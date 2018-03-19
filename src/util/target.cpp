@@ -1,5 +1,6 @@
 #include <boost/endian/conversion.hpp>
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "util/target.hpp"
 
@@ -67,9 +68,10 @@ std::string Target::toHexString(size_t numberOfBytes) const
 //  uint64_t target = boost::endian::native_to_big(target_);
   numberOfBytes = std::min(numberOfBytes, sizeof(target_));
   size_t offset = sizeof(target_) - numberOfBytes;
-  boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&target_) + offset,
-                              reinterpret_cast<const uint8_t*>(&target_) + sizeof(target_),
-                              std::back_inserter(targetHex));
+  boost::algorithm::hex(reinterpret_cast<const uint8_t*>(&target_) + offset,
+                        reinterpret_cast<const uint8_t*>(&target_) + sizeof(target_),
+                        std::back_inserter(targetHex));
+  boost::algorithm::to_lower(targetHex);
   targetHex.resize(std::min(numberOfBytes*2, targetHex.size()));
   return targetHex;
 }

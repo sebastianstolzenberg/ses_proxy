@@ -1,5 +1,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/endian/conversion.hpp>
 
 #include "cryptonote/cryptonote.hpp"
@@ -74,7 +75,8 @@ stratum::Job Blob::asStratumJob() const
 std::string Blob::toHexString() const
 {
   std::string blobHex;
-  boost::algorithm::hex_lower(blob_, std::back_inserter(blobHex));
+  boost::algorithm::hex(blob_, std::back_inserter(blobHex));
+  boost::algorithm::to_lower(blobHex);
   return blobHex;
 }
 

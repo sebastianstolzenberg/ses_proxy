@@ -1,4 +1,5 @@
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "proxy/jobresult.hpp"
 #include "util/difficulty.hpp"
@@ -53,34 +54,38 @@ void JobResult::setIsNodeJsResult_(bool isNodeJsResult_)
 std::string JobResult::getNonceHexString() const
 {
   std::string hex;
-  boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&nonce_),
+  boost::algorithm::hex(reinterpret_cast<const uint8_t*>(&nonce_),
                         reinterpret_cast<const uint8_t*>(&nonce_) + sizeof(nonce_),
                         std::back_inserter(hex));
+  boost::algorithm::to_lower(hex);
   return hex;
 }
 
 std::string JobResult::getHashHexString() const
 {
   std::string hex;
-  boost::algorithm::hex_lower(hash_, std::back_inserter(hex));
+  boost::algorithm::hex(hash_, std::back_inserter(hex));
+  boost::algorithm::to_lower(hex);
   return hex;
 }
 
 std::string JobResult::getWorkerNonceHexString() const
 {
   std::string hex;
-  boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&workerNonce_),
-                              reinterpret_cast<const uint8_t*>(&workerNonce_) + sizeof(workerNonce_),
-                              std::back_inserter(hex));
+  boost::algorithm::hex(reinterpret_cast<const uint8_t*>(&workerNonce_),
+                        reinterpret_cast<const uint8_t*>(&workerNonce_) + sizeof(workerNonce_),
+                        std::back_inserter(hex));
+  boost::algorithm::to_lower(hex);
   return hex;
 }
 
 std::string JobResult::getPoolNonceHexString() const
 {
   std::string hex;
-  boost::algorithm::hex_lower(reinterpret_cast<const uint8_t*>(&poolNonce_),
-                              reinterpret_cast<const uint8_t*>(&poolNonce_) + sizeof(poolNonce_),
-                              std::back_inserter(hex));
+  boost::algorithm::hex(reinterpret_cast<const uint8_t*>(&poolNonce_),
+                        reinterpret_cast<const uint8_t*>(&poolNonce_) + sizeof(poolNonce_),
+                        std::back_inserter(hex));
+  boost::algorithm::to_lower(hex);
   return hex;
 }
 
