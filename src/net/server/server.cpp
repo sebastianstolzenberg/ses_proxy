@@ -1,10 +1,7 @@
-//
-// Created by ses on 16.02.18.
-//
-
 #include <iostream>
 #include <thread>
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 
 #include "net/server/server.hpp"
 #include "util/log.hpp"
@@ -13,18 +10,29 @@ namespace ses {
 namespace net {
 namespace server {
 
+template <typename SocketType>
 class BoostConnection : public Connection,
-                        public std::enable_shared_from_this<BoostConnection>
+                        public std::enable_shared_from_this<BoostConnection<SocketType> >
 {
 public:
-  explicit BoostConnection(boost::asio::ip::tcp::socket socket)
-    : socket_(std::move(socket)), selfSustainUntilDisconnect_(false)
+  explicit BoostConnection(boost::asio::io_service& io_service)
+    : socket_(io_service), selfSustainUntilDisconnect_(false)
+  {
+  }
+
+  explicit BoostConnection(boost::asio::io_service& io_service, boost::asio::ssl::context& context)
+    : socket_(io_service, context), selfSustainUntilDisconnect_(false)
   {
   }
 
   ~BoostConnection()
   {
     LOG_INFO << __PRETTY_FUNCTION__;
+  }
+
+  SocketType& socket()
+  {
+    return socket_;
   }
 
 public:
@@ -36,7 +44,7 @@ public:
   void disconnect() override
   {
     resetHandler();
-    socket_.close();
+    socket_.lowest_layer().close();
   }
 
   bool isConnected() const override
@@ -59,7 +67,13 @@ public:
     LOG_TRACE << "net::server::BoostConnection::send: ";
     LOG_TRACE.write(data, size);
 
-    socket_.send(boost::asio::buffer(data, size));
+    boost::system::error_code error;
+    boost::asio::write(socket_, boost::asio::buffer(data, size), error);
+    if (error)
+    {
+      notifyError(error.message());
+    }
+    return !error;
   }
 
 protected:
@@ -72,7 +86,9 @@ private:
   void triggerRead()
   {
     // captures a shared pointer to keep the connection object alive until it is disconnected
-    auto self = selfSustainUntilDisconnect_ ? shared_from_this() : BoostConnection::Ptr();
+    auto self = selfSustainUntilDisconnect_ ?
+                std::enable_shared_from_this<BoostConnection<SocketType> >::shared_from_this() :
+                BoostConnection::Ptr();
     boost::asio::async_read_until(
         socket_,
         receiveBuffer_,
@@ -98,7 +114,7 @@ private:
   }
 
 private:
-  boost::asio::ip::tcp::socket socket_;
+  SocketType socket_;
   boost::asio::streambuf receiveBuffer_;
   bool selfSustainUntilDisconnect_;
 };
@@ -111,7 +127,6 @@ public:
     : newConnecionHandler_(handler)
     , ioService_(ioService)
     , acceptor_(*ioService_)
-    , nextSocket_(*ioService_)
   {
     //TODO signal handling
 
@@ -126,11 +141,12 @@ public:
   }
 
 private:
-  void accept()
+  virtual void accept()
   {
+    auto nextConnection = std::make_shared<BoostConnection<boost::asio::ip::tcp::socket> >(*ioService_);
     acceptor_.async_accept(
-      nextSocket_,
-      [this](boost::system::error_code ec)
+      nextConnection->socket().lowest_layer(),
+      [this, nextConnection](boost::system::error_code ec)
       {
         // Check whether the server was stopped by a signal before this
         // completion handler had a chance to run.
@@ -141,24 +157,81 @@ private:
 
         if (!ec && newConnecionHandler_)
         {
-          newConnecionHandler_(std::make_shared<BoostConnection>(std::move(nextSocket_)));
+          newConnecionHandler_(nextConnection);
         }
 
       accept();
       });
   }
 
-private:
+protected:
   std::shared_ptr<boost::asio::io_service> ioService_;
   NewConnectionHandler newConnecionHandler_;
   boost::asio::ip::tcp::acceptor acceptor_;
-  boost::asio::ip::tcp::socket nextSocket_;
+};
+
+class BoostTlsServer : public BoostServer
+{
+public:
+  BoostTlsServer(const std::shared_ptr<boost::asio::io_service>& ioService,
+                 const NewConnectionHandler& handler, const std::string& address, uint16_t port,
+                 const std::string& certificateChainFile, const std::string& privateKeyFile)
+    : BoostServer(ioService, handler, address, port),
+      context_(boost::asio::ssl::context::sslv23_server)
+  {
+    context_.set_options(boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2);
+    context_.use_certificate_chain_file(certificateChainFile);
+    context_.use_private_key_file(privateKeyFile, boost::asio::ssl::context::pem);
+  }
+
+private:
+  virtual void accept()
+  {
+    auto nextConnection =
+      std::make_shared<BoostConnection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket> > >(*ioService_, context_);
+    acceptor_.async_accept(
+      nextConnection->socket().lowest_layer(),
+      [this, nextConnection](boost::system::error_code ec)
+      {
+        // Check whether the server was stopped by a signal before this
+        // completion handler had a chance to run.
+        if (!acceptor_.is_open())
+        {
+          return;
+        }
+
+        if (!ec && newConnecionHandler_)
+        {
+          nextConnection->socket().async_handshake(
+            boost::asio::ssl::stream_base::server,
+            [this, nextConnection] (const boost::system::error_code& error)
+            {
+              if (!error && newConnecionHandler_)
+              {
+                newConnecionHandler_(nextConnection);
+              }
+            });
+        }
+        accept();
+      });
+  }
+
+private:
+  boost::asio::ssl::context context_;
 };
 
 Server::Ptr createServer(const std::shared_ptr<boost::asio::io_service>& ioService,
                          const NewConnectionHandler& handler, const EndPoint& endPoint)
 {
-  return std::make_shared<BoostServer>(ioService, handler, endPoint.host_, endPoint.port_);
+  if (endPoint.connectionType_ == net::CONNECTION_TYPE_TCP)
+  {
+    return std::make_shared<BoostServer>(ioService, handler, endPoint.host_, endPoint.port_);
+  }
+  else if (endPoint.connectionType_ == net::CONNECTION_TYPE_TLS)
+  {
+    return std::make_shared<BoostTlsServer>(ioService, handler, endPoint.host_, endPoint.port_,
+                                            endPoint.certificateChainFile_, endPoint.privateKeyFile_);
+  }
 }
 
 } //namespace server

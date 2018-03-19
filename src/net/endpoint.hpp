@@ -26,6 +26,9 @@ public:
   std::string host_;
   uint16_t port_;
   ConnectionType connectionType_;
+
+  std::string certificateChainFile_;
+  std::string privateKeyFile_;
 };
 } //namespace net
 } //namespace ses

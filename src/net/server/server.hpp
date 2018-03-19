@@ -27,7 +27,6 @@ public:
 Server::Ptr createServer(const std::shared_ptr<boost::asio::io_service>& ioService,
                          const NewConnectionHandler& handler, const EndPoint& endPoint);
 
-
 } //namespace server
 } //namespace net
 } //namespace ses

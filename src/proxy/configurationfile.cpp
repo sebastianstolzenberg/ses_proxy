@@ -61,6 +61,8 @@ void parseServerConfigurations(boost::property_tree::ptree& ptree, std::list<Ser
     configuration.endPoint_.port_ = pool.second.get<uint16_t>("port");
     configuration.endPoint_.connectionType_ =
       parseConnectionType(pool.second.get<std::string>("connectionType", "auto"));
+    configuration.endPoint_.certificateChainFile_ = pool.second.get<std::string>("certificateChainFile", "");
+    configuration.endPoint_.privateKeyFile_ = pool.second.get<std::string>("privateKeyFile", "");
     configuration.defaultAlgorithm_ = parseAlgorithm(pool.second.get<std::string>("defaultAlgorithm", ""));
     configuration.defaultDifficulty_ = pool.second.get<uint32_t>("defaultDifficulty", 5000);
     configuration.targetSecondsBetweenSubmits_ = pool.second.get<uint32_t>("targetSecondsBetweenSubmits", 15);

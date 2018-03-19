@@ -17,8 +17,7 @@ void Server::start(const Configuration& configuration, const NewClientHandler& n
   configuration_ = configuration;
   newClientHandler_ = newClientHandler;
   server_ = net::server::createServer(ioService_,
-                                      std::bind(&Server::handleNewConnection, this,
-                                                std::placeholders::_1),
+                                      std::bind(&Server::handleNewConnection, this, std::placeholders::_1),
                                       configuration.endPoint_);
 }
 
