@@ -14,3 +14,6 @@ apt install libssl-dev libboost-all-dev
 * boost log colors
 * Test against different pools
 * Load tests
+* Fix Intensecoin short blocks issue
+* REST Api for status reading
+* REST Api for changing the configuration
