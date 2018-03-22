@@ -48,8 +48,10 @@ bool Pool::addWorker(const Worker::Ptr& worker)
   bool accepted = assignJobToWorker(worker);
   if (accepted)
   {
-    LOG_POOL_INFO << "Added worker " << worker->getIdentifier();
     workers_.push_back(worker);
+    LOG_POOL_INFO << "Added worker " << worker->getIdentifier() << ", hashRate, " << worker->getHashRate()
+                  << ", numWorkers, " << workers_.size();
+
   }
   return accepted;
 }
@@ -63,7 +65,8 @@ bool Pool::removeWorker(const Worker::Ptr& worker)
   {
     workers_.erase(workerIt);
     removed = true;
-    LOG_POOL_INFO << "Removed worker " << worker->getIdentifier();
+    LOG_POOL_INFO << "Removed worker " << worker->getIdentifier() << ", hashRate, " << worker->getHashRate()
+                  << ", numWorkers, " << workers_.size();
   }
   return removed;
 }
