@@ -227,7 +227,17 @@ void Proxy::balancePoolLoads()
 
   if (!availableWorkersByHashrate.empty())
   {
-    LOG_WARN << "Proxy balancePoolLoads() unassigned workers " << availableWorkersByHashrate.size();
+    LOG_WARN << "Proxy balancePoolLoads() unassigned workers " << availableWorkersByHashrate.size() << ", assigning to slowest pools";
+    for (auto& worker : availableWorkersByHashrate)
+    {
+      for (auto& pool : poolsSortedByWeightedHashrate)
+      {
+        if (pool.second->addWorker(worker.second))
+        {
+          break;
+        }
+      }
+    }
   }
 
   for (auto& pool : pools_)
