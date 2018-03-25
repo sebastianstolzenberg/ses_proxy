@@ -132,6 +132,7 @@ void Proxy::balancePoolLoads()
     poolHashrateTasks.push_back(std::move(task->get_future()));
   }
   // calculates average weighted hashrate
+  uint32_t totalWorkers = 0;
   uint32_t averageWeightedHashrate = 0;
   for (auto& task : poolHashrateTasks)
   {
@@ -139,19 +140,16 @@ void Proxy::balancePoolLoads()
     poolsSortedByWeightedHashrate.insert(taskResult);
     averageWeightedHashrate += taskResult.first;
     const Pool::Ptr& pool = taskResult.second;
-    LOG_INFO << "Proxy balancePoolLoads() calc: " << pool->getDescriptor()
-             << ", numWorkers, " << pool->numWorkers()
-             << ", weightedHashRate, " << taskResult.first;
+    totalWorkers += pool->numWorkers();
+    LOG_DEBUG << "balancePoolLoads() calc: " << pool->getDescriptor()
+              << ", numWorkers, " << pool->numWorkers()
+              << ", weightedHashRate, " << taskResult.first;
   }
+  uint32_t totalHashrate = averageWeightedHashrate;
   averageWeightedHashrate /= poolHashrateTasks.size();
-  LOG_INFO << "Proxy balancePoolLoads() averageWeightedHashrate = " << averageWeightedHashrate;
-
-//  LOG_INFO << " >>> balancePoolLoads - " << pool->getDescriptor()
-//           << ", weightedHashRate, " << pool->weightedHashRate()
-//           << ", hashRate, " << pool->hashRate()
-//           << ", weight, " << pool->getWeight()
-//           << ", workers, " << pool->numWorkers()
-//           << ", algorithm, " << pool->getAlgotrithm();
+  LOG_WARN << "Balancing loads of " << poolHashrateTasks.size() << " pools, totalHashrate, " << totalHashrate
+           << ", averageWeightedHashrate, " << averageWeightedHashrate
+           << ", totalWorkers, " << totalWorkers;
 
   //TODO const uint32_t allowedHashrateHystersis = 100;
 
@@ -165,7 +163,7 @@ void Proxy::balancePoolLoads()
   {
     if (pool.first > averageWeightedHashrate)
     {
-      LOG_INFO << "Proxy balancePoolLoads() trying to remove workers from pool " << pool.second->getDescriptor() << " with hashRate " << pool.first;
+      LOG_DEBUG << "balancePoolLoads() trying to remove workers from pool " << pool.second->getDescriptor() << " with hashRate " << pool.first;
       std::shared_ptr<RemoveExcessiveHashrateTask> task =
         std::make_shared<RemoveExcessiveHashrateTask>(
           [&availableWorkersByHashrate, &availableWorkersMutex](Pool::Ptr& pool, uint32_t excessiveWeightedHashrate)
@@ -204,8 +202,8 @@ void Proxy::balancePoolLoads()
     auto& pool = lowHashratePoolsIterator->second;
     auto hashRate = lowHashratePoolsIterator->first;
     uint32_t hashrateDeficit = averageWeightedHashrate - hashRate;
-    LOG_INFO << "Proxy balancePoolLoads() trying to add workers to pool " << pool->getDescriptor()
-             << " with hashRate " << hashRate << " (hashRateDeficit = " << hashrateDeficit << ")";
+    LOG_DEBUG << "balancePoolLoads() trying to add workers to pool " << pool->getDescriptor()
+              << " with hashRate " << hashRate << " (hashRateDeficit = " << hashrateDeficit << ")";
 
     // iterate through available workers, starting with highest hashrates
     auto availableWorkerIterator = availableWorkersByHashrate.begin();
@@ -230,7 +228,7 @@ void Proxy::balancePoolLoads()
 
   if (!availableWorkersByHashrate.empty())
   {
-    LOG_WARN << "Proxy balancePoolLoads() unassigned workers " << availableWorkersByHashrate.size() << ", assigning to slowest pools";
+    LOG_WARN << "balancePoolLoads() unassigned workers " << availableWorkersByHashrate.size() << ", assigning to slowest pools";
     for (auto& worker : availableWorkersByHashrate)
     {
       for (auto& pool : poolsSortedByWeightedHashrate)
@@ -245,9 +243,9 @@ void Proxy::balancePoolLoads()
 
   for (auto& pool : pools_)
   {
-    LOG_INFO << "Proxy balanced pool: " << pool->getDescriptor()
-             << ", weightedHashRate, " << pool->weightedHashRate()
+    LOG_INFO << "balanced pool: " << pool->getDescriptor()
              << ", hashRate, " << pool->hashRate()
+             << ", weightedHashRate, " << pool->weightedHashRate()
              << ", weight, " << pool->getWeight()
              << ", workers, " << pool->numWorkers()
              << ", algorithm, " << pool->getAlgotrithm();

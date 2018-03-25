@@ -1,8 +1,11 @@
+#define BOOST_LOG_USE_NATIVE_SYSLOG
+
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/sinks/syslog_backend.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
@@ -109,13 +112,13 @@ void formatMessagePart(boost::log::record_view const& rec, boost::log::formattin
 }
 }
 
-void initialize(boost::log::trivial::severity_level level)
+void initialize(boost::log::trivial::severity_level level, bool syslog)
 {
 //  boost::log::register_simple_formatter_factory<boost::log::trivial::severity_level, char >("Severity");
 
   auto trivialLogger = ::boost::log::trivial::logger::get();
   auto logger = boost::log::core::get();
-  boost::log::add_common_attributes();
+//  boost::log::add_common_attributes();
   logger->add_global_attribute("TimeStamp", boost::log::attributes::local_clock());
   logger->add_global_attribute("ThreadID", boost::log::attributes::current_thread_id());
 //    boost::log::aux::default_attribute_names::timestamp(), boost::log::attributes::local_clock());
@@ -124,20 +127,54 @@ void initialize(boost::log::trivial::severity_level level)
 //  auto sink = boost::log::add_console_log();
 //  sink->set_formatter(&formatter);
 
-  boost::log::add_console_log(
-    std::clog,
-    boost::log::keywords::format =
+  if (!syslog)
+  {
+    boost::log::add_console_log(
+      std::clog,
+      boost::log::keywords::format =
+        (
+          boost::log::expressions::stream
+            << "["
+            << boost::log::expressions::format_date_time<boost::posix_time::ptime>("TimeStamp", "%d.%m.%Y %H:%M:%S.%f")
+            << "] "
+            << "[" << boost::log::expressions::attr<boost::log::attributes::current_thread_id::value_type>("ThreadID")
+            << "] "
+            << boost::log::expressions::wrap_formatter(&formatMessagePart)
+        )
+    );
+  }
+  else
+  {
+    // Create a syslog sink
+    auto sinkBackend = boost::make_shared<boost::log::sinks::syslog_backend>(
+      //boost::log::keywords::facility = boost::log::sinks::syslog::user,
+      boost::log::keywords::use_impl = boost::log::sinks::syslog::native
+    );
+
+    boost::log::sinks::syslog::custom_severity_mapping<boost::log::trivial::severity_level > mapping("Severity");
+    mapping[boost::log::trivial::trace] = boost::log::sinks::syslog::debug;
+    mapping[boost::log::trivial::debug] = boost::log::sinks::syslog::info;
+    mapping[boost::log::trivial::info] = boost::log::sinks::syslog::notice;
+    mapping[boost::log::trivial::warning] = boost::log::sinks::syslog::warning;
+    mapping[boost::log::trivial::error] = boost::log::sinks::syslog::error;
+    mapping[boost::log::trivial::fatal] = boost::log::sinks::syslog::critical;
+    sinkBackend->set_severity_mapper(mapping);
+
+    sinkBackend->set_target_address("localhost");
+
+    auto sink = boost::make_shared<boost::log::sinks::synchronous_sink<boost::log::sinks::syslog_backend> >(sinkBackend);
+    sink->set_formatter
       (
         boost::log::expressions::stream
-          << "[" << boost::log::expressions::format_date_time< boost::posix_time::ptime >("TimeStamp", "%d.%m.%Y %H:%M:%S.%f") << "] "
-          << "[" << boost::log::expressions::attr< boost::log::attributes::current_thread_id::value_type >("ThreadID") << "] "
-//          << "[" << std::left << std::setw(7) << boost::log::expressions::attr< boost::log::trivial::severity_level >("Severity") << "] "
+          << "[" << boost::log::expressions::attr<boost::log::attributes::current_thread_id::value_type>("ThreadID")
+          << "] "
           << boost::log::expressions::wrap_formatter(&formatMessagePart)
-      )
-  );
+      );
 
-  boost::log::core::get()->set_filter(
-    boost::log::trivial::severity >= level);
+    logger->add_sink(sink);
+  }
+
+  logger->set_filter(boost::log::trivial::severity >= level);
 
 
 }

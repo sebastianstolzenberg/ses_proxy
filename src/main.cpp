@@ -9,7 +9,7 @@
 #include "proxy/configurationfile.hpp"
 #include "util/log.hpp"
 
-void configureLogging(uint32_t logLevel)
+void configureLogging(uint32_t logLevel, bool syslog)
 {
   if (logLevel == 0)
   {
@@ -30,9 +30,8 @@ void configureLogging(uint32_t logLevel)
       default:
         level = boost::log::trivial::severity_level::fatal; break;
     }
-    ses::log::initialize(level);
+    ses::log::initialize(level, syslog);
   }
-
 }
 
 void waitForSignal(boost::asio::io_service& ioService, size_t numThreads)
@@ -123,7 +122,7 @@ int main(int argc,  char** argv)
 
   ses::proxy::Configuration configuration = ses::proxy::parseConfigurationFile(parameters.configurationFilePath_);
 
-  configureLogging(configuration.logLevel_);
+  configureLogging(configuration.logLevel_, false);
 
   ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>(ioService);
 
