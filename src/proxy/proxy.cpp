@@ -127,25 +127,29 @@ void Proxy::balancePoolLoads()
   {
     std::shared_ptr<PoolHashrateTask> task =
       std::make_shared<PoolHashrateTask>(
-        [](Pool::Ptr& pool) { return PoolsByWeightedHashrate::value_type(pool->weightedHashRate(), pool); });
+        [](Pool::Ptr& pool) { return PoolsByWeightedHashrate::value_type(pool->hashRate(), pool); });
     ioService_->post(std::bind(&PoolHashrateTask::operator(), task, pool));
     poolHashrateTasks.push_back(std::move(task->get_future()));
   }
   // calculates average weighted hashrate
   uint32_t totalWorkers = 0;
+  uint32_t totalHashrate = 0;
   uint32_t averageWeightedHashrate = 0;
   for (auto& task : poolHashrateTasks)
   {
-    auto taskResult = task.get();
+    std::pair<uint32_t, Pool::Ptr> taskResult = task.get();
+    auto hashRate = taskResult.first;
+    const auto& pool = taskResult.second;
+    totalHashrate += hashRate;
+    taskResult.first = hashRate / pool->getWeight();
     poolsSortedByWeightedHashrate.insert(taskResult);
     averageWeightedHashrate += taskResult.first;
-    const Pool::Ptr& pool = taskResult.second;
     totalWorkers += pool->numWorkers();
     LOG_DEBUG << "balancePoolLoads() calc: " << pool->getDescriptor()
               << ", numWorkers, " << pool->numWorkers()
               << ", weightedHashRate, " << taskResult.first;
   }
-  uint32_t totalHashrate = averageWeightedHashrate;
+
   averageWeightedHashrate /= poolHashrateTasks.size();
   LOG_WARN << "Balancing loads of " << poolHashrateTasks.size() << " pools, totalHashrate, " << totalHashrate
            << ", averageWeightedHashrate, " << averageWeightedHashrate
@@ -241,6 +245,7 @@ void Proxy::balancePoolLoads()
     }
   }
 
+  //TODO hashRate and weightedHashRate are costly and partially redundant
   for (auto& pool : pools_)
   {
     LOG_INFO << "balanced pool: " << pool->getDescriptor()
