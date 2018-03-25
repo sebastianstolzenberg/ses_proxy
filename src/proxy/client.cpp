@@ -8,7 +8,9 @@
 #include "util/difficulty.hpp"
 #include "util/log.hpp"
 
-#define LOG_CLIENT_INFO LOG_INFO << "Client " << clientName_ << ": "
+#undef LOG_COMPONENT
+#define LOG_COMPONENT client
+#define LOG_CLIENT_INFO LOG_INFO << clientName_ << ": "
 
 namespace ses {
 namespace proxy {

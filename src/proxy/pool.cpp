@@ -8,7 +8,10 @@
 #include "proxy/pool.hpp"
 #include "util/log.hpp"
 
-#define LOG_POOL_INFO LOG_INFO << "Pool " << poolName_ << ": "
+#undef LOG_COMPONENT
+#define LOG_COMPONENT pool
+
+#define LOG_POOL_INFO LOG_INFO << poolName_ << ": "
 
 namespace ses {
 namespace proxy {

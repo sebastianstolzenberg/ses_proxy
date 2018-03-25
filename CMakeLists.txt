@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(Threads)
 find_package(OpenSSL REQUIRED)
 SET(Boost_USE_STATIC_LIBS ON)
-find_package(Boost COMPONENTS program_options log system REQUIRED)
+find_package(Boost COMPONENTS program_options log log_setup system REQUIRED)
 
 include_directories(src)
 
@@ -54,6 +54,7 @@ target_link_libraries(ses_proxy
         ses_proxy_util
         cryptonote
         Boost::program_options
+        Boost::log_setup
         Boost::log
         Boost::system
         OpenSSL::SSL

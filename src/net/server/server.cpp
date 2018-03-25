@@ -6,6 +6,9 @@
 #include "net/server/server.hpp"
 #include "util/log.hpp"
 
+#undef LOG_COMPONENT
+#define LOG_COMPONENT net
+
 namespace ses {
 namespace net {
 namespace server {
@@ -62,13 +65,12 @@ public:
     return isConnected() ? socket_.lowest_layer().remote_endpoint().port() : 0;
   }
 
-  bool send(const char* data, std::size_t size) override
+  bool send(const std::string& data) override
   {
-    LOG_TRACE << "net::server::BoostConnection::send: ";
-    LOG_TRACE.write(data, size);
+    LOG_TRACE << "net::server::BoostConnection::send: " << data;
 
     boost::system::error_code error;
-    boost::asio::write(socket_, boost::asio::buffer(data, size), error);
+    boost::asio::write(socket_, boost::asio::buffer(data.data(), data.size()), error);
     if (error)
     {
       notifyError(error.message());
@@ -200,6 +202,8 @@ private:
           return;
         }
 
+        accept();
+
         if (!ec && newConnecionHandler_)
         {
           nextConnection->socket().async_handshake(
@@ -212,7 +216,6 @@ private:
               }
             });
         }
-        accept();
       });
   }
 

@@ -4,6 +4,9 @@
 #include "proxy.hpp"
 #include "util/log.hpp"
 
+#undef LOG_COMPONENT
+#define LOG_COMPONENT proxy
+
 namespace ses {
 namespace proxy {
 

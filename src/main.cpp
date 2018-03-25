@@ -30,7 +30,7 @@ void configureLogging(uint32_t logLevel)
       default:
         level = boost::log::trivial::severity_level::fatal; break;
     }
-    ses::log::setMinimumLogLevel(level);
+    ses::log::initialize(level);
   }
 
 }

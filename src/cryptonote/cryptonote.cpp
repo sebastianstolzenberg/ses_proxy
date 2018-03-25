@@ -36,9 +36,9 @@ std::vector<uint8_t> convert_blob(const std::vector<uint8_t>& templateBlob)
 //    return THROW_ERROR_EXCEPTION("Failed to parse block");
   }
 
-  LOG_INFO << __FUNCTION__
-           << " converted template of size " << templateBlob.size()
-           << " to miner block of size " << result.size();
+//  LOG_INFO << __FUNCTION__
+//           << " converted template of size " << templateBlob.size()
+//           << " to miner block of size " << result.size();
   return result;
 }
 

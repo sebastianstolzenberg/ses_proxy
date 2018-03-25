@@ -3,6 +3,9 @@
 #include "proxy/server.hpp"
 #include "util/log.hpp"
 
+#undef LOG_COMPONENT
+#define LOG_COMPONENT server
+
 namespace ses {
 namespace proxy {
 
