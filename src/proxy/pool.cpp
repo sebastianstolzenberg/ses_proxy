@@ -221,7 +221,10 @@ void Pool::handleGetJobError(int code, const std::string& message)
 void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                                const std::string& status)
 {
-  LOG_POOL_INFO << "Submit success: job, " << jobId;
+  hashrate_.addHashes(activeJobTemplate_->getDifficulty());
+
+  LOG_POOL_INFO << "Submit success: job, " << jobId << ", " << hashrate_;
+
 
   if (submitStatusHandler)
   {
@@ -434,9 +437,11 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     //TODO further result verification
     //TODO job template specific response
     RequestIdentifier id = 0;
+    uint32_t resultDifficulty = jobResult.getDifficulty();
     if (jobResult.isNodeJsResult())
     {
       LOG_POOL_INFO << "Submitting hash: job, " << jobIt->second->getJobIdentifier()
+                    << ", difficulty, " << resultDifficulty
                     << ", nonce, " << jobResult.getNonceHexString()
                     << ", workerNonce, " << jobResult.getWorkerNonce()
                     << ", poolNonce, " << jobResult.getPoolNonce()
@@ -452,6 +457,7 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     else
     {
       LOG_POOL_INFO << "Submitting hash: job, " << jobIt->second->getJobIdentifier()
+                    << ", difficulty, " << resultDifficulty
                     << ", nonce, " << jobResult.getNonceHexString()
                     << ", hash, " << jobResult.getHashHexString();
       id = sendRequest(REQUEST_TYPE_SUBMIT,

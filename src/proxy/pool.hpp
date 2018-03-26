@@ -7,6 +7,7 @@
 #include <mutex>
 #include <boost/asio/deadline_timer.hpp>
 
+#include "util/hashratecalculator.hpp"
 #include "net/connection.hpp"
 #include "net/endpoint.hpp"
 #include "stratum/stratum.hpp"
@@ -128,6 +129,8 @@ private:
   std::map<std::string, JobTemplate::Ptr> jobTemplates_;
 
   std::list<Worker::Ptr> workers_;
+
+  util::HashRateCalculator hashrate_;
 };
 
 } // namespace proxy

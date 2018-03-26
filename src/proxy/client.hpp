@@ -8,6 +8,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/asio/io_service.hpp>
 
+#include "util/hashratecalculator.hpp"
 #include "net/connection.hpp"
 #include "proxy/algorithm.hpp"
 #include "proxy/job.hpp"
@@ -95,16 +96,11 @@ private:
   Job::Ptr currentJob_;
   std::map<std::string, std::pair<Job::Ptr, uint32_t> > jobs_;
 
-  std::chrono::time_point<std::chrono::system_clock> initTimePoint_;
-  std::chrono::time_point<std::chrono::system_clock> lastJobTransmitTimePoint_;
-  std::chrono::time_point<std::chrono::system_clock> lastShareTimePoint_;
-  std::list<std::chrono::milliseconds> shareTimeDiffs_;
+//  std::chrono::time_point<std::chrono::system_clock> lastJobTransmitTimePoint_;
 
   size_t submits_;
-  size_t hashes_;
-  double hashRateLastSubmit_;
-  double hashRateAverage1Minute_;
-  double hashRateAverage10Minutes_;
+
+  util::HashRateCalculator hashrate_;
 
 //  std::string subscribedExtraNone1_;
 //  Difficulty suggestedDifficulty_;

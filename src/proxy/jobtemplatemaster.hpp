@@ -23,6 +23,11 @@ public:
 
   }
 
+  uint32_t getDifficulty() const override
+  {
+    return targetDifficulty_;
+  }
+
   bool supportsWorkerType(WorkerType workerType) override
   {
     return true;

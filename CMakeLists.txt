@@ -18,7 +18,8 @@ add_library(ses_proxy_util
         STATIC
         src/util/difficulty.cpp
         src/util/target.cpp
-        src/util/log.cpp)
+        src/util/log.cpp
+        src/util/hashratecalculator.cpp)
 
 add_library(ses_proxy_net
         STATIC
@@ -46,7 +47,8 @@ add_executable(ses_proxy
         src/proxy/jobtemplate.cpp
         src/proxy/worker.cpp
         src/proxy/blob.cpp
-        src/proxy/workeridentifier.cpp src/proxy/configurationfile.cpp src/proxy/configurationfile.hpp)
+        src/proxy/workeridentifier.cpp
+        src/proxy/configurationfile.cpp)
 
 target_link_libraries(ses_proxy
         ses_proxy_net

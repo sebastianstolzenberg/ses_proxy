@@ -19,9 +19,7 @@ Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
                const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty,
                uint32_t targetSecondsBetweenSubmits)
   : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN),
-    difficulty_(defaultDifficulty), targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits),
-    initTimePoint_(std::chrono::system_clock::now()), lastShareTimePoint_(std::chrono::system_clock::now()),
-    submits_(0), hashes_(0), hashRateLastSubmit_(0), hashRateAverage1Minute_(0), hashRateAverage10Minutes_(0)
+    difficulty_(defaultDifficulty), targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits)
 {
 }
 
@@ -86,7 +84,7 @@ bool Client::isConnected() const
 
 uint32_t Client::getHashRate() const
 {
-  return hashRateAverage10Minutes_;
+  return hashrate_.getAverageHashRateLongTimeWindow();
 }
 
 const std::string& Client::getUseragent() const
@@ -334,67 +332,26 @@ void Client::updateName()
 
 void Client::updateHashrates(uint32_t difficulty)
 {
-  std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-  std::chrono::milliseconds diff =
-    std::chrono::duration_cast<std::chrono::milliseconds>(now - lastShareTimePoint_);
-  std::chrono::milliseconds timeSinceInit =
-    std::chrono::duration_cast<std::chrono::milliseconds>(now - initTimePoint_);
-  std::chrono::milliseconds timeLastJobTransmit =
-    std::chrono::duration_cast<std::chrono::milliseconds>(now - lastJobTransmitTimePoint_);
-  lastShareTimePoint_ = now;
-  shareTimeDiffs_.push_back(diff);
   ++submits_;
-  hashes_ += difficulty;
+  hashrate_.addHashes(difficulty);
 
-  if (diff.count() == 0)
+  if (hashrate_.getAverageHashRateLongTimeWindow() != 0 &&
+      hashrate_.secondsSinceStart() > std::chrono::seconds(10))
   {
-    return;
-  }
-
-  hashRateLastSubmit_ = static_cast<double>(difficulty * 1000) / diff.count();
-
-  if (hashRateAverage1Minute_ == 0)
-  {
-    hashRateAverage1Minute_ = hashRateLastSubmit_;
-  }
-  else
-  {
-    double diffFractionOf1Minute = static_cast<double>(diff.count()) /
-                                  std::min(std::chrono::milliseconds(std::chrono::minutes(1)), timeSinceInit).count();
-    diffFractionOf1Minute = std::min(diffFractionOf1Minute, 1.0);
-    hashRateAverage1Minute_ = (hashRateAverage1Minute_ * (1 - diffFractionOf1Minute)) +
-                              (hashRateLastSubmit_ * diffFractionOf1Minute);
-  }
-
-  if (hashRateAverage10Minutes_ == 0)
-  {
-    hashRateAverage10Minutes_ = hashRateLastSubmit_;
-  }
-  else
-  {
-    double diffFractionOf10Minutes = static_cast<double>(diff.count()) /
-                                    std::min(std::chrono::milliseconds(std::chrono::minutes(10)), timeSinceInit).count();
-    diffFractionOf10Minutes = std::min(diffFractionOf10Minutes, 1.0);
-    hashRateAverage10Minutes_ = (hashRateAverage10Minutes_ * (1 - diffFractionOf10Minutes)) +
-                                (hashRateLastSubmit_ * diffFractionOf10Minutes);
-  }
-
-  if (hashRateAverage10Minutes_ != 0 && timeSinceInit > std::chrono::seconds(10))
-  {
-    difficulty_ = hashRateAverage10Minutes_ * targetSecondsBetweenSubmits_;
+    difficulty_ = hashrate_.getAverageHashRateLongTimeWindow() * targetSecondsBetweenSubmits_;
   }
 
   LOG_CLIENT_INFO << "Submit success "
-                  << ", td, " << diff.count() << "ms" << ", submits, " << submits_ << ", hashes, " << hashes_
-                  << ", hashrate, " << hashRateLastSubmit_
-                  << ", hashrate1Min, " << hashRateAverage1Minute_
-                  << ", hashrate10Min, " << hashRateAverage10Minutes_
+                  << ", submits, " << submits_ << ", hashes, " << hashrate_.getTotalHashes()
+                  << ", hashrate, " << hashrate_.getHashRateLastUpdate()
+                  << ", hashrate1Min, " << hashrate_.getAverageHashRateShortTimeWindow()
+                  << ", hashrate10Min, " << hashrate_.getAverageHashRateLongTimeWindow()
                   << ", newClientDifficulty, " << difficulty_;
 
-  if (timeLastJobTransmit > std::chrono::seconds(30))
-  {
-    // TODO update job if necessary, especially if difficulty has to change
-  }
+//  if (timeLastJobTransmit > std::chrono::seconds(30))
+//  {
+//    // TODO update job if necessary, especially if difficulty has to change
+//  }
 }
 
 void Client::sendResponse(const std::string& jsonRequestId, const std::string& response)
@@ -443,7 +400,7 @@ stratum::Job Client::buildStratumJob()
                   << ", clientDifficulty, " << modifiedDifficulty
                   << ", jobDifficulty, " << currentJob_->getDifficulty()
                   << ", target, " << modifiedTarget;
-  lastJobTransmitTimePoint_ = std::chrono::system_clock::now();
+//  lastJobTransmitTimePoint_ = std::chrono::system_clock::now();
   return stratumJob;
 }
 
