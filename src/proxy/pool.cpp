@@ -219,7 +219,7 @@ void Pool::handleLoginSuccess(const std::string& id, const boost::optional<strat
 
 void Pool::handleLoginError(int code, const std::string& message)
 {
-  LOG_WARN << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message<< std::endl;
+  LOG_ERROR << poolName_ << ": " << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message<< std::endl;
 }
 
 void Pool::handleGetJobSuccess(const stratum::Job& job)
@@ -230,7 +230,7 @@ void Pool::handleGetJobSuccess(const stratum::Job& job)
 
 void Pool::handleGetJobError(int code, const std::string& message)
 {
-  LOG_WARN << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message;
+  LOG_ERROR << poolName_ << ": " << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message;
 }
 
 void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
@@ -256,7 +256,7 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
 void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                              int code, const std::string& message)
 {
-  LOG_POOL_INFO << "Submit failed: message, " << code << " " << message << ", job, " << jobId;
+  LOG_ERROR << poolName_ << ": " << "Submit failed: message, " << code << " " << message << ", job, " << jobId;
 
   if (submitStatusHandler)
   {

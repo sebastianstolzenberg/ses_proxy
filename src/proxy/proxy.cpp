@@ -167,23 +167,44 @@ void Proxy::balancePoolLoads()
           {
             excessiveWeightedHashrate *= pool->getWeight();
             auto workersSortedByHashrateDescending =  pool->getWorkersSortedByHashrateDescending();
+            Worker::Ptr lastWorkerWithNonZeroHashrate;
             for (auto& worker : workersSortedByHashrateDescending)
             {
               auto hashRate = worker->getHashRate().getAverageHashRateLongTimeWindow();
-              if (hashRate > 0 /*&& hashRate <= excessiveWeightedHashrate*/)
+              if (hashRate > 0)
               {
-                if (pool->removeWorker(worker))
+                if (hashRate <= excessiveWeightedHashrate)
                 {
-                  excessiveWeightedHashrate -= hashRate;
+                  if (pool->removeWorker(worker))
+                  {
+                    excessiveWeightedHashrate -= hashRate;
 
-                  std::lock_guard<std::mutex> lock(availableWorkersMutex);
-                  availableWorkersByHashrate.insert(AvailableWorkersByHashrate::value_type(-hashRate, worker));
+                    std::lock_guard<std::mutex> lock(availableWorkersMutex);
+                    availableWorkersByHashrate.insert(AvailableWorkersByHashrate::value_type(-hashRate, worker));
+                  }
                 }
-                //TODO early abort once hashrate is low enough
-                if (excessiveWeightedHashrate <= 0)
+                else
                 {
-                  break;
+                  lastWorkerWithNonZeroHashrate = worker;
                 }
+              }
+              if (excessiveWeightedHashrate <= 0)
+              {
+                break;
+              }
+            }
+            // If there is still too much hash rate assigned to the pool, also takes the slowest worker (with hashrate > 0).
+            // This will definitely push the excessiveWeightedHashrate below zero, otherwise the worker would
+            // have been picked by the loop above, already.
+            if (excessiveWeightedHashrate > 0 && lastWorkerWithNonZeroHashrate)
+            {
+              auto hashRate = lastWorkerWithNonZeroHashrate->getHashRate().getAverageHashRateLongTimeWindow();
+              if (pool->removeWorker(lastWorkerWithNonZeroHashrate))
+              {
+                excessiveWeightedHashrate -= hashRate;
+                std::lock_guard<std::mutex> lock(availableWorkersMutex);
+                availableWorkersByHashrate.insert(
+                  AvailableWorkersByHashrate::value_type(-hashRate, lastWorkerWithNonZeroHashrate));
               }
             }
           });
