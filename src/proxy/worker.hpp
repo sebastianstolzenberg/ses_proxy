@@ -3,6 +3,7 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 
+#include "util/hashratecalculator.hpp"
 #include "proxy/job.hpp"
 #include "proxy/jobtemplate.hpp"
 #include "proxy/workeridentifier.hpp"
@@ -28,7 +29,7 @@ public:
   virtual void assignJob(const Job::Ptr& job) = 0;
 
   virtual bool isConnected() const = 0;
-  virtual uint32_t getHashRate() const = 0;
+  virtual const util::HashRateCalculator& getHashRate() const = 0;
 };
 
 } // namespace proxy

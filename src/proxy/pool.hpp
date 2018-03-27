@@ -68,6 +68,8 @@ public:
   uint32_t hashRate() const;
   double weightedHashRate() const;
 
+  const util::HashRateCalculator& getHashRate();
+
 private:
   void handleConnect();
   void handleReceived(const std::string& data);

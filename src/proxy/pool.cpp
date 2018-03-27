@@ -76,7 +76,11 @@ bool Pool::removeWorker(const Worker::Ptr& worker)
 
 const std::list<Worker::Ptr>& Pool::getWorkersSortedByHashrateDescending()
 {
-  workers_.sort([](const auto& a, const auto& b) { return a->getHashRate() > b->getHashRate(); });
+  workers_.sort([](const auto& a, const auto& b)
+                {
+                  return a->getHashRate().getAverageHashRateLongTimeWindow() >
+                         b->getHashRate().getAverageHashRateLongTimeWindow();
+                });
   return workers_;
 }
 
@@ -111,7 +115,10 @@ double Pool::weightedWorkers() const
 uint32_t Pool::hashRate() const
 {
   return boost::accumulate(workers_, 0,
-                           [](uint32_t sum, const auto& worker){ return sum + worker->getHashRate(); });
+                           [](uint32_t sum, const auto& worker)
+                           {
+                             return sum + worker->getHashRate().getAverageHashRateLongTimeWindow();
+                           });
 }
 
 double Pool::weightedHashRate() const
@@ -119,6 +126,14 @@ double Pool::weightedHashRate() const
   double weightedHashRate = hashRate();
   weightedHashRate /= getWeight();
   return weightedHashRate;
+}
+
+const util::HashRateCalculator& Pool::getHashRate()
+{
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  // ensures hashrates drop to zero when nothing gets submitted for a while
+  hashrate_.addHashes(0);
+  return hashrate_;
 }
 
 void Pool::handleConnect()

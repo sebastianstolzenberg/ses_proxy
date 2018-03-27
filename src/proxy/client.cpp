@@ -82,9 +82,9 @@ bool Client::isConnected() const
   return connection && connection->isConnected();
 }
 
-uint32_t Client::getHashRate() const
+const util::HashRateCalculator& Client::getHashRate() const
 {
-  return hashrate_.getAverageHashRateLongTimeWindow();
+  return hashrate_;
 }
 
 const std::string& Client::getUseragent() const

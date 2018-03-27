@@ -124,7 +124,8 @@ int main(int argc,  char** argv)
 
   configureLogging(configuration.logLevel_, false);
 
-  ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>(ioService);
+  ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>(ioService,
+                                                                     configuration.poolLoadBalanceIntervalSeconds_);
 
   for (const auto& poolConfig : configuration.pools_)
   {

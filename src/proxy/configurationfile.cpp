@@ -83,6 +83,7 @@ Configuration parseConfigurationFile(const std::string& fileName)
   parseServerConfigurations(ptree, configuration.server_);
   configuration.logLevel_ = ptree.get<uint32_t>("logLevel", 4);
   configuration.threads_ = ptree.get<size_t>("threads", 0);
+  configuration.poolLoadBalanceIntervalSeconds_ = ptree.get<uint32_t>("poolLoadBalanceIntervalSeconds", 20);
   return configuration;
 }
 

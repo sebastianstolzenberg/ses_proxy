@@ -48,7 +48,9 @@
     {
       "host":"127.0.0.1",
       "port":12345,
-      "connectionType":"tcp",
+      "connectionType":"tls",
+      "certificateChainFile":"cert.pem",
+      "privateKeyFile":"key.pem",
       "defaultAlgorithm":"cryptonight",
       "defaultDifficulty":200,
       "targetSecondsBetweenSubmits":15
@@ -63,5 +65,6 @@
     }
   ],
   "logLevel":4,
-  "threads":1
+  "threads":1,
+  "poolLoadBalanceIntervalSeconds":20
 }

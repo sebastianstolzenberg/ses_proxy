@@ -14,6 +14,7 @@ struct Configuration
   std::list<Server::Configuration> server_;
   uint32_t logLevel_;
   size_t threads_;
+  uint32_t poolLoadBalanceIntervalSeconds_;
 };
 
 Configuration parseConfigurationFile(const std::string& fileName);

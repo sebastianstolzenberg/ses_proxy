@@ -16,7 +16,7 @@ public:
   typedef std::shared_ptr<Proxy> Ptr;
 
 public:
-  Proxy(const std::shared_ptr<boost::asio::io_service>& ioService);
+  Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, uint32_t loadBalanceInterval);
 
   void addPool(const Pool::Configuration& configuration);
   void addServer(const Server::Configuration& configuration);
@@ -30,6 +30,7 @@ private:
 
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;
+  uint32_t loadBalanceInterval_;
   boost::asio::deadline_timer loadBalancerTimer_;
   std::recursive_mutex mutex_;
 
