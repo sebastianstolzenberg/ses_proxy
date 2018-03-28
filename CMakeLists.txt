@@ -19,7 +19,8 @@ add_library(ses_proxy_util
         src/util/difficulty.cpp
         src/util/target.cpp
         src/util/log.cpp
-        src/util/hashratecalculator.cpp)
+        src/util/hashratecalculator.cpp
+        src/util/pidcontroller.cpp)
 
 add_library(ses_proxy_net
         STATIC

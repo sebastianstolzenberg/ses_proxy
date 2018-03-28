@@ -71,3 +71,27 @@ SCENARIO("difficulty calculation")
   std::vector<uint8_t> hashData = ses::util::fromHex(hash);
   REQUIRE(ses::util::difficultyFromHashBuffer(hashData.data(), hashData.size()) == hashDifficulty);
 }
+
+class SimulatedPool
+{
+public:
+  SimulatedPool(double averageTimeWindow, double hashRate)
+    : averageTimeWindow_(averageTimeWindow), hashRate_(hashRate)
+  {
+
+  }
+
+  void update(double dt)
+  {
+    timeSinceInit_ += dt;
+    double diffFractionOfTimeWindow = dt / std::min(averageTimeWindow_, timeSinceInit_);
+    diffFractionOfTimeWindow = std::min(diffFractionOfTimeWindow, 1.0);
+    hashRateAverage_ = (hashRateAverage_ * (1 - diffFractionOfTimeWindow)) +
+                       (hashRate_ * diffFractionOfTimeWindow);
+  }
+
+  double timeSinceInit_;
+  double averageTimeWindow_;
+  double hashRate_;
+  double hashRateAverage_;
+};
