@@ -14,7 +14,7 @@ public:
 
   void update(double dt)
   {
-    randomlyChangeHashrate();
+    //randomlyChangeHashrate();
 
     timeSinceInit_ += dt;
     double diffFractionOfTimeWindow = dt / std::min(averageTimeWindow_, timeSinceInit_);
@@ -52,22 +52,26 @@ int main()
   SimulatedPool pool1(averageTimeWindow, 1000);
   SimulatedPool pool2(averageTimeWindow, 2000);
   double Kp = .8;
-  double Kd = 0;
+  double Kd = 50;
   double Ki = 0.0001;
   ses::util::PidController controller1(Kp,Kd,Ki);
   ses::util::PidController controller2(Kp,Kd,Ki);
 
   outFile << "0 1500 1000 0 2000 0 0 0\n";
 
-  double dt = 10;
-  double chunkSize = 50;
+  double dt = 20;
+  double chunkSize = 100;
   double halfChunkSize = chunkSize / 2;
 
   for (double time = 0; time <= (60 * 60); time += dt)
   {
-    if (time ==  9000)
+    if (time == 600)
     {
-      int i = 2;
+      pool1.hashRate_ += 500;
+    }
+    if (time == 2000)
+    {
+      pool2.hashRate_ -= 1000;
     }
     pool1.update(dt);
     pool2.update(dt);
