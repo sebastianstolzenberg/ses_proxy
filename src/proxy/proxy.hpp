@@ -10,6 +10,8 @@
 namespace ses {
 namespace proxy {
 
+class ClientsTracker;
+
 class Proxy : public std::enable_shared_from_this<Proxy>
 {
 public:
@@ -37,6 +39,8 @@ private:
   std::list<Pool::Ptr> pools_;
   std::list<Server::Ptr> servers_;
   std::map<boost::uuids::uuid, Client::Ptr> clients_;
+
+  std::shared_ptr<ClientsTracker> clientsTracker_;
 };
 
 } // namespace proxy
