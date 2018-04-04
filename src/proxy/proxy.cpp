@@ -17,6 +17,38 @@ void sortByWeightedWorkers(std::list<Pool>& pools)
 }
 }
 
+class ClientTracker
+{
+public:
+  ClientTracker(const Client::Ptr& client) : client_(client) {}
+
+  void sampleCurrentState()
+  {
+    hashRate_ = client_->getHashRate().getAverageHashRateLongTimeWindow();
+  }
+
+  bool operator<(const ClientTracker& other)
+  {
+    return hashRate_ < other.hashRate_;
+  }
+
+  bool operator>(const ClientTracker& other)
+  {
+    return hashRate_ > other.hashRate_;
+  }
+
+  Client::Ptr client_;
+
+  double hashRate_;
+};
+
+class ClientsTracker
+{
+
+
+};
+
+
 Proxy::Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, uint32_t loadBalanceInterval)
   : ioService_(ioService), loadBalanceInterval_(loadBalanceInterval), loadBalancerTimer_(*ioService)
 {
