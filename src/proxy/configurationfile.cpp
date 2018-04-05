@@ -37,7 +37,7 @@ Algorithm parseAlgorithm(const std::string& algorithmString)
 
 void parsePoolConfigurations(boost::property_tree::ptree& ptree, std::list<Pool::Configuration>& list)
 {
-  double smallestWeight = 0;
+  double totalWeight = 0;
   for (auto& pool : ptree.get_child("pools"))
   {
     Pool::Configuration configuration;
@@ -48,27 +48,16 @@ void parsePoolConfigurations(boost::property_tree::ptree& ptree, std::list<Pool:
     configuration.user_ = pool.second.get<std::string>("username");
     configuration.pass_ = pool.second.get<std::string>("password");
     configuration.weight_ = std::fmax(0.0, pool.second.get<double>("weight"));
-    if (configuration.weight_ > 0)
-    {
-      if (smallestWeight > 0)
-      {
-        smallestWeight = std::fmin(smallestWeight, configuration.weight_);
-      }
-      else
-      {
-        smallestWeight = configuration.weight_;
-      }
-    }
+    totalWeight += configuration.weight_;
     configuration.algorithm_ = parseAlgorithm(pool.second.get<std::string>("algorithm", ""));
     list.push_back(configuration);
   }
 
-  if (smallestWeight > 0.0)
+  if (totalWeight > 0.0)
   {
-    // normalizes weights, so that the smallest becomes 1.0
     for (auto& configuration : list)
     {
-      configuration.weight_ /= smallestWeight;
+      configuration.weight_ /= totalWeight;
     }
   }
 }

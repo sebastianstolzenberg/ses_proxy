@@ -6,22 +6,22 @@ namespace ses {
 namespace util {
 
 template <class T>
-class HashRateTracker
+class HashRateSampler
 {
 public:
-  HashRateTracker(const typename T::Ptr& hasher) : hasher_(hasher) {}
+  HashRateSampler(const typename T::Ptr& hasher) : hasher_(hasher) {}
 
   void sampleCurrentState()
   {
     hashRate_ = hasher_->getHashRate().getAverageHashRateLongTimeWindow();
   }
 
-  bool operator<(const HashRateTracker<T>& other) const
+  bool operator<(const HashRateSampler<T>& other) const
   {
     return hashRate_ < other.hashRate_;
   }
 
-  bool operator>(const HashRateTracker<T>& other) const
+  bool operator>(const HashRateSampler<T>& other) const
   {
     return hashRate_ > other.hashRate_;
   }
@@ -62,23 +62,55 @@ public:
       hasher.sampleCurrentState();
       accumulatedHashRate_ += hasher.hashRate_;
     }
-    std::sort(hashers_.begin(), hashers_.end(), std::greater<HashRateTracker<T> >());
+    std::sort(hashers_.begin(), hashers_.end(), std::greater<HashRateSampler<T> >());
   }
 
-  std::deque<HashRateTracker<T> > hashers_;
+  std::deque<HashRateSampler<T> > hashers_;
   double accumulatedHashRate_;
 };
 
-class HashRateConsumer
+template <class Producer>
+class HashRateProducer : public HashRateSampler<Producer>
 {
-
+  HashRateProducer(const typename Producer::Ptr& producer) : HashRateSampler<Producer>(producer) {}
 };
 
-template <class From, class To>
+template <class Consumer, class Producer>
+class HashRateConsumer : public HashRateSampler<Consumer>
+{
+  HashRateConsumer(const typename Consumer::Ptr& consumer) : HashRateSampler<Consumer>(consumer) {}
+
+  double getWeight() const
+  {
+    return HashRateSampler<Consumer>::hasher_->getWeight();
+  }
+
+  void setTargetHashRate(double totalAvailableHashRate)
+  {
+    //TODO add deviation from average
+    remainingTargetHashRate_ = totalAvailableHashRate * getWeight();
+  }
+
+  bool assignProducer(HashRateProducer<Producer>& producer)
+  {
+    bool assigned = HashRateSampler<Consumer>::hasher_->addWorker(producer);
+    if (assigned)
+    {
+      remainingTargetHashRate_ -= producer->hashRate_;
+    }
+    return assigned;
+  }
+
+  double remainingTargetHashRate_;
+};
+
+template <class Producer, class Consumer>
 void rebalance(HashRateCollector<From>& provider, HashRateCollector<To>& receiver)
 {
+  // samples the current state
   provider.sampleCurrentState();
   receiver.sampleCurrentState();
+
 
 
 }

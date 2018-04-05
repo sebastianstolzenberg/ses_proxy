@@ -56,6 +56,7 @@ public:
 
   bool addWorker(const Worker::Ptr& worker);
   bool removeWorker(const Worker::Ptr& worker);
+  void removeAllWorkers();
   const std::list<Worker::Ptr>& getWorkersSortedByHashrateDescending();
 
   const std::string& getDescriptor() const;

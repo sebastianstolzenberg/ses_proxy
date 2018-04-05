@@ -74,6 +74,12 @@ bool Pool::removeWorker(const Worker::Ptr& worker)
   return removed;
 }
 
+void Pool::removeAllWorkers()
+{
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  workers_.clear();
+}
+
 const std::list<Worker::Ptr>& Pool::getWorkersSortedByHashrateDescending()
 {
   workers_.sort([](const auto& a, const auto& b)
