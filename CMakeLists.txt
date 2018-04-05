@@ -20,7 +20,7 @@ add_library(ses_proxy_util
         src/util/target.cpp
         src/util/log.cpp
         src/util/hashratecalculator.cpp
-        src/util/pidcontroller.cpp)
+        src/util/pidcontroller.cpp src/util/hashratebalancer.hpp)
 
 add_library(ses_proxy_net
         STATIC

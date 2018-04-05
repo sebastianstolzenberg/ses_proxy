@@ -6,11 +6,10 @@
 
 #include "proxy/server.hpp"
 #include "proxy/pool.hpp"
+#include "util/hashratebalancer.hpp"
 
 namespace ses {
 namespace proxy {
-
-class ClientsTracker;
 
 class Proxy : public std::enable_shared_from_this<Proxy>
 {
@@ -40,7 +39,8 @@ private:
   std::list<Server::Ptr> servers_;
   std::map<boost::uuids::uuid, Client::Ptr> clients_;
 
-  std::shared_ptr<ClientsTracker> clientsTracker_;
+  util::HashRateCollector<Client> clientsTracker_;
+  util::HashRateCollector<Pool> poolsTracker_;
 };
 
 } // namespace proxy
