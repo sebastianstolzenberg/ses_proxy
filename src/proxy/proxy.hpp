@@ -39,8 +39,8 @@ private:
   std::list<Server::Ptr> servers_;
   std::map<boost::uuids::uuid, Client::Ptr> clients_;
 
-  util::HashRateCollector<Client> clientsTracker_;
-  util::HashRateCollector<Pool> poolsTracker_;
+//  util::HashRateCollector<Client> clientsTracker_;
+//  util::HashRateCollector<Pool> poolsTracker_;
 };
 
 } // namespace proxy

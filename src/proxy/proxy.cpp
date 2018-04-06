@@ -27,7 +27,7 @@ void Proxy::addPool(const Pool::Configuration& configuration)
   auto pool = std::make_shared<Pool>(ioService_);
   pool->connect(configuration);
   pools_.push_back(pool);
-  poolsTracker_.addHasher(pool);
+//  poolsTracker_.addHasher(pool);
 
   triggerLoadBalancerTimer();
 }
@@ -46,7 +46,7 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
     std::lock_guard<std::recursive_mutex> lock(mutex_);
 
     clients_[newClient->getIdentifier()] = newClient;
-    clientsTracker_.addHasher(newClient);
+//    clientsTracker_.addHasher(newClient);
 
     if (!pools_.empty())
     {
@@ -89,7 +89,7 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
                 // removes the client from the pools when they disconnect
                 for (auto pool : pools_) pool->removeWorker(newClient);
                 clients_.erase(newClient->getIdentifier());
-                clientsTracker_.removeHasher(newClient);
+//                clientsTracker_.removeHasher(newClient);
               });
           break;
         }
@@ -119,10 +119,12 @@ void Proxy::balancePoolLoads()
 
   if (pools_.size() <= 1) return;
 
-  clientsTracker_.sampleCurrentState();
-  LOG_ERROR << "clientsTracker: accumulatedHashRate, " << clientsTracker_.accumulatedHashRate_;
-  poolsTracker_.sampleCurrentState();
-  LOG_ERROR << "poolsTracker: accumulatedHashRate, " << poolsTracker_.accumulatedHashRate_;
+  util::hashrate::rebalance(clients_, pools_);
+
+//  clientsTracker_.sampleCurrentState();
+//  LOG_ERROR << "clientsTracker: accumulatedHashRate, " << clientsTracker_.accumulatedHashRate_;
+//  poolsTracker_.sampleCurrentState();
+//  LOG_ERROR << "poolsTracker: accumulatedHashRate, " << poolsTracker_.accumulatedHashRate_;
 
   // sort pools by weighted hashrate
   typedef std::map<uint32_t, Pool::Ptr> PoolsByWeightedHashrate;
