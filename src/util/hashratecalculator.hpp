@@ -12,6 +12,7 @@ public:
                      const std::chrono::seconds& longTimeWindow = std::chrono::seconds(600));
 
   void addHashes(uint32_t hashes);
+  void addHashRate(uint32_t hashRate);
 
   uint32_t getTotalHashes() const;
   double getHashRateLastUpdate() const;

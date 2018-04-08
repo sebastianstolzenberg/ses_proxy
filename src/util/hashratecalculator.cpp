@@ -61,6 +61,14 @@ void HashRateCalculator::addHashes(uint32_t hashes)
   }
 }
 
+void HashRateCalculator::addHashRate(uint32_t hashRate)
+{
+  uint32_t timeSinceLastUpdate =
+    std::chrono::duration_cast<
+      std::chrono::milliseconds>(std::chrono::system_clock::now() - lastUpdateTimePoint_).count();
+  addHashes(hashRate * timeSinceLastUpdate / 1000);
+}
+
 uint32_t HashRateCalculator::getTotalHashes() const
 {
   return totalHashes_;

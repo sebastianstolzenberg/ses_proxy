@@ -43,16 +43,13 @@ public:
 
     Job::Ptr job;
     auto subJobIt = subJobs_.find(workerIdentifier);
-    if (subJobIt == subJobs_.end())
+    if (subJobIt != subJobs_.end())
     {
-      // new worker
-      job = getNextSubJob(workerIdentifier, workerType);
-      subJobs_[workerIdentifier] = job;
+      // erases last job assigned to the worker
+      subJobs_.erase(subJobIt);
     }
-    else
-    {
-      job = subJobIt->second;
-    }
+    job = getNextSubJob(workerIdentifier, workerType);
+    subJobs_[workerIdentifier] = job;
     return job;
   }
 

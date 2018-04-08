@@ -45,7 +45,7 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-    clients_[newClient->getIdentifier()] = newClient;
+    clients_.push_back(newClient);
 //    clientsTracker_.addHasher(newClient);
 
     if (!pools_.empty())
@@ -88,7 +88,7 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
               {
                 // removes the client from the pools when they disconnect
                 for (auto pool : pools_) pool->removeWorker(newClient);
-                clients_.erase(newClient->getIdentifier());
+                clients_.remove(newClient);
 //                clientsTracker_.removeHasher(newClient);
               });
           break;
@@ -117,163 +117,176 @@ void Proxy::balancePoolLoads()
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-  if (pools_.size() <= 1) return;
+  if (pools_.size() <= 1 || clients_.empty()) return;
 
   util::hashrate::rebalance(clients_, pools_);
 
-//  clientsTracker_.sampleCurrentState();
-//  LOG_ERROR << "clientsTracker: accumulatedHashRate, " << clientsTracker_.accumulatedHashRate_;
-//  poolsTracker_.sampleCurrentState();
-//  LOG_ERROR << "poolsTracker: accumulatedHashRate, " << poolsTracker_.accumulatedHashRate_;
-
-  // sort pools by weighted hashrate
-  typedef std::map<uint32_t, Pool::Ptr> PoolsByWeightedHashrate;
-  PoolsByWeightedHashrate poolsSortedByWeightedHashrate;
-
-  // calculates average weighted hashrate
-  uint32_t totalWorkers = 0;
-  uint32_t totalHashrate = 0;
-  uint32_t averageWeightedHashrate = 0;
-  uint32_t numPools = 0;
-  for(auto& pool : pools_)
+  for (auto& pool : pools_)
   {
-    ++numPools;
-    const auto& hashRate = pool->getHashRate();
-    totalHashrate += hashRate.getAverageHashRateLongTimeWindow();
-    uint32_t weightedHashRate = hashRate.getAverageHashRateLongTimeWindow() / pool->getWeight();
-    averageWeightedHashrate += weightedHashRate;
-    poolsSortedByWeightedHashrate[weightedHashRate] = pool;
-    totalWorkers += pool->numWorkers();
-    LOG_INFO << "Balance inspection: " << pool->getDescriptor()
-             << ", hashRate, " << hashRate.getAverageHashRateLongTimeWindow()
-             << ", weightedHashRate, " << weightedHashRate
-             << ", weight, " << pool->getWeight()
-             << ", workers, " << pool->numWorkers()
-             << ", algorithm, " << pool->getAlgotrithm();
-  }
+    LOG_WARN << "After rebalance: " << pool->getDescriptor()
+             << " , numWorkers, " << pool->numWorkers()
+             << " , workersHashRate, " << pool->hashRate()
+             << " , workersHashRateAverage, " << pool->getWorkerHashRate().getAverageHashRateLongTimeWindow()
+             << " , submitHashRateAverage10min, " << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
+             << " , submittedHashes, " << pool->getSubmitHashRate().getTotalHashes()
+             << " , weight , " << pool->getWeight();
 
-  averageWeightedHashrate /= numPools;
-  LOG_WARN << "Balancing loads of " << numPools << " pools, totalHashrate, " << totalHashrate
-           << ", averageWeightedHashrate, " << averageWeightedHashrate
-           << ", totalWorkers, " << totalWorkers;
-
-  //TODO const uint32_t allowedHashrateHystersis = 100;
-
-  // remove excessive hashrate from pools with too high load
-  typedef std::multimap<int32_t, Worker::Ptr> AvailableWorkersByHashrate;
-  AvailableWorkersByHashrate availableWorkersByHashrate;
-  std::mutex availableWorkersMutex;
-  typedef std::packaged_task<void(Pool::Ptr&, uint32_t)> RemoveExcessiveHashrateTask;
-  std::list<std::future<void> > removeExcessiveHashrateTasks;
-  for(auto& pool : poolsSortedByWeightedHashrate)
-  {
-    if (pool.first > averageWeightedHashrate)
-    {
-      LOG_DEBUG << "balancePoolLoads() trying to remove workers from pool " << pool.second->getDescriptor() << " with hashRate " << pool.first;
-      std::shared_ptr<RemoveExcessiveHashrateTask> task =
-        std::make_shared<RemoveExcessiveHashrateTask>(
-          [&availableWorkersByHashrate, &availableWorkersMutex](Pool::Ptr& pool, int32_t excessiveWeightedHashrate)
-          {
-            excessiveWeightedHashrate *= pool->getWeight();
-            auto workersSortedByHashrateDescending =  pool->getWorkersSortedByHashrateDescending();
-            Worker::Ptr lastWorkerWithNonZeroHashrate;
-            for (auto& worker : workersSortedByHashrateDescending)
-            {
-              auto hashRate = worker->getHashRate().getAverageHashRateLongTimeWindow();
-              if (hashRate > 0)
-              {
-                if (hashRate <= excessiveWeightedHashrate)
-                {
-                  if (pool->removeWorker(worker))
-                  {
-                    excessiveWeightedHashrate -= hashRate;
-
-                    std::lock_guard<std::mutex> lock(availableWorkersMutex);
-                    availableWorkersByHashrate.insert(AvailableWorkersByHashrate::value_type(-hashRate, worker));
-                  }
-                }
-                else
-                {
-                  lastWorkerWithNonZeroHashrate = worker;
-                }
-              }
-              if (excessiveWeightedHashrate <= 0)
-              {
-                break;
-              }
-            }
-            // If there is still too much hash rate assigned to the pool, also takes the slowest worker (with hashrate > 0).
-            // This will definitely push the excessiveWeightedHashrate below zero, otherwise the worker would
-            // have been picked by the loop above, already.
-            if (excessiveWeightedHashrate > 0 && lastWorkerWithNonZeroHashrate)
-            {
-              auto hashRate = lastWorkerWithNonZeroHashrate->getHashRate().getAverageHashRateLongTimeWindow();
-              if (pool->removeWorker(lastWorkerWithNonZeroHashrate))
-              {
-                excessiveWeightedHashrate -= hashRate;
-                std::lock_guard<std::mutex> lock(availableWorkersMutex);
-                availableWorkersByHashrate.insert(
-                  AvailableWorkersByHashrate::value_type(-hashRate, lastWorkerWithNonZeroHashrate));
-              }
-            }
-          });
-      ioService_->post(std::bind(&RemoveExcessiveHashrateTask::operator(), task, pool.second, (pool.first - averageWeightedHashrate)));
-      removeExcessiveHashrateTasks.push_back(std::move(task->get_future()));
-    }
-  }
-  // waits for completion of the started tasks
-  for (auto& task : removeExcessiveHashrateTasks) { task.wait(); }
-
-  // TODO special treatment of pools without workers
-
-  // adds available workers to underloaded pools
-  auto lowHashratePoolsIterator = poolsSortedByWeightedHashrate.begin();
-  while (!availableWorkersByHashrate.empty() &&
-         lowHashratePoolsIterator != poolsSortedByWeightedHashrate.end() &&
-         lowHashratePoolsIterator->first < averageWeightedHashrate)
-  {
-    auto& pool = lowHashratePoolsIterator->second;
-    auto hashRate = lowHashratePoolsIterator->first;
-    uint32_t hashrateDeficit = averageWeightedHashrate - hashRate;
-    LOG_DEBUG << "balancePoolLoads() trying to add workers to pool " << pool->getDescriptor()
-              << " with hashRate " << hashRate << " (hashRateDeficit = " << hashrateDeficit << ")";
-
-    // iterate through available workers, starting with highest hashrates
-    auto availableWorkerIterator = availableWorkersByHashrate.begin();
-    while (availableWorkerIterator != availableWorkersByHashrate.end()
-           // TODO abort condition based on hashrateDeficit threshold -> donation
-          )
-    {
-      int32_t workerHashrate = availableWorkerIterator->first;
-      auto& worker = availableWorkerIterator->second;
-      if (-workerHashrate < hashrateDeficit && pool->addWorker(worker))
-      {
-        hashrateDeficit += workerHashrate;
-        availableWorkerIterator = availableWorkersByHashrate.erase(availableWorkerIterator);
-      }
-      else
-      {
-        availableWorkerIterator++;
-      }
-    }
-    lowHashratePoolsIterator++;
-  }
-
-  if (!availableWorkersByHashrate.empty())
-  {
-    LOG_WARN << "balancePoolLoads() unassigned workers " << availableWorkersByHashrate.size() << ", assigning to slowest pools";
-    for (auto& worker : availableWorkersByHashrate)
-    {
-      for (auto& pool : poolsSortedByWeightedHashrate)
-      {
-        if (pool.second->addWorker(worker.second))
-        {
-          break;
-        }
-      }
-    }
   }
 }
+//
+////  clientsTracker_.sampleCurrentState();
+////  LOG_ERROR << "clientsTracker: accumulatedHashRate, " << clientsTracker_.accumulatedHashRate_;
+////  poolsTracker_.sampleCurrentState();
+////  LOG_ERROR << "poolsTracker: accumulatedHashRate, " << poolsTracker_.accumulatedHashRate_;
+//
+//  // sort pools by weighted hashrate
+//  typedef std::map<uint32_t, Pool::Ptr> PoolsByWeightedHashrate;
+//  PoolsByWeightedHashrate poolsSortedByWeightedHashrate;
+//
+//  // calculates average weighted hashrate
+//  uint32_t totalWorkers = 0;
+//  uint32_t totalHashrate = 0;
+//  uint32_t averageWeightedHashrate = 0;
+//  uint32_t numPools = 0;
+//  for(auto& pool : pools_)
+//  {
+//    ++numPools;
+//    const auto& hashRate = pool->getSubmitHashRate();
+//    totalHashrate += hashRate.getAverageHashRateLongTimeWindow();
+//    uint32_t weightedHashRate = hashRate.getAverageHashRateLongTimeWindow() / pool->getWeight();
+//    averageWeightedHashrate += weightedHashRate;
+//    poolsSortedByWeightedHashrate[weightedHashRate] = pool;
+//    totalWorkers += pool->numWorkers();
+//    LOG_INFO << "Balance inspection: " << pool->getDescriptor()
+//             << ", hashRate, " << hashRate.getAverageHashRateLongTimeWindow()
+//             << ", weightedHashRate, " << weightedHashRate
+//             << ", weight, " << pool->getWeight()
+//             << ", workers, " << pool->numWorkers()
+//             << ", algorithm, " << pool->getAlgotrithm();
+//  }
+//
+//  averageWeightedHashrate /= numPools;
+//  LOG_WARN << "Balancing loads of " << numPools << " pools, totalHashrate, " << totalHashrate
+//           << ", averageWeightedHashrate, " << averageWeightedHashrate
+//           << ", totalWorkers, " << totalWorkers;
+//
+//  //TODO const uint32_t allowedHashrateHystersis = 100;
+//
+//  // remove excessive hashrate from pools with too high load
+//  typedef std::multimap<int32_t, Worker::Ptr> AvailableWorkersByHashrate;
+//  AvailableWorkersByHashrate availableWorkersByHashrate;
+//  std::mutex availableWorkersMutex;
+//  typedef std::packaged_task<void(Pool::Ptr&, uint32_t)> RemoveExcessiveHashrateTask;
+//  std::list<std::future<void> > removeExcessiveHashrateTasks;
+//  for(auto& pool : poolsSortedByWeightedHashrate)
+//  {
+//    if (pool.first > averageWeightedHashrate)
+//    {
+//      LOG_DEBUG << "balancePoolLoads() trying to remove workers from pool " << pool.second->getDescriptor() << " with hashRate " << pool.first;
+//      std::shared_ptr<RemoveExcessiveHashrateTask> task =
+//        std::make_shared<RemoveExcessiveHashrateTask>(
+//          [&availableWorkersByHashrate, &availableWorkersMutex](Pool::Ptr& pool, int32_t excessiveWeightedHashrate)
+//          {
+//            excessiveWeightedHashrate *= pool->getWeight();
+//            auto workersSortedByHashrateDescending =  pool->getWorkersSortedByHashrateDescending();
+//            Worker::Ptr lastWorkerWithNonZeroHashrate;
+//            for (auto& worker : workersSortedByHashrateDescending)
+//            {
+//              auto hashRate = worker->getSubmitHashRate().getAverageHashRateLongTimeWindow();
+//              if (hashRate > 0)
+//              {
+//                if (hashRate <= excessiveWeightedHashrate)
+//                {
+//                  if (pool->removeWorker(worker))
+//                  {
+//                    excessiveWeightedHashrate -= hashRate;
+//
+//                    std::lock_guard<std::mutex> lock(availableWorkersMutex);
+//                    availableWorkersByHashrate.insert(AvailableWorkersByHashrate::value_type(-hashRate, worker));
+//                  }
+//                }
+//                else
+//                {
+//                  lastWorkerWithNonZeroHashrate = worker;
+//                }
+//              }
+//              if (excessiveWeightedHashrate <= 0)
+//              {
+//                break;
+//              }
+//            }
+//            // If there is still too much hash rate assigned to the pool, also takes the slowest worker (with hashrate > 0).
+//            // This will definitely push the excessiveWeightedHashrate below zero, otherwise the worker would
+//            // have been picked by the loop above, already.
+//            if (excessiveWeightedHashrate > 0 && lastWorkerWithNonZeroHashrate)
+//            {
+//              auto hashRate = lastWorkerWithNonZeroHashrate->getSubmitHashRate().getAverageHashRateLongTimeWindow();
+//              if (pool->removeWorker(lastWorkerWithNonZeroHashrate))
+//              {
+//                excessiveWeightedHashrate -= hashRate;
+//                std::lock_guard<std::mutex> lock(availableWorkersMutex);
+//                availableWorkersByHashrate.insert(
+//                  AvailableWorkersByHashrate::value_type(-hashRate, lastWorkerWithNonZeroHashrate));
+//              }
+//            }
+//          });
+//      ioService_->post(std::bind(&RemoveExcessiveHashrateTask::operator(), task, pool.second, (pool.first - averageWeightedHashrate)));
+//      removeExcessiveHashrateTasks.push_back(std::move(task->get_future()));
+//    }
+//  }
+//  // waits for completion of the started tasks
+//  for (auto& task : removeExcessiveHashrateTasks) { task.wait(); }
+//
+//  // TODO special treatment of pools without workers
+//
+//  // adds available workers to underloaded pools
+//  auto lowHashratePoolsIterator = poolsSortedByWeightedHashrate.begin();
+//  while (!availableWorkersByHashrate.empty() &&
+//         lowHashratePoolsIterator != poolsSortedByWeightedHashrate.end() &&
+//         lowHashratePoolsIterator->first < averageWeightedHashrate)
+//  {
+//    auto& pool = lowHashratePoolsIterator->second;
+//    auto hashRate = lowHashratePoolsIterator->first;
+//    uint32_t hashrateDeficit = averageWeightedHashrate - hashRate;
+//    LOG_DEBUG << "balancePoolLoads() trying to add workers to pool " << pool->getDescriptor()
+//              << " with hashRate " << hashRate << " (hashRateDeficit = " << hashrateDeficit << ")";
+//
+//    // iterate through available workers, starting with highest hashrates
+//    auto availableWorkerIterator = availableWorkersByHashrate.begin();
+//    while (availableWorkerIterator != availableWorkersByHashrate.end()
+//           // TODO abort condition based on hashrateDeficit threshold -> donation
+//          )
+//    {
+//      int32_t workerHashrate = availableWorkerIterator->first;
+//      auto& worker = availableWorkerIterator->second;
+//      if (-workerHashrate < hashrateDeficit && pool->addWorker(worker))
+//      {
+//        hashrateDeficit += workerHashrate;
+//        availableWorkerIterator = availableWorkersByHashrate.erase(availableWorkerIterator);
+//      }
+//      else
+//      {
+//        availableWorkerIterator++;
+//      }
+//    }
+//    lowHashratePoolsIterator++;
+//  }
+//
+//  if (!availableWorkersByHashrate.empty())
+//  {
+//    LOG_WARN << "balancePoolLoads() unassigned workers " << availableWorkersByHashrate.size() << ", assigning to slowest pools";
+//    for (auto& worker : availableWorkersByHashrate)
+//    {
+//      for (auto& pool : poolsSortedByWeightedHashrate)
+//      {
+//        if (pool.second->addWorker(worker.second))
+//        {
+//          break;
+//        }
+//      }
+//    }
+//  }
+//}
 
 } // namespace proxy
 } // namespace ses

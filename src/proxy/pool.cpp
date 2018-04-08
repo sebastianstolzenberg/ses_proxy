@@ -47,14 +47,24 @@ Pool::~Pool()
 
 bool Pool::addWorker(const Worker::Ptr& worker)
 {
+  bool accepted = false;
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  bool accepted = assignJobToWorker(worker);
-  if (accepted)
+  auto workerIt = std::find(workers_.begin(), workers_.end(), worker);
+  if (workerIt != workers_.end())
   {
-    workers_.push_back(worker);
-    LOG_POOL_INFO << "Added worker " << worker->getIdentifier() << ", hashRate, " << worker->getHashRate()
-                  << ", numWorkers, " << workers_.size();
+    // already assigned to this pool
+    accepted = true;
+  }
+  else
+  {
+    accepted = assignJobToWorker(worker);
+    if (accepted)
+    {
+      workers_.push_back(worker);
+      LOG_POOL_INFO << "Added worker " << worker->getIdentifier() << ", hashRate, " << worker->getHashRate()
+                    << ", numWorkers, " << workers_.size();
 
+    }
   }
   return accepted;
 }
@@ -100,7 +110,7 @@ Algorithm Pool::getAlgotrithm() const
   return configuration_.algorithm_;
 }
 
-uint32_t Pool::getWeight() const
+double Pool::getWeight() const
 {
   return configuration_.weight_;
 }
@@ -134,12 +144,18 @@ double Pool::weightedHashRate() const
   return weightedHashRate;
 }
 
-const util::HashRateCalculator& Pool::getHashRate()
+const util::HashRateCalculator& Pool::getWorkerHashRate()
+{
+  workerHashRate_.addHashRate(hashRate());
+  return workerHashRate_;
+}
+
+const util::HashRateCalculator& Pool::getSubmitHashRate()
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   // ensures hashrates drop to zero when nothing gets submitted for a while
-  hashrate_.addHashes(0);
-  return hashrate_;
+  submitHashRate_.addHashes(0);
+  return submitHashRate_;
 }
 
 void Pool::handleConnect()
@@ -242,9 +258,9 @@ void Pool::handleGetJobError(int code, const std::string& message)
 void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                                const std::string& status)
 {
-  hashrate_.addHashes(activeJobTemplate_->getDifficulty());
+  submitHashRate_.addHashes(activeJobTemplate_->getDifficulty());
 
-  LOG_POOL_INFO << "Submit success: job, " << jobId << ", " << hashrate_;
+  LOG_POOL_INFO << "Submit success: job, " << jobId << ", " << submitHashRate_;
 
 
   if (submitStatusHandler)

@@ -61,7 +61,7 @@ public:
 
   const std::string& getDescriptor() const;
   Algorithm getAlgotrithm() const;
-  uint32_t getWeight() const;
+  double getWeight() const;
 
   size_t numWorkers() const;
   double weightedWorkers() const;
@@ -69,7 +69,8 @@ public:
   uint32_t hashRate() const;
   double weightedHashRate() const;
 
-  const util::HashRateCalculator& getHashRate();
+  const util::HashRateCalculator& getWorkerHashRate();
+  const util::HashRateCalculator& getSubmitHashRate();
 
 private:
   void handleConnect();
@@ -133,7 +134,8 @@ private:
 
   std::list<Worker::Ptr> workers_;
 
-  util::HashRateCalculator hashrate_;
+  util::HashRateCalculator workerHashRate_;
+  util::HashRateCalculator submitHashRate_;
 };
 
 } // namespace proxy
