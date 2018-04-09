@@ -7,80 +7,38 @@ namespace ses {
 namespace util {
 namespace hashrate {
 
-namespace {
-template <typename V> inline V& getValue(V& v) { return v; }
-template <typename K, typename V> inline V& getValue(std::pair<K, V>& p) { return p.second; }
-}
-
-template <class T>
-class Sampler
+template <class ProducerImplementation>
+class Producer
 {
 public:
-  Sampler(const T& hasher) : hasher_(hasher) {}
+  Producer(const ProducerImplementation& producer) : producer_(producer) {}
 
-  void sampleCurrentState()
-  {
-    hashRate_ = getValue(hasher_)->getHashRate().getAverageHashRateLongTimeWindow();
-  }
+  const ProducerImplementation& get() {return producer_;}
 
-  bool operator<(const Sampler<T>& other) const
+  bool operator<(const Producer<ProducerImplementation>& other) const
   {
     return hashRate_ < other.hashRate_;
   }
 
-  bool operator>(const Sampler<T>& other) const
+  bool operator>(const Producer<ProducerImplementation>& other) const
   {
     return hashRate_ > other.hashRate_;
   }
 
-  bool operator==(const T& hasher) const
+  void sampleCurrentState()
   {
-    return hasher_ == hasher;
+    hashRate_ = producer_->getHashRate().getAverageHashRateLongTimeWindow();
   }
 
-  T hasher_;
-
+  ProducerImplementation producer_;
   double hashRate_;
 };
 
-class Averager
-{
-public:
-  template <class HashRateSamplerRange>
-  void sampleCurrentState(HashRateSamplerRange& samplerRange)
-  {
-    accumulatedHashRate_ = 0;
-    for (auto& hasher : samplerRange)
-    {
-      hasher.sampleCurrentState();
-      accumulatedHashRate_ += hasher.hashRate_;
-    }
-    std::sort(samplerRange.begin(), samplerRange.end(),
-              std::greater<typename HashRateSamplerRange::value_type >());
-  }
-
-  operator double() const
-  {
-    return accumulatedHashRate_;
-  }
-
-  double accumulatedHashRate_;
-};
-
-template <class ProducerImplementation>
-class Producer : public Sampler<ProducerImplementation>
-{
-public:
-  Producer(const ProducerImplementation& producer)
-      : Sampler<ProducerImplementation>(producer) {}
-};
-
 template <class ConsumerImplementation>
-class Consumer : public Sampler<ConsumerImplementation>
+class Consumer
 {
 public:
-  Consumer(const ConsumerImplementation& consumer)
-      : Sampler<ConsumerImplementation>(consumer) {}
+  Consumer(const ConsumerImplementation& consumer) : consumer_(consumer) {}
 
   bool operator<(const Consumer<ConsumerImplementation>& other) const
   {
@@ -94,14 +52,13 @@ public:
 
   double getWeight() const
   {
-    return Sampler<ConsumerImplementation>::hasher_->getWeight();
+    return consumer_->getWeight();
   }
 
   void setTargetHashRate(double totalAvailableHashRate)
   {
     double targetHashRate_ = totalAvailableHashRate * getWeight();
-    double actualAverage =
-      Sampler<ConsumerImplementation>::hasher_->getWorkerHashRate().getAverageHashRateLongTimeWindow();
+    double actualAverage = consumer_->getWorkerHashRate().getAverageHashRateLongTimeWindow();
     // substracts current deviation of the average from the ideal average
     remainingTargetHashRate_ = 2 * targetHashRate_ - actualAverage;
     std::cout << "(t" << targetHashRate_ << ",a" << actualAverage << ",r" << remainingTargetHashRate_ << ")";
@@ -110,7 +67,7 @@ public:
   template <class ProducerImplementation>
   bool assignProducer(Producer<ProducerImplementation>& producer)
   {
-    bool assigned = Sampler<ConsumerImplementation>::hasher_->addWorker(producer.hasher_);
+    bool assigned = consumer_->addWorker(producer.get());
     if (assigned)
     {
       remainingTargetHashRate_ -= producer.hashRate_;
@@ -121,9 +78,10 @@ public:
   template <class ProducerImplementation>
   bool releaseProducer(Producer<ProducerImplementation>& producer)
   {
-    Sampler<ConsumerImplementation>::hasher_->removeWorker(producer.hasher_);
+    consumer_->removeWorker(producer.get());
   }
 
+  ConsumerImplementation consumer_;
   double remainingTargetHashRate_;
 };
 
@@ -139,11 +97,18 @@ public:
 
   void sampleCurrentState()
   {
-    average_.sampleCurrentState(producers_);
+    accumulatedHashRate_ = 0;
+    for (auto& hasher : producers_)
+    {
+      hasher.sampleCurrentState();
+      accumulatedHashRate_ += hasher.hashRate_;
+    }
+    std::sort(producers_.begin(), producers_.end(),
+              std::greater<Producer<ProducerImplementation> >());
   }
 
   std::deque<Producer<ProducerImplementation> > producers_;
-  Averager average_;
+  double accumulatedHashRate_;
 };
 
 
@@ -172,20 +137,12 @@ public:
               std::greater<Consumer<ConsumerImplementation> >());
   }
 
-  void releaseProducers()
-  {
-    for (auto& consumer : consumers_)
-    {
-      getValue(consumer.hasher_)->removeAllWorkers();
-    }
-  }
-
   template <class ProducerImplementation>
   void distributeProducers(ProducerPool<ProducerImplementation>& producers)
   {
     if (!consumers_.empty())
     {
-      determineTargetHashRates(producers.average_.accumulatedHashRate_);
+      determineTargetHashRates(producers.accumulatedHashRate_);
       for (auto& producer : producers.producers_)
       {
         sortByRemainingHashRateDescending();
