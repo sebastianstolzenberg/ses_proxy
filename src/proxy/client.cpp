@@ -19,7 +19,8 @@ Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
                const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty,
                uint32_t targetSecondsBetweenSubmits)
   : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN),
-    difficulty_(defaultDifficulty), targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits)
+    difficulty_(defaultDifficulty), targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits),
+    submits_(0)
 {
 }
 
