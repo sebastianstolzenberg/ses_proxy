@@ -42,13 +42,22 @@ public:
     socket_.set_verify_mode(boost::asio::ssl::verify_none);
   }
 
-  template<class ITERATOR>
-  void connect(ITERATOR &iterator)
+  template<class ITERATOR, class HANDLER>
+  void connect(ITERATOR &iterator, HANDLER handler)
   {
-    boost::asio::connect(socket_.lowest_layer(), iterator);
-    socket_.lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
-    socket_.lowest_layer().set_option(boost::asio::socket_base::keep_alive(true));
-    socket_.handshake(boost::asio::ssl::stream_base::client);
+    boost::asio::async_connect(
+      socket_.lowest_layer(), iterator,
+      [this, handler](const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator)
+      {
+        if (error)
+        {
+          handler(error);
+        }
+        else
+        {
+          socket_.async_handshake(boost::asio::ssl::stream_base::client, handler);
+        }
+      });
   }
 
   SocketType &get()
@@ -74,7 +83,7 @@ Connection::Ptr establishBoostTlsConnection(const std::shared_ptr<boost::asio::i
                                             const Connection::DisconnectHandler& errorHandler)
 {
   auto connection = std::make_shared<BoostConnection<BoostTlsSocket> > (ioService, connectHandler, receivedDataHandler, errorHandler);
-  ioService->post(std::bind(&BoostConnection<BoostTlsSocket>::connect, connection, host, port));
+  connection->connect(host, port);
   return connection;
 }
 

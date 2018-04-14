@@ -40,7 +40,7 @@ public:
   virtual std::string getConnectedIp() const = 0;
   virtual uint16_t getConnectedPort() const = 0;
 
-  virtual bool send(const std::string& data) = 0;
+  virtual void send(const std::string& data) = 0;
 
 protected:
   virtual void startReading() = 0;

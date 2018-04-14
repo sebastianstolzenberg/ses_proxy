@@ -65,17 +65,20 @@ public:
     return isConnected() ? socket_.lowest_layer().remote_endpoint().port() : 0;
   }
 
-  bool send(const std::string& data) override
+  void send(const std::string& data) override
   {
     LOG_TRACE << "net::server::BoostConnection::send: " << data;
 
-    boost::system::error_code error;
-    boost::asio::write(socket_, boost::asio::buffer(data.data(), data.size()), error);
-    if (error)
-    {
-      notifyError(error.message());
-    }
-    return !error;
+    auto self = this->shared_from_this();
+    boost::asio::async_write(
+      socket_, boost::asio::buffer(data.data(), data.size()),
+      [this, self](const boost::system::error_code& error, std::size_t bytes_transferred)
+      {
+        if (error)
+        {
+          notifyError(error.message());
+        }
+      });
   }
 
 protected:

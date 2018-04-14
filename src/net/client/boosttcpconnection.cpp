@@ -39,12 +39,15 @@ public:
   {
   }
 
-  template<class ITERATOR>
-  void connect(ITERATOR &iterator)
+  template<class ITERATOR, class HANDLER>
+  void connect(ITERATOR &iterator, HANDLER handler)
   {
-    boost::asio::connect(socket_, iterator);
-    socket_.set_option(boost::asio::ip::tcp::no_delay(true));
-    socket_.set_option(boost::asio::socket_base::keep_alive(true));
+    boost::asio::async_connect(
+      socket_, iterator,
+      [handler](const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator)
+      {
+        handler(error);
+      });
   }
 
   SocketType &get()
@@ -68,7 +71,7 @@ Connection::Ptr establishBoostTcpConnection(const std::shared_ptr<boost::asio::i
                                             const Connection::DisconnectHandler& errorHandler)
 {
   auto connection = std::make_shared<BoostConnection<BoostTcpSocket> > (ioService, connectHandler, receivedDataHandler, errorHandler);
-  ioService->post(std::bind(&BoostConnection<BoostTcpSocket>::connect, connection, host, port));
+  connection->connect(host, port);
   return connection;
 }
 

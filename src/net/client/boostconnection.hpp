@@ -35,13 +35,38 @@ public:
     try
     {
       LOG_TRACE << "Connecting net::client::BoostConnection to " << server << ":" << port;
-      boost::asio::ip::tcp::resolver resolver(*ioService_);
+      auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(*ioService_);
       boost::asio::ip::tcp::resolver::query query(server, std::to_string(port));
-      boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
-      socket_.connect(iterator);
-      startReading();
-      connectHandler_();
+      auto self = this->shared_from_this();
+      resolver->async_resolve(
+        query,
+        [this, self, resolver](const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator iterator)
+        {
+          if (error)
+          {
+            notifyError(error.message());
+          }
+          else
+          {
+            socket_.connect(
+              iterator,
+              [this, self](const boost::system::error_code& error)
+              {
+                if (error)
+                {
+                  notifyError(error.message());
+                }
+                else
+                {
+                  socket_.get().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
+                  socket_.get().lowest_layer().set_option(boost::asio::socket_base::keep_alive(true));
+                  startReading();
+                  connectHandler_();
+                }
+              });
+          }
+        });
     }
     catch (...)
     {
@@ -77,17 +102,20 @@ public:
     return isConnected() ? socket_.get().lowest_layer().remote_endpoint().port() : 0;
   }
 
-  bool send(const std::string& data) override
+  void send(const std::string& data) override
   {
     LOG_TRACE << "net::client::BoostConnection<" << getConnectedIp() << ":" << getConnectedPort() << ">::send: " << data;
 
-    boost::system::error_code error;
-    boost::asio::write(socket_.get(), boost::asio::buffer(data.data(), data.size()), error);
-    if (error)
-    {
-      notifyError(error.message());
-    }
-    return !error;
+    auto self = this->shared_from_this();
+    boost::asio::async_write(
+      socket_.get(), boost::asio::buffer(data.data(), data.size()),
+      [this, self](const boost::system::error_code& error, std::size_t bytes_transferred)
+      {
+        if (error)
+        {
+          notifyError(error.message());
+        }
+      });
   }
 
 protected:
