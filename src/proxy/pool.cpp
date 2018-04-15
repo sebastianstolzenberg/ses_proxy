@@ -2,6 +2,7 @@
 #include <functional>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/numeric.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include "net/client/connection.hpp"
 #include "net/jsonrpc/jsonrpc.hpp"
@@ -26,14 +27,8 @@ Pool::Pool(const std::shared_ptr<boost::asio::io_service>& ioService)
 void Pool::connect(const Configuration& configuration)
 {
   LOG_INFO << "Connecting new pool - " << configuration;
-  connection_ = net::client::establishConnection(ioService_,
-                                                 configuration.endPoint_,
-                                                 std::bind(&Pool::handleConnect, this),
-                                                 std::bind(&Pool::handleReceived, this,
-                                                           std::placeholders::_1),
-                                                 std::bind(&Pool::handleDisconnect, this,
-                                                           std::placeholders::_1));
   configuration_ = configuration;
+  connect();
   updateName();
 }
 
@@ -225,6 +220,20 @@ void Pool::handleReceived(const std::string& data)
 void Pool::handleDisconnect(const std::string& error)
 {
   LOG_POOL_INFO << "Disconnected: " << error;
+  connection_.reset();
+
+  // tries to reconnect in 5 seconds
+  std::weak_ptr<Pool> weakSelf = shared_from_this();
+  auto timer = std::make_shared<boost::asio::deadline_timer>(*ioService_);
+  timer->expires_from_now(boost::posix_time::seconds(5));
+  timer->async_wait(
+    [this, weakSelf, timer](const boost::system::error_code& error)
+    {
+      if (!error && !weakSelf.expired())
+      {
+        connect();
+      }
+    });
 }
 
 void Pool::handleLoginSuccess(const std::string& id, const boost::optional<stratum::Job>& job)
@@ -336,6 +345,17 @@ void Pool::updateName()
   poolNameStream << "<" << workerIdentifier_ << "@"
                  << configuration_.endPoint_.host_ << ":" << configuration_.endPoint_.port_ << ">";
   poolName_ = poolNameStream.str();
+}
+
+void Pool::connect()
+{
+  connection_ = net::client::establishConnection(ioService_,
+                                                 configuration_.endPoint_,
+                                                 std::bind(&Pool::handleConnect, this),
+                                                 std::bind(&Pool::handleReceived, this,
+                                                           std::placeholders::_1),
+                                                 std::bind(&Pool::handleDisconnect, this,
+                                                           std::placeholders::_1));
 }
 
 Pool::RequestIdentifier Pool::sendRequest(Pool::RequestType type, const std::string& params)

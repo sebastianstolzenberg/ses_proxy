@@ -94,26 +94,30 @@ private:
     auto self = selfSustainUntilDisconnect_ ?
                 std::enable_shared_from_this<BoostConnection<SocketType> >::shared_from_this() :
                 BoostConnection::Ptr();
+    std::weak_ptr<BoostConnection<SocketType> > weakSelf = this->shared_from_this();
     boost::asio::async_read_until(
         socket_,
         receiveBuffer_,
         '\n',
-        [this, self](boost::system::error_code error, size_t bytes_transferred)
+        [this, self, weakSelf](boost::system::error_code error, size_t bytes_transferred)
         {
-          if (!error)
+          if (!weakSelf.expired())
           {
-            boost::asio::streambuf::const_buffers_type bufs = receiveBuffer_.data();
-            std::string data(boost::asio::buffers_begin(bufs),
-                             boost::asio::buffers_begin(bufs) + receiveBuffer_.size());
-            receiveBuffer_.consume(receiveBuffer_.size());
-            LOG_TRACE << "net::server::BoostConnection received : " << data;
-            notifyRead(data);
-            triggerRead();
-          }
-          else
-          {
-            LOG_TRACE << "net::server::BoostConnection Read failed: " << error.message();
-            notifyError(error.message());
+            if (!error)
+            {
+              boost::asio::streambuf::const_buffers_type bufs = receiveBuffer_.data();
+              std::string data(boost::asio::buffers_begin(bufs),
+                               boost::asio::buffers_begin(bufs) + receiveBuffer_.size());
+              receiveBuffer_.consume(receiveBuffer_.size());
+              LOG_TRACE << "net::server::BoostConnection received : " << data;
+              notifyRead(data);
+              triggerRead();
+            }
+            else
+            {
+              LOG_TRACE << "net::server::BoostConnection Read failed: " << error.message();
+              notifyError(error.message());
+            }
           }
         });
   }

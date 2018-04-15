@@ -129,29 +129,33 @@ private:
   {
     // captures a shared pointer to keep the connection object alive until it is disconnected
     auto self = selfSustainUntilDisconnect_ ? this->shared_from_this() : BoostConnection<SOCKET>::Ptr();
+    std::weak_ptr<BoostConnection<SOCKET> > weakSelf = this->shared_from_this();
     boost::asio::async_read_until(
         socket_.get(),
         receiveBuffer_,
         '\n',
-        [this, self](const boost::system::error_code &error,
+        [this, self, weakSelf](const boost::system::error_code &error,
                      size_t bytes_transferred)
         {
-          if (!error)
+          if (!weakSelf.expired())
           {
-            std::string data(
-              boost::asio::buffers_begin(receiveBuffer_.data()),
-              boost::asio::buffers_begin(receiveBuffer_.data()) + bytes_transferred);
-            receiveBuffer_.consume(bytes_transferred);
-            LOG_TRACE << "net::client::BoostConnection<" << getConnectedIp() << ":"
-                      << getConnectedPort() << ">::handleRead: " << data;
-            notifyRead(data);
-            triggerRead();
-          }
-          else
-          {
-            LOG_ERROR << "<" << getConnectedIp() << ":" << getConnectedPort() << "> Read failed: "
-                      << error.message();
-            notifyError(error.message());
+            if (!error)
+            {
+              std::string data(
+                boost::asio::buffers_begin(receiveBuffer_.data()),
+                boost::asio::buffers_begin(receiveBuffer_.data()) + bytes_transferred);
+              receiveBuffer_.consume(bytes_transferred);
+              LOG_TRACE << "net::client::BoostConnection<" << getConnectedIp() << ":"
+                        << getConnectedPort() << ">::handleRead: " << data;
+              notifyRead(data);
+              triggerRead();
+            }
+            else
+            {
+              LOG_ERROR << "<" << getConnectedIp() << ":" << getConnectedPort() << "> Read failed: "
+                        << error.message();
+              notifyError(error.message());
+            }
           }
         });
   }

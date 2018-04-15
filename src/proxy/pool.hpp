@@ -105,6 +105,7 @@ private:
     REQUEST_TYPE_KEEPALIVE
   };
   void updateName();
+  void connect();
   RequestIdentifier sendRequest(RequestType type, const std::string& params = "");
   void setJob(const stratum::Job& job);
   void activateJob(const JobTemplate::Ptr& job);
