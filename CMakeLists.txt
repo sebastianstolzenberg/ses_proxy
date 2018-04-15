@@ -1,11 +1,24 @@
 cmake_minimum_required(VERSION 3.0)
+
+###############################################################################
+include("cmake/HunterGate.cmake")
+set(HUNTER_STATUS_DEBUG ON)
+set(HUNTER_TLS_VERIFY ON)
+HunterGate(
+        URL "https://github.com/ruslo/hunter/archive/v0.20.39.tar.gz"
+        SHA1 "b49c4b58e17c1473e822f8b21fcde92fee25791d"
+)
+
+###############################################################################
 project(ses_proxy)
 
 #add_subdirectory(cryptonote)
 
 add_subdirectory(src/cryptonote)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
+
+hunter_add_package(Boost COMPONENTS log system)
 
 find_package(Threads)
 find_package(OpenSSL REQUIRED)
