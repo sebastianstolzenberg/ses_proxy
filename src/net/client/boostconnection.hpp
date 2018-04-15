@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/asio/io_service.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 

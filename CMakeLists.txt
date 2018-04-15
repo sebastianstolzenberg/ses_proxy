@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.0)
 
 ###############################################################################
+option(HUNTER_ENABLED "Use hunter package manager for dependency resolution" OFF)
+
 include("cmake/HunterGate.cmake")
-set(HUNTER_STATUS_DEBUG ON)
+
+set(HUNTER_STATUS_DEBUG OFF)
 set(HUNTER_TLS_VERIFY ON)
 HunterGate(
         URL "https://github.com/ruslo/hunter/archive/v0.20.39.tar.gz"
@@ -14,16 +17,18 @@ project(ses_proxy)
 
 #add_subdirectory(cryptonote)
 
-add_subdirectory(src/cryptonote)
-
-set(CMAKE_CXX_STANDARD 11)
-
-hunter_add_package(Boost COMPONENTS log system)
-
 find_package(Threads)
+
+hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)
+
 SET(Boost_USE_STATIC_LIBS ON)
+hunter_add_package(Boost COMPONENTS program_options log system)
 find_package(Boost COMPONENTS program_options log log_setup system REQUIRED)
+
+set(CMAKE_CXX_STANDARD 14)
+
+add_subdirectory(src/cryptonote)
 
 include_directories(src)
 
@@ -33,7 +38,7 @@ add_library(ses_proxy_util
         src/util/target.cpp
         src/util/log.cpp
         src/util/hashratecalculator.cpp
-        src/util/pidcontroller.cpp src/util/hashratebalancer.hpp)
+        src/util/pidcontroller.cpp)
 
 add_library(ses_proxy_net
         STATIC
@@ -42,7 +47,6 @@ add_library(ses_proxy_net
         src/net/client/boosttlsconnection.cpp
         src/net/client/boosttcpconnection.cpp
         src/net/server/server.cpp
-        src/net/server/server.hpp
         src/net/jsonrpc/jsonrpc.cpp)
 
 add_library(ses_proxy_stratum
