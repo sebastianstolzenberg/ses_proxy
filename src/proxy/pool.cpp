@@ -117,9 +117,12 @@ size_t Pool::numWorkers() const
 
 double Pool::weightedWorkers() const
 {
-  double weightedWorkers = numWorkers();
-  weightedWorkers /= getWeight();
-//  LOG_POOL_INFO << "Weighted workers, " << weightedWorkers << ", number of workers, " << numWorkers();
+  double weightedWorkers = 0;
+  if (getWeight() > 0)
+  {
+    weightedWorkers = numWorkers();
+    weightedWorkers /= getWeight();
+  }
   return weightedWorkers;
 }
 
@@ -134,8 +137,12 @@ uint32_t Pool::hashRate() const
 
 double Pool::weightedHashRate() const
 {
-  double weightedHashRate = hashRate();
-  weightedHashRate /= getWeight();
+  double weightedHashRate = 0;
+  if (getWeight() > 0)
+  {
+    weightedHashRate = hashRate();
+    weightedHashRate /= getWeight();
+  }
   return weightedHashRate;
 }
 

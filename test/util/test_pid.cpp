@@ -99,6 +99,8 @@ public:
 
   void update(double dt)
   {
+    if (dt == 0) return;
+
     // calculates weight factor
     timeSinceInit_ += dt;
     double diffFractionOfTimeWindow = dt / std::min(averageTimeWindow_, timeSinceInit_);
