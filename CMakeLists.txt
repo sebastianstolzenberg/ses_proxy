@@ -48,7 +48,8 @@ add_library(ses_proxy_net
         src/net/client/boosttlsconnection.cpp
         src/net/client/boosttcpconnection.cpp
         src/net/server/server.cpp
-        src/net/jsonrpc/jsonrpc.cpp src/net/client/http.cpp)
+        src/net/jsonrpc/jsonrpc.cpp
+        src/net/client/http.cpp)
 
 add_library(ses_proxy_stratum
         STATIC
@@ -67,7 +68,8 @@ add_executable(ses_proxy
         src/proxy/worker.cpp
         src/proxy/blob.cpp
         src/proxy/workeridentifier.cpp
-        src/proxy/configurationfile.cpp src/proxy/ccclient.hpp)
+        src/proxy/configurationfile.cpp
+        src/proxy/ccclient.cpp)
 
 target_link_libraries(ses_proxy
         ses_proxy_net

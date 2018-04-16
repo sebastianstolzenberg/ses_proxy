@@ -4,7 +4,7 @@
 #include <boost/beast/http.hpp>
 
 #include "net/client/boosttlsconnection.hpp"
-#include "net/endpoint.hpp"
+#include "net/client/http.hpp"
 
 namespace ses {
 namespace net {
@@ -12,103 +12,96 @@ namespace client {
 
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 
-class Http : public std::enable_shared_from_this<Http>
+Http::Http(const std::shared_ptr<boost::asio::io_service>& ioService,
+     const EndPoint& endPoint, const std::string& userAgent)
+  : ioService_(ioService), endPoint_(endPoint), userAgent_(userAgent)
 {
-public:
-  enum ResponseError
+
+}
+
+void Http::setBearerAuthenticationToken(const std::string& token)
+{
+  if (token.empty())
   {
-
-  };
-
-  typedef std::function<void(const std::string& data)> ResponseHandler;
-  typedef std::function<void(const std::string& error)> ErrorHandler;
-
-public:
-  Http(const std::shared_ptr<boost::asio::io_service>& ioService,
-       const EndPoint& endPoint, const std::string& userAgent)
-    : ioService_(ioService), endPoint_(endPoint), socket_(*ioService), userAgent_(userAgent)
+    bearerAuthenticationToken_.clear();
+  }
+  else
   {
+    bearerAuthenticationToken_ = std::string("Bearer ") + token;
+  }
+}
 
+void Http::connect(ConnectHandler connectHandler, ErrorHandler errorHandler)
+{
+  connection_ =
+      establishBoostTlsConnection(ioService_, endPoint_.host_, endPoint_.port_,
+                                  connectHandler,
+                                  [](const std::string&) {/*ignored*/},
+                                  errorHandler);
+}
+
+void Http::post(const std::string& url, const std::string& body,
+          const ResponseHandler responseHandler, const ErrorHandler errorHandler)
+{
+  http::request<http::string_body> request
+      { http::verb::post, url, 11 };
+
+  request.set(http::field::host, endPoint_.host_);
+  request.set(http::field::user_agent, userAgent_);
+
+  if (!bearerAuthenticationToken_.empty())
+  {
+    request.set(http::field::authorization, bearerAuthenticationToken_);
   }
 
-  void connect()
-  {
-    connection_ =
-        establishBoostTlsConnection(ioService_, endPoint_.host_, endPoint_.port_,
-                                    std::bind(&Http::handleConnect, this),
-                                    std::bind(&Http::handleReceived, this, std::placeholders::_1),
-                                    std::bind(&Http::handleDisconnect, this, std::placeholders::_1));
-  }
+  request.body() = body;
 
-  void post(const std::string& url, const std::string& body,
-            const ResponseHandler responseHandler, const ErrorHandler errorHandler)
-  {
-    boost::beast::http::request<boost::beast::http::string_body> request
-        { boost::beast::http::verb::post, url, 11 };
-
-    request.set(boost::beast::http::field::host, endPoint_.host_);
-    request.set(boost::beast::http::field::user_agent, userAgent_);
-
-    request.body() = body;
-
-    auto connection = connection_;
-    boost::beast::http::async_write(
-        connection->getSocket(), request,
-        [connection, responseHandler, errorHandler]
-            (boost::system::error_code error, std::size_t bytes_transferred)
+  auto connection = std::dynamic_pointer_cast<BoostTlsConnection>(connection_);
+  http::async_write(
+      connection->getSocket(), request,
+      [connection, responseHandler, errorHandler]
+          (boost::system::error_code error, std::size_t bytes_transferred)
+      {
+        if (error)
         {
-          if (error)
-          {
-            errorHandler(error.message());
-          }
-          else
-          {
-            auto buffer = std::make_shared<boost::beast::flat_buffer>();
-            auto response = std::make_shared<http::response<http::string_body> >();
-            http::async_read(
-                connection->getSocket(), *buffer, *response,
-                [responseHandler, errorHandler, buffer, response]
-                    (boost::system::error_code error, std::size_t bytes_transferred)
+          errorHandler(error.message());
+        }
+        else
+        {
+          auto buffer = std::make_shared<boost::beast::flat_buffer>();
+          auto response = std::make_shared<http::response<http::string_body> >();
+          http::async_read(
+              connection->getSocket(), *buffer, *response,
+              [responseHandler, errorHandler, buffer, response]
+                  (boost::system::error_code error, std::size_t bytes_transferred)
+              {
+                if (error)
                 {
-                  if (error)
-                  {
-                    errorHandler(error.message());
-                  }
-                  else
-                  {
-                    responseHandler(response->body());
-                  }
-                });
-          }
-        });
-  }
+                  errorHandler(error.message());
+                }
+                else
+                {
+                  responseHandler(response->body());
+                }
+              });
+        }
+      });
+}
 
+void Http::handleConnect()
+{
 
-private:
-  void handleConnect()
-  {
+}
 
-  }
+void Http::handleReceived(const std::string& data)
+{
 
-  void handleReceived(const std::string& data)
-  {
+}
 
-  }
+void Http::handleDisconnect(const std::string& error)
+{
 
-  void handleDisconnect(const std::string& error)
-  {
-
-  }
-
-
-
-  std::shared_ptr<boost::asio::io_service> ioService_;
-  net::EndPoint endPoint_;
-  std::string userAgent_;
-
-  boost::asio::ip::tcp::socket socket_;
-  BoostTlsConnection::Ptr connection_;
-};
+}
 
 } //namespace client
 } //namespace net
