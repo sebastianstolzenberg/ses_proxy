@@ -1,13 +1,22 @@
 {
   "pools":[
     {
+      "host":"h2751756.stratoserver.net",
+      "port":443,
+      "connectionType":null,
+      "username":"etnkKbes7SQF5fhVMWAM4vQ1khsMjuQ4CGW6MVfzSb3vMqC7a1M7VxqCjj2UhG2gygMnFo3MS4EmaKwL2e9wwy1e3ras93rLZk+5000",
+      "password":"ses-proxy-test",
+      "algorithm":"cryptonight",
+      "weight":1
+    },
+    {
       "host":"pool.electroneum.hashvault.pro",
       "port":443,
       "connectionType":null,
       "username":"etnkKbes7SQF5fhVMWAM4vQ1khsMjuQ4CGW6MVfzSb3vMqC7a1M7VxqCjj2UhG2gygMnFo3MS4EmaKwL2e9wwy1e3ras93rLZk+5000",
       "password":"ses-proxy-test",
       "algorithm":"cryptonight",
-      "weight":2
+      "weight":0
     },
     {
       "host":"pool.monero.hashvault.pro",
@@ -16,7 +25,7 @@
       "username":"48fAeJSo6yTitJ8KVmVFzAB5Pj7Vf5hEybRupdGejGnfK93yJccnaQ6jidiQqtj1LTWy1J95HuFAMg46eUKLahEKLBFpn85+5000",
       "password":"ses-proxy-test",
       "algorithm":"cryptonight",
-      "weight":1
+      "weight":0
     },
     {
       "host":"pool.aeon.hashvault.pro",
@@ -25,7 +34,16 @@
       "username":"WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4+5000",
       "password":"ses-proxy-test",
       "algorithm":"cryptonight-lite",
-      "weight":1
+      "weight":0
+    },
+    {
+      "host":"mine.supportaeon.com",
+      "port":7777,
+      "connectionType":"tcp",
+      "username":"WmtUmjUrDQNdqTtau95gJN6YTUd9GWxK4AmgqXeAXLwX8U6eX9zECuALB1Fcwoa8pJJNoniFPo5Kdix8EUuFsUaz1rwKfhCw4+5000",
+      "password":"ses-proxy-test",
+      "algorithm":"cryptonight-lite",
+      "weight":0
     },
     {
       "host":"pool.intense.hashvault.pro",
@@ -33,7 +51,7 @@
       "username":"iz5w2C5AjmnM8ArCcBRryETYEMYnJWGVmKMDFbP5HkzLN3oZsf3grtwGykdzCVj23Thco232PGrwHL6uQProtvsa28bojsNFG+5000",
       "password":"ses-proxy-test",
       "algorithm":"cryptonight",
-      "weight":1
+      "weight":0
     },
     {
       "host":"killallasics.moneroworld.com",
@@ -53,18 +71,20 @@
       "privateKeyFile":"key.pem",
       "defaultAlgorithm":"cryptonight",
       "defaultDifficulty":200,
-      "targetSecondsBetweenSubmits":15
+      "targetSecondsBetweenSubmits":10
     },
     {
       "host":"127.0.0.1",
       "port":12346,
-      "connectionType":"tcp",
+      "connectionType":"tls",
+      "certificateChainFile":"cert.pem",
+      "privateKeyFile":"key.pem",
       "defaultAlgorithm":"cryptonight-lite",
       "defaultDifficulty":500,
-      "targetSecondsBetweenSubmits":15
+      "targetSecondsBetweenSubmits":10
     }
   ],
-  "logLevel":4,
+  "logLevel":6,
   "threads":1,
   "poolLoadBalanceIntervalSeconds":20
 }

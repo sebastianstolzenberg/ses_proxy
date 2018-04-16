@@ -47,7 +47,7 @@ add_library(ses_proxy_net
         src/net/client/boosttlsconnection.cpp
         src/net/client/boosttcpconnection.cpp
         src/net/server/server.cpp
-        src/net/jsonrpc/jsonrpc.cpp)
+        src/net/jsonrpc/jsonrpc.cpp src/net/client/http.cpp)
 
 add_library(ses_proxy_stratum
         STATIC
