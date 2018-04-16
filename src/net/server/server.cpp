@@ -82,8 +82,9 @@ public:
   }
 
 protected:
-  void startReading() override
+  void startReading(const std::string& delimiter) override
   {
+    delimiter_ = delimiter;
     triggerRead();
   }
 
@@ -98,7 +99,7 @@ private:
     boost::asio::async_read_until(
         socket_,
         receiveBuffer_,
-        '\n',
+        delimiter_,
         [this, self, weakSelf](boost::system::error_code error, size_t bytes_transferred)
         {
           if (!weakSelf.expired())
@@ -126,6 +127,7 @@ private:
   SocketType socket_;
   boost::asio::streambuf receiveBuffer_;
   bool selfSustainUntilDisconnect_;
+  std::string delimiter_;
 };
 
 class BoostServer : public Server

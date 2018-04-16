@@ -2,6 +2,9 @@
 
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/read_until.hpp>
+#include <boost/asio/streambuf.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
 #include "net/client/connection.hpp"
@@ -18,17 +21,25 @@ template<class SOCKET>
 class BoostConnection : public Connection, public std::enable_shared_from_this<BoostConnection<SOCKET> >
 {
 public:
+  typedef std::shared_ptr<BoostConnection<SOCKET> > Ptr;
+
+public:
   BoostConnection(const std::shared_ptr<boost::asio::io_service>& ioService,
                   const Connection::ConnectHandler& connectHandler,
                   const Connection::ReceivedDataHandler& receivedDataHandler,
                   const Connection::DisconnectHandler& errorHandler)
     : Connection(receivedDataHandler, errorHandler), connectHandler_(connectHandler),
-      ioService_(ioService), socket_(*ioService)
+      ioService_(ioService), socket_(std::make_shared<SOCKET>(*ioService))
   {
   }
 
   ~BoostConnection()
   {
+  }
+
+  typename SOCKET::SocketType& getSocket()
+  {
+    return socket_->get();
   }
 
   void connect(const std::string &server, uint16_t port)
@@ -50,7 +61,7 @@ public:
           }
           else
           {
-            socket_.connect(
+            socket_->connect(
               iterator,
               [this, self](const boost::system::error_code& error)
               {
@@ -60,9 +71,8 @@ public:
                 }
                 else
                 {
-                  socket_.get().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
-                  socket_.get().lowest_layer().set_option(boost::asio::socket_base::keep_alive(true));
-                  startReading();
+                  socket_->get().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
+                  socket_->get().lowest_layer().set_option(boost::asio::socket_base::keep_alive(true));
                   connectHandler_();
                 }
               });
@@ -83,24 +93,24 @@ public:
   void disconnect() override
   {
     resetHandler();
-    socket_.get().lowest_layer().close();
+    socket_->get().lowest_layer().close();
   }
 
   bool isConnected() const override
   {
     boost::system::error_code ec;
-    auto remoteEndpoint = socket_.get().lowest_layer().remote_endpoint(ec);
-    return !ec && socket_.get().lowest_layer().is_open();
+    auto remoteEndpoint = socket_->get().lowest_layer().remote_endpoint(ec);
+    return !ec && socket_->get().lowest_layer().is_open();
   }
 
   std::string getConnectedIp() const override
   {
-    return isConnected() ? socket_.get().lowest_layer().remote_endpoint().address().to_string() : "";
+    return isConnected() ? socket_->get().lowest_layer().remote_endpoint().address().to_string() : "";
   }
 
   uint16_t getConnectedPort() const override
   {
-    return isConnected() ? socket_.get().lowest_layer().remote_endpoint().port() : 0;
+    return isConnected() ? socket_->get().lowest_layer().remote_endpoint().port() : 0;
   }
 
   void send(const std::string& data) override
@@ -109,7 +119,7 @@ public:
 
     auto self = this->shared_from_this();
     boost::asio::async_write(
-      socket_.get(), boost::asio::buffer(data.data(), data.size()),
+      socket_->get(), boost::asio::buffer(data.data(), data.size()),
       [this, self](const boost::system::error_code& error, std::size_t bytes_transferred)
       {
         if (error)
@@ -120,8 +130,9 @@ public:
   }
 
 protected:
-  void startReading() override
+  void startReading(const std::string& delimiter) override
   {
+    delimiter_ = delimiter;
     triggerRead();
   }
 
@@ -132,9 +143,9 @@ private:
     auto self = selfSustainUntilDisconnect_ ? this->shared_from_this() : BoostConnection<SOCKET>::Ptr();
     std::weak_ptr<BoostConnection<SOCKET> > weakSelf = this->shared_from_this();
     boost::asio::async_read_until(
-        socket_.get(),
+        socket_->get(),
         receiveBuffer_,
-        '\n',
+        delimiter_,
         [this, self, weakSelf](const boost::system::error_code &error,
                      size_t bytes_transferred)
         {
@@ -164,9 +175,10 @@ private:
 private:
   Connection::ConnectHandler connectHandler_;
   std::shared_ptr<boost::asio::io_service> ioService_;
-  SOCKET socket_;
+  std::shared_ptr<SOCKET> socket_;
   boost::asio::streambuf receiveBuffer_;
   bool selfSustainUntilDisconnect_;
+  std::string delimiter_;
 };
 
 } //namespace client

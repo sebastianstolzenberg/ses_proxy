@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 ###############################################################################
-option(HUNTER_ENABLED "Use hunter package manager for dependency resolution" OFF)
+option(HUNTER_ENABLED "Use hunter package manager for dependency resolution" ON)
 
 include("cmake/HunterGate.cmake")
 
@@ -15,22 +15,23 @@ HunterGate(
 ###############################################################################
 project(ses_proxy)
 
-#add_subdirectory(cryptonote)
-
 find_package(Threads)
 
 hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)
 
-SET(Boost_USE_STATIC_LIBS ON)
-hunter_add_package(Boost COMPONENTS program_options log system)
-find_package(Boost COMPONENTS program_options log log_setup system REQUIRED)
+if (HUNTER_ENABLED)
+    set(Boost_NO_SYSTEM_PATHS ON)
+endif()
+set(Boost_USE_STATIC_LIBS ON)
+hunter_add_package(Boost COMPONENTS program_options log thread system)
+find_package(Boost COMPONENTS program_options log log_setup thread system REQUIRED)
 
 set(CMAKE_CXX_STANDARD 14)
 
 add_subdirectory(src/cryptonote)
 
-include_directories(src)
+include_directories(src ${Boost_INCLUDE_DIR})
 
 add_library(ses_proxy_util
         STATIC
@@ -66,7 +67,7 @@ add_executable(ses_proxy
         src/proxy/worker.cpp
         src/proxy/blob.cpp
         src/proxy/workeridentifier.cpp
-        src/proxy/configurationfile.cpp)
+        src/proxy/configurationfile.cpp src/proxy/ccclient.hpp)
 
 target_link_libraries(ses_proxy
         ses_proxy_net
@@ -76,6 +77,7 @@ target_link_libraries(ses_proxy
         Boost::program_options
         Boost::log_setup
         Boost::log
+        Boost::thread
         Boost::system
         OpenSSL::SSL
         OpenSSL::Crypto

@@ -44,6 +44,7 @@ void Client::setConnection(const net::Connection::Ptr& connection)
     connection->setSelfSustainingUntilDisconnect(true);
     connection->setHandler(std::bind(&Client::handleReceived, this, std::placeholders::_1),
                            std::bind(&Client::handleDisconnect, this, std::placeholders::_1));
+    connection->startReading();
   }
 }
 

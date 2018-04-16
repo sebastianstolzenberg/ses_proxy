@@ -30,7 +30,8 @@ protected:
   void notifyError(const std::string& error);
 
 public:
-  void setHandler(const ReceivedDataHandler& receivedDataHandler, const DisconnectHandler& errorHandler);
+  void setHandler(const ReceivedDataHandler& receivedDataHandler,
+                  const DisconnectHandler& errorHandler);
 
   void resetHandler();
 
@@ -42,8 +43,8 @@ public:
 
   virtual void send(const std::string& data) = 0;
 
-protected:
-  virtual void startReading() = 0;
+  // delimiter is not a reference on purpose
+  virtual void startReading(const std::string& delimiter = "\n") = 0;
 
 private:
   ReceivedDataHandler receivedDataHandler_;

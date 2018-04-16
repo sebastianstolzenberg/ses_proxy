@@ -1,35 +1,88 @@
 #include <memory>
 #include <string>
-#include <boost/asio.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/http.hpp>
 
-#include "net/client/connection.hpp"
+#include "net/client/boosttlsconnection.hpp"
 #include "net/endpoint.hpp"
 
 namespace ses {
 namespace net {
 namespace client {
 
+namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
+
 class Http : public std::enable_shared_from_this<Http>
 {
 public:
+  enum ResponseError
+  {
+
+  };
+
+  typedef std::function<void(const std::string& data)> ResponseHandler;
+  typedef std::function<void(const std::string& error)> ErrorHandler;
+
+public:
   Http(const std::shared_ptr<boost::asio::io_service>& ioService,
-       const EndPoint& endPoint)
-    : ioService_(ioService), endPoint_(endPoint)
+       const EndPoint& endPoint, const std::string& userAgent)
+    : ioService_(ioService), endPoint_(endPoint), socket_(*ioService), userAgent_(userAgent)
   {
 
   }
 
   void connect()
   {
-    connection_ = net::client::establishConnection(ioService_,
-                                                   endPoint_,
-                                                   std::bind(&Http::handleConnect, this),
-                                                   std::bind(&Http::handleReceived, this,
-                                                             std::placeholders::_1),
-                                                   std::bind(&Http::handleDisconnect, this,
-                                                             std::placeholders::_1));
-
+    connection_ =
+        establishBoostTlsConnection(ioService_, endPoint_.host_, endPoint_.port_,
+                                    std::bind(&Http::handleConnect, this),
+                                    std::bind(&Http::handleReceived, this, std::placeholders::_1),
+                                    std::bind(&Http::handleDisconnect, this, std::placeholders::_1));
   }
+
+  void post(const std::string& url, const std::string& body,
+            const ResponseHandler responseHandler, const ErrorHandler errorHandler)
+  {
+    boost::beast::http::request<boost::beast::http::string_body> request
+        { boost::beast::http::verb::post, url, 11 };
+
+    request.set(boost::beast::http::field::host, endPoint_.host_);
+    request.set(boost::beast::http::field::user_agent, userAgent_);
+
+    request.body() = body;
+
+    auto connection = connection_;
+    boost::beast::http::async_write(
+        connection->getSocket(), request,
+        [connection, responseHandler, errorHandler]
+            (boost::system::error_code error, std::size_t bytes_transferred)
+        {
+          if (error)
+          {
+            errorHandler(error.message());
+          }
+          else
+          {
+            auto buffer = std::make_shared<boost::beast::flat_buffer>();
+            auto response = std::make_shared<http::response<http::string_body> >();
+            http::async_read(
+                connection->getSocket(), *buffer, *response,
+                [responseHandler, errorHandler, buffer, response]
+                    (boost::system::error_code error, std::size_t bytes_transferred)
+                {
+                  if (error)
+                  {
+                    errorHandler(error.message());
+                  }
+                  else
+                  {
+                    responseHandler(response->body());
+                  }
+                });
+          }
+        });
+  }
+
 
 private:
   void handleConnect()
@@ -49,90 +102,12 @@ private:
 
 
 
-  void handle_read_status_line(const boost::system::error_code& err)
-  {
-    if (!err)
-    {
-      // Check that response is OK.
-      std::istream response_stream(&response_);
-      std::string http_version;
-      response_stream >> http_version;
-      unsigned int status_code;
-      response_stream >> status_code;
-      std::string status_message;
-      std::getline(response_stream, status_message);
-      if (!response_stream || http_version.substr(0, 5) != "HTTP/")
-      {
-        std::cout << "Invalid response\n";
-        return;
-      }
-      if (status_code != 200)
-      {
-        std::cout << "Response returned with status code ";
-        std::cout << status_code << "\n";
-        return;
-      }
-
-      // Read the response headers, which are terminated by a blank line.
-      boost::asio::async_read_until(socket_, response_, "\r\n\r\n",
-          boost::bind(&client::handle_read_headers, this,
-            boost::asio::placeholders::error));
-    }
-    else
-    {
-      std::cout << "Error: " << err << "\n";
-    }
-  }
-
-  void handle_read_headers(const boost::system::error_code& err)
-  {
-    if (!err)
-    {
-      // Process the response headers.
-      std::istream response_stream(&response_);
-      std::string header;
-      while (std::getline(response_stream, header) && header != "\r")
-        std::cout << header << "\n";
-      std::cout << "\n";
-
-      // Write whatever content we already have to output.
-      if (response_.size() > 0)
-        std::cout << &response_;
-
-      // Start reading remaining data until EOF.
-      boost::asio::async_read(socket_, response_,
-          boost::asio::transfer_at_least(1),
-          boost::bind(&client::handle_read_content, this,
-            boost::asio::placeholders::error));
-    }
-    else
-    {
-      std::cout << "Error: " << err << "\n";
-    }
-  }
-
-  void handle_read_content(const boost::system::error_code& err)
-  {
-    if (!err)
-    {
-      // Write all of the data that has been read so far.
-      std::cout << &response_;
-
-      // Continue reading remaining data until EOF.
-      boost::asio::async_read(socket_, response_,
-          boost::asio::transfer_at_least(1),
-          boost::bind(&client::handle_read_content, this,
-            boost::asio::placeholders::error));
-    }
-    else if (err != boost::asio::error::eof)
-    {
-      std::cout << "Error: " << err << "\n";
-    }
-  }
-
   std::shared_ptr<boost::asio::io_service> ioService_;
   net::EndPoint endPoint_;
-  Connection::Ptr connection_;
+  std::string userAgent_;
+
+  boost::asio::ip::tcp::socket socket_;
+  BoostTlsConnection::Ptr connection_;
 };
 
 } //namespace client

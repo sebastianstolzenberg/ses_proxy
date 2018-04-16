@@ -157,6 +157,7 @@ void Pool::handleConnect()
 {
   LOG_POOL_INFO << "Connected";
   login();
+  connection_->startReading();
 }
 
 void Pool::handleReceived(const std::string& data)
