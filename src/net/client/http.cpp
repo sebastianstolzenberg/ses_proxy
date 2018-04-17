@@ -4,6 +4,7 @@
 #include <boost/beast/http.hpp>
 
 #include "net/client/boosttlsconnection.hpp"
+#include "net/client/boosttcpconnection.hpp"
 #include "net/client/http.hpp"
 
 namespace ses {
@@ -33,33 +34,43 @@ void Http::setBearerAuthenticationToken(const std::string& token)
 
 void Http::connect(ConnectHandler connectHandler, ErrorHandler errorHandler)
 {
+//  connection_ =
+//      establishBoostTlsConnection(ioService_, endPoint_.host_, endPoint_.port_,
+//                                  connectHandler,
+//                                  [](const std::string&) {/*ignored*/},
+//                                  errorHandler);
   connection_ =
-      establishBoostTlsConnection(ioService_, endPoint_.host_, endPoint_.port_,
-                                  connectHandler,
-                                  [](const std::string&) {/*ignored*/},
-                                  errorHandler);
+    establishBoostTcpConnection(ioService_, endPoint_.host_, endPoint_.port_,
+                                connectHandler,
+                                [](const std::string&) {/*ignored*/},
+                                errorHandler);
+
 }
 
-void Http::post(const std::string& url, const std::string& body,
+void Http::post(const std::string& url, const std::string& contentType, const std::string& body,
           const ResponseHandler responseHandler, const ErrorHandler errorHandler)
 {
-  http::request<http::string_body> request
-      { http::verb::post, url, 11 };
+  auto request = std::make_shared<http::request<http::string_body> >(http::verb::post, url, 11);
 
-  request.set(http::field::host, endPoint_.host_);
-  request.set(http::field::user_agent, userAgent_);
+  request->set(http::field::host, endPoint_.host_);
+  request->set(http::field::user_agent, userAgent_);
+  request->set(http::field::content_type, contentType);
 
   if (!bearerAuthenticationToken_.empty())
   {
-    request.set(http::field::authorization, bearerAuthenticationToken_);
+    request->set(http::field::authorization, bearerAuthenticationToken_);
   }
 
-  request.body() = body;
+  request->body() = body;
+  request->prepare_payload();
 
-  auto connection = std::dynamic_pointer_cast<BoostTlsConnection>(connection_);
+  LOG_TRACE << "Http::post() request: " << *request;
+
+//  auto connection = std::dynamic_pointer_cast<BoostTlsConnection>(connection_);
+  auto connection = std::dynamic_pointer_cast<BoostTcpConnection>(connection_);
   http::async_write(
-      connection->getSocket(), request,
-      [connection, responseHandler, errorHandler]
+      connection->getSocket(), *request,
+      [connection, responseHandler, errorHandler, request]
           (boost::system::error_code error, std::size_t bytes_transferred)
       {
         if (error)
@@ -81,7 +92,18 @@ void Http::post(const std::string& url, const std::string& body,
                 }
                 else
                 {
-                  responseHandler(response->body());
+                  LOG_TRACE << "Http::post() response: " << *response;
+                  auto statusClass = http::to_status_class(response->result());
+                  if (statusClass != http::status_class::successful)
+                  {
+                    std::stringstream header;
+                    header << response->base();
+                    errorHandler(header.str());
+                  }
+                  else
+                  {
+                    responseHandler(response->body());
+                  }
                 }
               });
         }

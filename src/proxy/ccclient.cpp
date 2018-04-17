@@ -1,4 +1,10 @@
+#include <sstream>
 #include "proxy/ccclient.hpp"
+
+#include "util/log.hpp"
+
+#undef LOG_COMPONENT
+#define LOG_COMPONENT proxy
 
 namespace ses {
 namespace proxy {
@@ -37,9 +43,20 @@ void CcClient::publishConfig()
 {
   if (httpClient_)
   {
-    httpClient_->post("/client/setClientConfig?clientId=", "body",
-                      [](const std::string& response){},
-                      [](const std::string& error){});
+    std::ostringstream url;
+    url << "/client/setClientConfig?clientId=" << configuration_.userAgent_;
+
+    std::ostringstream body;
+    body << "{\"test\":true}";
+
+    httpClient_->post(url.str(), "application/json", body.str(),
+                      [](const std::string& response){
+                        LOG_INFO << "publishConfig() success - " << response;
+                      },
+                      [](const std::string& error)
+                      {
+                        LOG_ERROR << "publishConfig() error - " << error;
+                      });
   }
 }
 

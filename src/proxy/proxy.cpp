@@ -39,6 +39,12 @@ void Proxy::addServer(const Server::Configuration& configuration)
   servers_.push_back(server);
 }
 
+void Proxy::addCcClient(const CcClient::Configuration& configuration)
+{
+  ccClient_ = std::make_shared<CcClient>(ioService_);
+  ccClient_->connect(configuration);
+}
+
 void Proxy::handleNewClient(const Client::Ptr& newClient)
 {
   if (newClient)

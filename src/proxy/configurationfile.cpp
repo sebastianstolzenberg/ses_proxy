@@ -64,19 +64,38 @@ void parsePoolConfigurations(boost::property_tree::ptree& ptree, std::list<Pool:
 
 void parseServerConfigurations(boost::property_tree::ptree& ptree, std::list<Server::Configuration>& list)
 {
-  for (auto& pool : ptree.get_child("server"))
+  for (auto& server : ptree.get_child("server"))
   {
     Server::Configuration configuration;
-    configuration.endPoint_.host_ = pool.second.get<std::string>("host");
-    configuration.endPoint_.port_ = pool.second.get<uint16_t>("port");
+    configuration.endPoint_.host_ = server.second.get<std::string>("host");
+    configuration.endPoint_.port_ = server.second.get<uint16_t>("port");
     configuration.endPoint_.connectionType_ =
-      parseConnectionType(pool.second.get<std::string>("connectionType", "auto"));
-    configuration.endPoint_.certificateChainFile_ = pool.second.get<std::string>("certificateChainFile", "");
-    configuration.endPoint_.privateKeyFile_ = pool.second.get<std::string>("privateKeyFile", "");
-    configuration.defaultAlgorithm_ = parseAlgorithm(pool.second.get<std::string>("defaultAlgorithm", ""));
-    configuration.defaultDifficulty_ = pool.second.get<uint32_t>("defaultDifficulty", 5000);
-    configuration.targetSecondsBetweenSubmits_ = pool.second.get<uint32_t>("targetSecondsBetweenSubmits", 15);
+      parseConnectionType(server.second.get<std::string>("connectionType", "auto"));
+    configuration.endPoint_.certificateChainFile_ = server.second.get<std::string>("certificateChainFile", "");
+    configuration.endPoint_.privateKeyFile_ = server.second.get<std::string>("privateKeyFile", "");
+    configuration.defaultAlgorithm_ = parseAlgorithm(server.second.get<std::string>("defaultAlgorithm", ""));
+    configuration.defaultDifficulty_ = server.second.get<uint32_t>("defaultDifficulty", 5000);
+    configuration.targetSecondsBetweenSubmits_ = server.second.get<uint32_t>("targetSecondsBetweenSubmits", 15);
     list.push_back(configuration);
+  }
+}
+
+void parseCcClientConfigurations(boost::property_tree::ptree& ptree,
+                                 boost::optional<CcClient::Configuration>& ccClientConfiguration)
+{
+  if (ptree.count("ccClient") > 0)
+  {
+    auto& ccClient = ptree.get_child("ccClient");
+    CcClient::Configuration configuration;
+    configuration.endPoint_.host_ = ccClient.get<std::string>("host");
+    configuration.endPoint_.port_ = ccClient.get<uint16_t>("port");
+    configuration.endPoint_.connectionType_ =
+      parseConnectionType(ccClient.get<std::string>("connectionType", "auto"));
+    configuration.ccToken_ = ccClient.get<std::string>("accessToken", "");
+    configuration.userAgent_ = ccClient.get<std::string>("workerId", "");
+    configuration.ccToken_ = ccClient.get<std::string>("accessToken", "");
+    configuration.updateInteralSeconds_ = ccClient.get<uint32_t>("updateIntervalSeconds", 10);
+    ccClientConfiguration = configuration;
   }
 }
 }
@@ -91,6 +110,7 @@ Configuration parseConfigurationFile(const std::string& fileName)
   Configuration configuration;
   parsePoolConfigurations(ptree, configuration.pools_);
   parseServerConfigurations(ptree, configuration.server_);
+  parseCcClientConfigurations(ptree, configuration.ccCient_);
   configuration.logLevel_ = ptree.get<uint32_t>("logLevel", 4);
   configuration.threads_ = ptree.get<size_t>("threads", 0);
   configuration.poolLoadBalanceIntervalSeconds_ = ptree.get<uint32_t>("poolLoadBalanceIntervalSeconds", 20);

@@ -140,6 +140,11 @@ int main(int argc,  char** argv)
     proxy->addServer(serverConfig);
   }
 
+  if (configuration.ccCient_)
+  {
+    proxy->addCcClient(*configuration.ccCient_);
+  }
+
   waitForSignal(*ioService, configuration.threads_);
 
   return 0;

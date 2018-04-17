@@ -6,6 +6,7 @@
 
 #include "proxy/server.hpp"
 #include "proxy/pool.hpp"
+#include "proxy/ccclient.hpp"
 #include "util/hashratebalancer.hpp"
 
 namespace ses {
@@ -21,6 +22,7 @@ public:
 
   void addPool(const Pool::Configuration& configuration);
   void addServer(const Server::Configuration& configuration);
+  void addCcClient(const CcClient::Configuration& configuration);
 
 public:
   void handleNewClient(const Client::Ptr& newClient);
@@ -38,6 +40,8 @@ private:
   std::list<Pool::Ptr> pools_;
   std::list<Server::Ptr> servers_;
   std::list<Client::Ptr> clients_;
+
+  CcClient::Ptr ccClient_;
 
 //  util::HashRateCollector<Client> clientsTracker_;
 //  util::HashRateCollector<Pool> poolsTracker_;

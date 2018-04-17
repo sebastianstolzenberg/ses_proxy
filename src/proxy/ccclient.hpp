@@ -25,6 +25,7 @@ public:
     net::EndPoint endPoint_;
     std::string userAgent_;
     std::string ccToken_;
+    uint32_t updateInteralSeconds_;
   };
 
 public:
