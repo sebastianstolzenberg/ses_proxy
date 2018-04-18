@@ -28,6 +28,7 @@ void CcClient::connect(const Configuration& configuration)
       if (auto self = weakSelf.lock())
       {
         self->publishConfig();
+        self->publishStatus();
       }
     },
     [weakSelf](const std::string& error)
@@ -56,6 +57,27 @@ void CcClient::publishConfig()
                       [](const std::string& error)
                       {
                         LOG_ERROR << "publishConfig() error - " << error;
+                      });
+  }
+}
+
+void CcClient::publishStatus()
+{
+  if (httpClient_)
+  {
+    std::ostringstream url;
+    url << "/client/setClientStatus?clientId=" << configuration_.userAgent_;
+
+    std::ostringstream body;
+    body << "{\"client_status\":{\"client_id\":\"ses-proxy\"}}";
+
+    httpClient_->post(url.str(), "application/json", body.str(),
+                      [](const std::string& response){
+                        LOG_INFO << "publishStatus() success - " << response;
+                      },
+                      [](const std::string& error)
+                      {
+                        LOG_ERROR << "publishStatus() error - " << error;
                       });
   }
 }

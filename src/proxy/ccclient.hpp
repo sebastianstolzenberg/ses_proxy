@@ -33,6 +33,7 @@ public:
   void connect(const Configuration& configuration);
 
   void publishConfig();
+  void publishStatus();
 
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;
