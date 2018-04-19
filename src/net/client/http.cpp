@@ -34,16 +34,22 @@ void Http::setBearerAuthenticationToken(const std::string& token)
 
 void Http::connect(ConnectHandler connectHandler, ErrorHandler errorHandler)
 {
-//  connection_ =
-//      establishBoostTlsConnection(ioService_, endPoint_.host_, endPoint_.port_,
-//                                  connectHandler,
-//                                  [](const std::string&) {/*ignored*/},
-//                                  errorHandler);
-  connection_ =
-    establishBoostTcpConnection(ioService_, endPoint_.host_, endPoint_.port_,
-                                connectHandler,
-                                [](const std::string&) {/*ignored*/},
-                                errorHandler);
+  if (endPoint_.connectionType_ == net::CONNECTION_TYPE_TLS)
+  {
+    connection_ =
+      establishBoostTlsConnection(ioService_, endPoint_.host_, endPoint_.port_,
+                                  connectHandler,
+                                  [](const std::string&) {/*ignored*/},
+                                  errorHandler);
+  }
+  else
+  {
+    connection_ =
+      establishBoostTcpConnection(ioService_, endPoint_.host_, endPoint_.port_,
+                                  connectHandler,
+                                  [](const std::string&) {/*ignored*/},
+                                  errorHandler);
+  }
 
 }
 
@@ -66,8 +72,9 @@ void Http::post(const std::string& url, const std::string& contentType, const st
 
   LOG_TRACE << "Http::post() request: " << *request;
 
-//  auto connection = std::dynamic_pointer_cast<BoostTlsConnection>(connection_);
-  auto connection = std::dynamic_pointer_cast<BoostTcpConnection>(connection_);
+  //TODO fix handling of connection type
+  auto connection = std::dynamic_pointer_cast<BoostTlsConnection>(connection_);
+//  auto connection = std::dynamic_pointer_cast<BoostTcpConnection>(connection_);
   http::async_write(
       connection->getSocket(), *request,
       [connection, responseHandler, errorHandler, request]
