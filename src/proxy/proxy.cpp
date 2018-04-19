@@ -243,23 +243,26 @@ void Proxy::balancePoolLoads()
     auto poolHashRateAverageLong = pool->getWorkerHashRate().getAverageHashRateLongTimeWindow();
     auto poolTotalSubmitted = pool->getSubmitHashRate().getTotalHashes();
 
-    CcClient::Status ccPoolStatus;
-    ccPoolStatus.hashRateShort_ = poolHashRate;
-    ccPoolStatus.hashRateLong_ = poolHashRateAverageMedium;
-    ccPoolStatus.hashRateLong_ = poolHashRateAverageLong;
+    if (ccClient_)
+    {
+      CcClient::Status ccPoolStatus;
+      ccPoolStatus.hashRateShort_ = poolHashRate;
+      ccPoolStatus.hashRateLong_ = poolHashRateAverageMedium;
+      ccPoolStatus.hashRateLong_ = poolHashRateAverageLong;
 //    ccPoolStatus.hashRateHighest_ = std::max(ccPoolStatus.hashRateHighest_, ccPoolStatus.hashRateShort_);
-    ccPoolStatus.sharesTotal_ = poolTotalSubmitted;
-    ccPoolStatus.sharesGood_ = ccPoolStatus.sharesTotal_;
-    ccPoolStatus.hashesTotal_ = 0;
-    ccPoolStatus.numMiners_ = numPoolWorkers;
-    std::ostringstream clientId;
-    clientId << ccProxyStatus_.clientId_ << "_Pool_" << std::setw(2) << std::setfill('0') << poolNumber;
-    ccPoolStatus.clientId_ = clientId.str();
-    ccPoolStatus.currentPool_ = pool->getDescriptor();
+      ccPoolStatus.sharesTotal_ = poolTotalSubmitted;
+      ccPoolStatus.sharesGood_ = ccPoolStatus.sharesTotal_;
+      ccPoolStatus.hashesTotal_ = 0;
+      ccPoolStatus.numMiners_ = numPoolWorkers;
+      std::ostringstream clientId;
+      clientId << ccProxyStatus_.clientId_ << "_Pool_" << std::setw(2) << std::setfill('0') << poolNumber;
+      ccPoolStatus.clientId_ = clientId.str();
+      ccPoolStatus.currentPool_ = pool->getDescriptor();
 
-    ++poolNumber;
+      ++poolNumber;
 
-    ccClient_->publishStatus(ccPoolStatus);
+      ccClient_->publishStatus(ccPoolStatus);
+    }
 
     LOG_WARN << "After rebalance: " << pool->getDescriptor()
              << " , numWorkers, " << numPoolWorkers
