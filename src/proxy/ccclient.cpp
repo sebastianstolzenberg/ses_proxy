@@ -20,21 +20,20 @@ std::string CcClient::Status::toJson() const
 
   json << "{\"client_status\":{"
        <<  "\"client_id\":\"" << clientId_ << "\","
-       <<  "\"current_status\":\"" << numMiners_ << " miners\","
-       <<  "\"current_pool\":\"" << currentPool_ << "\","
+       <<  "\"current_status\":\"RUNNING\","
+       <<  "\"current_pool\":\"" << currentPool_ << " with " << numMiners_ << " miners\","
        <<  "\"current_algo_name\":\"" << currentAlgoName_ << "\","
        <<  "\"cpu_brand\":\"" << cpuBrand_ << "\","
        <<  "\"external_ip\":\"" << externalIp_ << "\","
        <<  "\"version\":\"" << version_ << "\","
-       <<  "\"hashrate_short\":\"" << hashRateShort_ << "\","
-       <<  "\"hashrate_medium\":\"" << hashRateMedium_ << "\","
-       <<  "\"hashrate_long\":\"" << hashRateLong_ << "\","
-       <<  "\"hashrate_highest\":\"" << hashRateHighest_ << "\","
-       <<  "\"current_threads\":\"" << currentThreads_ << "\","
-       <<  "\"shares_good\":\"" << sharesGood_ << "\","
-       <<  "\"shares_total\":\"" << sharesTotal_ << "\","
-       <<  "\"hashes_total\":\"" << hashesTotal_ << "\","
-       <<  "\"client_id\":\"" << clientId_ << "\""
+       <<  "\"hashrate_short\":" << hashRateShort_ << ","
+       <<  "\"hashrate_medium\":" << hashRateMedium_ << ","
+       <<  "\"hashrate_long\":" << hashRateLong_ << ","
+       <<  "\"hashrate_highest\":" << hashRateHighest_ << ","
+       <<  "\"current_threads\":" << currentThreads_ << ","
+       <<  "\"shares_good\":" << sharesGood_ << ","
+       <<  "\"shares_total\":" << sharesTotal_ << ","
+       <<  "\"hashes_total\":" << hashesTotal_
        << "}}";
 
   return json.str();

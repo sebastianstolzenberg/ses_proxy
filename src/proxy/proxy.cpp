@@ -1,3 +1,4 @@
+#include <sstream>
 #include <future>
 #include <boost/range/numeric.hpp>
 
@@ -130,35 +131,42 @@ void Proxy::balancePoolLoads()
     util::hashrate::rebalance(clients_, pools_);
   }
 
-  ccClientStatus_.hashRateShort_ = 0;
-  ccClientStatus_.hashRateLong_ = 0;
-  ccClientStatus_.sharesGood_ = 0;
-  ccClientStatus_.sharesTotal_ = 0;
-  ccClientStatus_.hashesTotal_ = 0;
-  ccClientStatus_.numMiners_ = clients_.size();
+  size_t poolNumber = 0;
   for (auto& pool : pools_)
   {
+    auto numPoolWorkers = pool->numWorkers();
     auto poolHashRate = pool->hashRate();
+    auto poolHashRateAverageMedium = pool->getWorkerHashRate().getAverageHashRateShortTimeWindow();
     auto poolHashRateAverageLong = pool->getWorkerHashRate().getAverageHashRateLongTimeWindow();
     auto poolTotalSubmitted = pool->getSubmitHashRate().getTotalHashes();
 
-    ccClientStatus_.hashRateShort_ += poolHashRate;
-    ccClientStatus_.hashRateLong_ += poolHashRateAverageLong;
-    ccClientStatus_.sharesTotal_ += poolTotalSubmitted;
+    ccClientStatus_.hashRateShort_ = poolHashRate;
+    ccClientStatus_.hashRateLong_ = poolHashRateAverageMedium;
+    ccClientStatus_.hashRateLong_ = poolHashRateAverageLong;
+//    ccClientStatus_.hashRateHighest_ = std::max(ccClientStatus_.hashRateHighest_, ccClientStatus_.hashRateShort_);
+    ccClientStatus_.sharesTotal_ = poolTotalSubmitted;
+    ccClientStatus_.sharesGood_ = ccClientStatus_.sharesTotal_;
+    ccClientStatus_.hashesTotal_ = 0;
+    ccClientStatus_.numMiners_ = numPoolWorkers;
+    std::ostringstream clientId;
+    clientId << "pool" << poolNumber << "@ses-proxy";
+    ccClientStatus_.clientId_ = clientId.str();
+    ccClientStatus_.currentPool_ = pool->getDescriptor();
+
+    ++poolNumber;
+
+    ccClient_->publishStatus(ccClientStatus_);
 
     LOG_WARN << "After rebalance: " << pool->getDescriptor()
-             << " , numWorkers, " << pool->numWorkers()
+             << " , numWorkers, " << numPoolWorkers
              << " , workersHashRate, " << poolHashRate
              << " , workersHashRateAverage, " << poolHashRateAverageLong
              << " , submitHashRateAverage10min, " << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
              << " , submittedHashes, " << poolTotalSubmitted
              << " , weight , " << pool->getWeight();
-
   }
-  ccClientStatus_.sharesGood_ = ccClientStatus_.sharesTotal_;
-  ccClientStatus_.hashRateHighest_ = std::max(ccClientStatus_.hashRateHighest_, ccClientStatus_.hashRateShort_);
 
-  ccClient_->publishStatus(ccClientStatus_);
+
 }
 //
 ////  clientsTracker_.sampleCurrentState();
