@@ -4,6 +4,7 @@
 apt install libssl-dev libboost-all-dev
 
 ## TODO
+* Hash verification
 * Command line parameters
   * log target
 * Memory leak analysis

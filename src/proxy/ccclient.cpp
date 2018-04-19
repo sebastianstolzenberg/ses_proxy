@@ -9,6 +9,37 @@
 namespace ses {
 namespace proxy {
 
+CcClient::Status::Status()
+  : hashRateShort_(0), hashRateMedium_(0), hashRateLong_(0), hashRateHighest_(0), currentThreads_(0), sharesGood_(0),
+    sharesTotal_(0), numMiners_(0)
+{}
+
+std::string CcClient::Status::toJson() const
+{
+  std::ostringstream json;
+
+  json << "{\"client_status\":{"
+       <<  "\"client_id\":\"" << clientId_ << "\","
+       <<  "\"current_status\":\"" << numMiners_ << " miners\","
+       <<  "\"current_pool\":\"" << currentPool_ << "\","
+       <<  "\"current_algo_name\":\"" << currentAlgoName_ << "\","
+       <<  "\"cpu_brand\":\"" << cpuBrand_ << "\","
+       <<  "\"external_ip\":\"" << externalIp_ << "\","
+       <<  "\"version\":\"" << version_ << "\","
+       <<  "\"hashrate_short\":\"" << hashRateShort_ << "\","
+       <<  "\"hashrate_medium\":\"" << hashRateMedium_ << "\","
+       <<  "\"hashrate_long\":\"" << hashRateLong_ << "\","
+       <<  "\"hashrate_highest\":\"" << hashRateHighest_ << "\","
+       <<  "\"current_threads\":\"" << currentThreads_ << "\","
+       <<  "\"shares_good\":\"" << sharesGood_ << "\","
+       <<  "\"shares_total\":\"" << sharesTotal_ << "\","
+       <<  "\"hashes_total\":\"" << hashesTotal_ << "\","
+       <<  "\"client_id\":\"" << clientId_ << "\""
+       << "}}";
+
+  return json.str();
+}
+
 CcClient::CcClient(const std::shared_ptr<boost::asio::io_service>& ioService)
   : ioService_(ioService)
 {
@@ -28,7 +59,6 @@ void CcClient::connect(const Configuration& configuration)
       if (auto self = weakSelf.lock())
       {
         self->publishConfig();
-        self->publishStatus();
       }
     },
     [weakSelf](const std::string& error)
@@ -61,7 +91,7 @@ void CcClient::publishConfig()
   }
 }
 
-void CcClient::publishStatus()
+void CcClient::publishStatus(const Status& status)
 {
   if (httpClient_)
   {
@@ -69,7 +99,7 @@ void CcClient::publishStatus()
     url << "/client/setClientStatus?clientId=" << configuration_.userAgent_;
 
     std::ostringstream body;
-    body << "{\"client_status\":{\"client_id\":\"ses-proxy\"}}";
+    body << status.toJson();
 
     httpClient_->post(url.str(), "application/json", body.str(),
                       [](const std::string& response){

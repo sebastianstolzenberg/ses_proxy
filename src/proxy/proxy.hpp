@@ -42,6 +42,7 @@ private:
   std::list<Client::Ptr> clients_;
 
   CcClient::Ptr ccClient_;
+  CcClient::Status ccClientStatus_;
 
 //  util::HashRateCollector<Client> clientsTracker_;
 //  util::HashRateCollector<Pool> poolsTracker_;
