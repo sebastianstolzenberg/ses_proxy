@@ -95,7 +95,7 @@ void CcClient::publishStatus(const Status& status)
   if (httpClient_)
   {
     std::ostringstream url;
-    url << "/client/setClientStatus?clientId=" << configuration_.userAgent_;
+    url << "/client/setClientStatus?clientId=" << configuration_.userAgent_ << "-" << status.clientId_;
 
     std::ostringstream body;
     body << status.toJson();

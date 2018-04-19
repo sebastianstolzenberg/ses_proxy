@@ -163,8 +163,16 @@ const util::HashRateCalculator& Pool::getSubmitHashRate()
 void Pool::handleConnect()
 {
   LOG_POOL_INFO << "Connected";
-  login();
-  connection_->startReading();
+  if (connection_)
+  {
+    login();
+    connection_->startReading();
+  }
+  else
+  {
+    // something is wrong, got a callback without having a valid connection ... reconnect
+    connect();
+  }
 }
 
 void Pool::handleReceived(const std::string& data)
@@ -228,7 +236,6 @@ void Pool::handleReceived(const std::string& data)
 void Pool::handleDisconnect(const std::string& error)
 {
   LOG_POOL_INFO << "Disconnected: " << error;
-  connection_.reset();
 
   // tries to reconnect in 5 seconds
   std::weak_ptr<Pool> weakSelf = shared_from_this();
@@ -357,6 +364,13 @@ void Pool::updateName()
 
 void Pool::connect()
 {
+  if (connection_)
+  {
+    connection_->resetHandler();
+    connection_->disconnect();
+    connection_.reset();
+  }
+
   connection_ = net::client::establishConnection(ioService_,
                                                  configuration_.endPoint_,
                                                  std::bind(&Pool::handleConnect, this),

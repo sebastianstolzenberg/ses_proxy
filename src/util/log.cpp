@@ -118,6 +118,10 @@ void initialize(boost::log::trivial::severity_level level, bool syslog)
 
   auto trivialLogger = ::boost::log::trivial::logger::get();
   auto logger = boost::log::core::get();
+
+  logger->reset_filter();
+  logger->remove_all_sinks();
+
 //  boost::log::add_common_attributes();
   logger->add_global_attribute("TimeStamp", boost::log::attributes::local_clock());
   logger->add_global_attribute("ThreadID", boost::log::attributes::current_thread_id());

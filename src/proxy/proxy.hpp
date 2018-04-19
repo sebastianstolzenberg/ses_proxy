@@ -18,8 +18,11 @@ public:
   typedef std::shared_ptr<Proxy> Ptr;
 
 public:
-  Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, uint32_t loadBalanceInterval);
+  Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, const std::string& configurationFilePath);
 
+  void run();
+
+  void reloadConfiguration();
   void addPool(const Pool::Configuration& configuration);
   void addServer(const Server::Configuration& configuration);
   void addCcClient(const CcClient::Configuration& configuration);
@@ -33,6 +36,9 @@ private:
 
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;
+  std::string configurationFilePath_;
+
+  size_t numThreads_;
   uint32_t loadBalanceInterval_;
   boost::asio::deadline_timer loadBalancerTimer_;
   std::recursive_mutex mutex_;
@@ -42,7 +48,7 @@ private:
   std::list<Client::Ptr> clients_;
 
   CcClient::Ptr ccClient_;
-  CcClient::Status ccClientStatus_;
+  CcClient::Status ccProxyStatus_;
 
 //  util::HashRateCollector<Client> clientsTracker_;
 //  util::HashRateCollector<Pool> poolsTracker_;

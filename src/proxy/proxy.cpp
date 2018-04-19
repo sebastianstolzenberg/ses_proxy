@@ -1,7 +1,10 @@
 #include <sstream>
+#include <iomanip>
 #include <future>
 #include <boost/range/numeric.hpp>
+#include <boost/asio/signal_set.hpp>
 
+#include "proxy/configurationfile.hpp"
 #include "proxy.hpp"
 #include "util/log.hpp"
 
@@ -12,16 +15,115 @@ namespace ses {
 namespace proxy {
 
 namespace {
-void sortByWeightedWorkers(std::list<Pool>& pools)
+void configureLogging(uint32_t logLevel, bool syslog)
 {
+  if (logLevel == 0)
+  {
+    boost::log::core::get()->set_logging_enabled(false);
+  }
+  else
+  {
+    logLevel = std::min(logLevel, UINT32_C(6));
+    boost::log::trivial::severity_level level = boost::log::trivial::severity_level::fatal;
+    switch (logLevel)
+    {
+      case 2:
+        level = boost::log::trivial::severity_level::error;
+        break;
+      case 3:
+        level = boost::log::trivial::severity_level::warning;
+        break;
+      case 4:
+        level = boost::log::trivial::severity_level::info;
+        break;
+      case 5:
+        level = boost::log::trivial::severity_level::debug;
+        break;
+      case 6:
+        level = boost::log::trivial::severity_level::trace;
+        break;
+      case 1: // fall through
+      default:
+        level = boost::log::trivial::severity_level::fatal;
+        break;
+    }
+    ses::log::initialize(level, syslog);
+  }
+}
+
+void waitForSignal(boost::asio::io_service& ioService, size_t numThreads)
+{
+  // waits for signals ending program
+
+  boost::asio::signal_set signals(ioService);
+  signals.add(SIGINT);
+  signals.add(SIGTERM);
+  signals.add(SIGQUIT);
+  signals.async_wait(
+    [&](boost::system::error_code /*ec*/, int signo)
+    {
+      LOG_WARN << "Signal " << signo << " received ... exiting";
+      ioService.stop();
+    });
+
+  if (numThreads == 0)
+  {
+    numThreads = std::thread::hardware_concurrency();
+  }
+  LOG_DEBUG << "Launching " << numThreads << " worker threads.";
+  // runs io_service on a reasonable number of threads
+  for (uint32_t threadCount = 1; threadCount < numThreads; ++threadCount)
+  {
+    std::thread thread(
+      std::bind(static_cast<size_t (boost::asio::io_service::*)()>(&boost::asio::io_service::run),
+                &ioService));
+    thread.detach();
+  }
+  // this run call uses the main thread
+  ioService.run();
 }
 }
 
-Proxy::Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, uint32_t loadBalanceInterval)
-  : ioService_(ioService), loadBalanceInterval_(loadBalanceInterval), loadBalancerTimer_(*ioService)
+Proxy::Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, const std::string& configurationFilePath)
+  : ioService_(ioService), configurationFilePath_(configurationFilePath), loadBalancerTimer_(*ioService)
 {
-  ccClientStatus_.clientId_ = "ses-proxy";
-  ccClientStatus_.version_ = "0.1";
+  ccProxyStatus_.version_ = "0.1";
+
+  reloadConfiguration();
+}
+
+void Proxy::run()
+{
+  waitForSignal(*ioService_, numThreads_);
+}
+
+void Proxy::reloadConfiguration()
+{
+  ses::proxy::Configuration configuration = ses::proxy::parseConfigurationFile(configurationFilePath_);
+
+  configureLogging(configuration.logLevel_, false);
+
+  numThreads_ = configuration.threads_;
+  loadBalanceInterval_ = configuration.poolLoadBalanceIntervalSeconds_;
+
+  for (const auto& poolConfig : configuration.pools_)
+  {
+    if (poolConfig.weight_ != 0)
+    {
+      addPool(poolConfig);
+    }
+  }
+
+  for (const auto& serverConfig : configuration.server_)
+  {
+    addServer(serverConfig);
+  }
+
+  if (configuration.ccCient_)
+  {
+    addCcClient(*configuration.ccCient_);
+  }
+
 }
 
 void Proxy::addPool(const Pool::Configuration& configuration)
@@ -46,6 +148,7 @@ void Proxy::addCcClient(const CcClient::Configuration& configuration)
 {
   ccClient_ = std::make_shared<CcClient>(ioService_);
   ccClient_->connect(configuration);
+  ccProxyStatus_.clientId_ = configuration.userAgent_;
 }
 
 void Proxy::handleNewClient(const Client::Ptr& newClient)
@@ -140,22 +243,23 @@ void Proxy::balancePoolLoads()
     auto poolHashRateAverageLong = pool->getWorkerHashRate().getAverageHashRateLongTimeWindow();
     auto poolTotalSubmitted = pool->getSubmitHashRate().getTotalHashes();
 
-    ccClientStatus_.hashRateShort_ = poolHashRate;
-    ccClientStatus_.hashRateLong_ = poolHashRateAverageMedium;
-    ccClientStatus_.hashRateLong_ = poolHashRateAverageLong;
-//    ccClientStatus_.hashRateHighest_ = std::max(ccClientStatus_.hashRateHighest_, ccClientStatus_.hashRateShort_);
-    ccClientStatus_.sharesTotal_ = poolTotalSubmitted;
-    ccClientStatus_.sharesGood_ = ccClientStatus_.sharesTotal_;
-    ccClientStatus_.hashesTotal_ = 0;
-    ccClientStatus_.numMiners_ = numPoolWorkers;
+    CcClient::Status ccPoolStatus;
+    ccPoolStatus.hashRateShort_ = poolHashRate;
+    ccPoolStatus.hashRateLong_ = poolHashRateAverageMedium;
+    ccPoolStatus.hashRateLong_ = poolHashRateAverageLong;
+//    ccPoolStatus.hashRateHighest_ = std::max(ccPoolStatus.hashRateHighest_, ccPoolStatus.hashRateShort_);
+    ccPoolStatus.sharesTotal_ = poolTotalSubmitted;
+    ccPoolStatus.sharesGood_ = ccPoolStatus.sharesTotal_;
+    ccPoolStatus.hashesTotal_ = 0;
+    ccPoolStatus.numMiners_ = numPoolWorkers;
     std::ostringstream clientId;
-    clientId << "pool" << poolNumber << "@ses-proxy";
-    ccClientStatus_.clientId_ = clientId.str();
-    ccClientStatus_.currentPool_ = pool->getDescriptor();
+    clientId << ccProxyStatus_.clientId_ << "_Pool_" << std::setw(2) << std::setfill('0') << poolNumber;
+    ccPoolStatus.clientId_ = clientId.str();
+    ccPoolStatus.currentPool_ = pool->getDescriptor();
 
     ++poolNumber;
 
-    ccClient_->publishStatus(ccClientStatus_);
+    ccClient_->publishStatus(ccPoolStatus);
 
     LOG_WARN << "After rebalance: " << pool->getDescriptor()
              << " , numWorkers, " << numPoolWorkers

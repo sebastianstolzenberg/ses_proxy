@@ -45,6 +45,11 @@ bool Target::operator==(const Target& other) const
   return target_ == other.target_;
 }
 
+bool Target::isNull() const
+{
+  return target_ == 0;
+}
+
 uint64_t Target::getRaw() const
 {
   return target_;

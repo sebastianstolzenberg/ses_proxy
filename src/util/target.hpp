@@ -15,6 +15,7 @@ public:
 
   bool operator==(const Target& other) const;
 
+  bool isNull() const;
   uint64_t getRaw() const;
   Target& trim(size_t numberOfRelevantBytes = 4);
   std::string toHexString(size_t numberOfBytes = 4) const;

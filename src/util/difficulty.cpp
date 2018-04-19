@@ -159,13 +159,27 @@ uint64_t extractTargetFromUint256(const boost::multiprecision::uint256_t& bigNum
 
 uint32_t targetToDifficulty(const Target& target)
 {
-  return (std::numeric_limits<boost::multiprecision::uint256_t>::max() /
-          uint256FromTarget(target.getRaw())).convert_to<uint32_t>();
+  if (target.isNull())
+  {
+    return std::numeric_limits<uint32_t>::max();
+  }
+  else
+  {
+    return (std::numeric_limits<boost::multiprecision::uint256_t>::max() /
+            uint256FromTarget(target.getRaw())).convert_to<uint32_t>();
+  }
 }
 
 Target difficultyToTarget(uint32_t difficulty)
 {
-  return Target(extractTargetFromUint256(std::numeric_limits<boost::multiprecision::uint256_t>::max() / difficulty));
+  if (difficulty == 0)
+  {
+    return Target(0xffffffff);
+  }
+  else
+  {
+    return Target(extractTargetFromUint256(std::numeric_limits<boost::multiprecision::uint256_t>::max() / difficulty));
+  }
 }
 
 uint32_t difficultyFromHashBuffer(const uint8_t* data, size_t size)
@@ -176,7 +190,10 @@ uint32_t difficultyFromHashBuffer(const uint8_t* data, size_t size)
   boost::multiprecision::import_bits(hash, data, data + size, 0, false);
 //  LOG_DEBUG << "targetToDifficulty(), hash, " << hash;
 //  LOG_DEBUG << "targetToDifficulty(), hex(hash), " << toHex(hash);
-  base /= hash;
+  if (hash > 0)
+  {
+    base /= hash;
+  }
 //  LOG_DEBUG << "targetToDifficulty(), base/hash, " << base;
 //  LOG_DEBUG << "targetToDifficulty(), hex(base/hash), " << toHex(base);
   return base.convert_to<uint32_t>();
