@@ -94,7 +94,7 @@ void parseCcClientConfigurations(boost::property_tree::ptree& ptree,
     configuration.ccToken_ = ccClient.get<std::string>("accessToken", "");
     configuration.userAgent_ = ccClient.get<std::string>("workerId", "");
     configuration.ccToken_ = ccClient.get<std::string>("accessToken", "");
-    configuration.updateInteralSeconds_ = ccClient.get<uint32_t>("updateIntervalSeconds", 10);
+    configuration.updateIntervalSeconds_ = ccClient.get<uint32_t>("updateIntervalSeconds", 10);
     ccClientConfiguration = configuration;
   }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <queue>
 #include <boost/asio/io_service.hpp>
 
 #include "net/client/http.hpp"
@@ -54,21 +55,27 @@ public:
     net::EndPoint endPoint_;
     std::string userAgent_;
     std::string ccToken_;
-    uint32_t updateInteralSeconds_;
+    uint32_t updateIntervalSeconds_;
   };
 
 public:
   CcClient(const std::shared_ptr<boost::asio::io_service>& ioService);
   void connect(const Configuration& configuration);
   void reconnect();
+  void disconnect();
 
   void publishConfig();
   void publishStatus(const Status& status);
 
 private:
+  void sendStatus(const Status& status);
+
+private:
   std::shared_ptr<boost::asio::io_service> ioService_;
   Configuration configuration_;
   net::client::Http::Ptr httpClient_;
+
+  std::queue<Status> statusMessageQueue;
 };
 
 } // namespace proxy

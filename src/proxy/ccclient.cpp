@@ -54,6 +54,8 @@ void CcClient::connect(const Configuration& configuration)
 
 void CcClient::reconnect()
 {
+  disconnect();
+
   httpClient_ = std::make_shared<net::client::Http>(ioService_, configuration_.endPoint_, configuration_.userAgent_);
   httpClient_->setBearerAuthenticationToken(configuration_.ccToken_);
   WeakPtr weakSelf = shared_from_this();
@@ -72,6 +74,12 @@ void CcClient::reconnect()
           self->reconnect();
         }
       });
+}
+
+void CcClient::disconnect()
+{
+  httpClient_->disconnect();
+  httpClient_.reset();
 }
 
 void CcClient::publishConfig()
@@ -96,6 +104,11 @@ void CcClient::publishConfig()
 }
 
 void CcClient::publishStatus(const Status& status)
+{
+  statusMessageQueue.emplace(status);
+}
+
+void sendStatus(const Status& status)
 {
   if (httpClient_)
   {
