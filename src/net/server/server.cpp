@@ -100,24 +100,25 @@ private:
         socket_,
         receiveBuffer_,
         delimiter_,
-        [this, self, weakSelf](boost::system::error_code error, size_t bytes_transferred)
+        [self, weakSelf](boost::system::error_code error, size_t bytes_transferred)
         {
-          if (!weakSelf.expired())
+          auto lockedSelf = weakSelf.lock();
+          if (lockedSelf)
           {
             if (!error)
             {
-              boost::asio::streambuf::const_buffers_type bufs = receiveBuffer_.data();
+              boost::asio::streambuf::const_buffers_type bufs = lockedSelf->receiveBuffer_.data();
               std::string data(boost::asio::buffers_begin(bufs),
-                               boost::asio::buffers_begin(bufs) + receiveBuffer_.size());
-              receiveBuffer_.consume(receiveBuffer_.size());
+                               boost::asio::buffers_begin(bufs) + lockedSelf->receiveBuffer_.size());
+              lockedSelf->receiveBuffer_.consume(lockedSelf->receiveBuffer_.size());
               LOG_TRACE << "net::server::BoostConnection received : " << data;
-              notifyRead(data);
-              triggerRead();
+              lockedSelf->notifyRead(data);
+              lockedSelf->triggerRead();
             }
             else
             {
               LOG_TRACE << "net::server::BoostConnection Read failed: " << error.message();
-              notifyError(error.message());
+              lockedSelf->notifyError(error.message());
             }
           }
         });
