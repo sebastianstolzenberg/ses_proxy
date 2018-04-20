@@ -59,15 +59,15 @@ public:
   };
 
 public:
-  CcClient(const std::shared_ptr<boost::asio::io_service>& ioService);
-  void connect(const Configuration& configuration);
-  void reconnect();
-  void disconnect();
+  CcClient(const std::shared_ptr<boost::asio::io_service>& ioService, const Configuration& configuration);
 
   void publishConfig();
   void publishStatus(const Status& status);
+  void send();
 
 private:
+  void connect();
+  void disconnect();
   void sendStatus(const Status& status);
 
 private:
@@ -75,7 +75,7 @@ private:
   Configuration configuration_;
   net::client::Http::Ptr httpClient_;
 
-  std::queue<Status> statusMessageQueue;
+  std::queue<Status> statusMessageQueue_;
 };
 
 } // namespace proxy

@@ -146,8 +146,7 @@ void Proxy::addServer(const Server::Configuration& configuration)
 
 void Proxy::addCcClient(const CcClient::Configuration& configuration)
 {
-  ccClient_ = std::make_shared<CcClient>(ioService_);
-  ccClient_->connect(configuration);
+  ccClient_ = std::make_shared<CcClient>(ioService_, configuration);
   ccProxyStatus_.clientId_ = configuration.userAgent_;
 }
 
@@ -262,7 +261,7 @@ void Proxy::balancePoolLoads()
              << " , weight , " << pool->getWeight();
   }
 
-
+  ccClient_->send();
 }
 //
 ////  clientsTracker_.sampleCurrentState();

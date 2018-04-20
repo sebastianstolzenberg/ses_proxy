@@ -40,46 +40,9 @@ std::string CcClient::Status::toJson() const
   return json.str();
 }
 
-CcClient::CcClient(const std::shared_ptr<boost::asio::io_service>& ioService)
-  : ioService_(ioService)
+CcClient::CcClient(const std::shared_ptr<boost::asio::io_service>& ioService, const Configuration& configuration)
+  : ioService_(ioService), configuration_(configuration)
 {
-
-}
-
-void CcClient::connect(const Configuration& configuration)
-{
-  configuration_ = configuration;
-  reconnect();
-}
-
-void CcClient::reconnect()
-{
-  disconnect();
-
-  httpClient_ = std::make_shared<net::client::Http>(ioService_, configuration_.endPoint_, configuration_.userAgent_);
-  httpClient_->setBearerAuthenticationToken(configuration_.ccToken_);
-  WeakPtr weakSelf = shared_from_this();
-  httpClient_->connect(
-      [weakSelf]()
-      {
-        if (auto self = weakSelf.lock())
-        {
-          self->publishConfig();
-        }
-      },
-      [weakSelf](const std::string& error)
-      {
-        if (auto self = weakSelf.lock())
-        {
-          self->reconnect();
-        }
-      });
-}
-
-void CcClient::disconnect()
-{
-  httpClient_->disconnect();
-  httpClient_.reset();
 }
 
 void CcClient::publishConfig()
@@ -105,10 +68,63 @@ void CcClient::publishConfig()
 
 void CcClient::publishStatus(const Status& status)
 {
-  statusMessageQueue.emplace(status);
+  statusMessageQueue_.emplace(status);
 }
 
-void sendStatus(const Status& status)
+
+void CcClient::send()
+{
+  if (!statusMessageQueue_.empty())
+  {
+    if (httpClient_ && httpClient_->isConnected())
+    {
+      while (!statusMessageQueue_.empty())
+      {
+        sendStatus(statusMessageQueue_.front());
+        statusMessageQueue_.pop();
+      }
+    }
+    else
+    {
+      connect();
+    }
+  }
+}
+
+void CcClient::connect()
+{
+  disconnect();
+
+  httpClient_ = std::make_shared<net::client::Http>(ioService_, configuration_.endPoint_, configuration_.userAgent_);
+  httpClient_->setBearerAuthenticationToken(configuration_.ccToken_);
+  WeakPtr weakSelf = shared_from_this();
+  httpClient_->connect(
+    [weakSelf]()
+    {
+      if (auto self = weakSelf.lock())
+      {
+        self->send();
+      }
+    },
+    [weakSelf](const std::string& error)
+    {
+//      if (auto self = weakSelf.lock())
+//      {
+//        self->reconnect();
+//      }
+    });
+}
+
+void CcClient::disconnect()
+{
+  if (httpClient_)
+  {
+    httpClient_->disconnect();
+    httpClient_.reset();
+  }
+}
+
+void CcClient::sendStatus(const Status& status)
 {
   if (httpClient_)
   {

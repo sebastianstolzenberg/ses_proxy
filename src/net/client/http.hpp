@@ -27,8 +27,8 @@ public:
   void setBearerAuthenticationToken(const std::string& token);
 
   void connect(ConnectHandler connectHandler, ErrorHandler errorHandler);
-
   void disconnect();
+  bool isConnected();
 
   void post(const std::string& url, const std::string& contentType, const std::string& body,
             ResponseHandler responseHandler, ErrorHandler errorHandler);

@@ -28,7 +28,9 @@ void sendReveiceAsync(Connection& connection, Request& request,
         {
           if (error)
           {
-            errorHandler(error.message());
+            std::ostringstream err;
+            err << "Http sendReveiceAsync() Write error: " << error.value() << ": " << error.message();
+            errorHandler(err.str());
           }
           else
           {
@@ -41,7 +43,9 @@ void sendReveiceAsync(Connection& connection, Request& request,
                 {
                   if (error)
                   {
-                    errorHandler(error.message());
+                    std::ostringstream err;
+                    err << "Http sendReveiceAsync() Read error: " << error.value() << ": " << error.message();
+                    errorHandler(err.str());
                   }
                   else
                   {
@@ -51,7 +55,9 @@ void sendReveiceAsync(Connection& connection, Request& request,
                     {
                       std::stringstream header;
                       header << response->base();
-                      errorHandler(header.str());
+                      std::ostringstream err;
+                      err << "Http sendReveiceAsync() Http result: " << header.str();
+                      errorHandler(err.str());
                     }
                     else
                     {
@@ -123,6 +129,11 @@ void Http::disconnect()
     connection_->disconnect();
     connection_.reset();
   }
+}
+
+bool Http::isConnected()
+{
+  return connection_ && connection_->isConnected();
 }
 
 void Http::post(const std::string& url, const std::string& contentType, const std::string& body,
