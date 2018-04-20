@@ -48,25 +48,29 @@ CcClient::CcClient(const std::shared_ptr<boost::asio::io_service>& ioService)
 void CcClient::connect(const Configuration& configuration)
 {
   configuration_ = configuration;
+  reconnect();
+}
 
+void CcClient::reconnect()
+{
   httpClient_ = std::make_shared<net::client::Http>(ioService_, configuration_.endPoint_, configuration_.userAgent_);
   httpClient_->setBearerAuthenticationToken(configuration_.ccToken_);
   WeakPtr weakSelf = shared_from_this();
   httpClient_->connect(
-    [weakSelf]()
-    {
-      if (auto self = weakSelf.lock())
+      [weakSelf]()
       {
-        self->publishConfig();
-      }
-    },
-    [weakSelf](const std::string& error)
-    {
-      if (auto self = weakSelf.lock())
+        if (auto self = weakSelf.lock())
+        {
+          self->publishConfig();
+        }
+      },
+      [weakSelf](const std::string& error)
       {
-        self->httpClient_.reset();
-      }
-    });
+        if (auto self = weakSelf.lock())
+        {
+          self->reconnect();
+        }
+      });
 }
 
 void CcClient::publishConfig()

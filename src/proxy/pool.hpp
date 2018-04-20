@@ -15,6 +15,7 @@
 #include "proxy/algorithm.hpp"
 #include "proxy/jobtemplate.hpp"
 #include "proxy/worker.hpp"
+#include "proxy/ccclient.hpp"
 
 namespace ses {
 namespace proxy {
@@ -73,6 +74,8 @@ public:
   const util::HashRateCalculator& getWorkerHashRate();
   const util::HashRateCalculator& getSubmitHashRate();
 
+  CcClient::Status getCcStatus();
+
 private:
   void handleConnect();
   void handleReceived(const std::string& data);
@@ -129,6 +132,7 @@ private:
   std::unordered_map<RequestIdentifier,
     std::tuple<std::string, JobResult::SubmitStatusHandler> > outstandingSubmits_;
 
+  std::string poolShortName_;
   std::string poolName_;
   std::string workerIdentifier_;
   JobTemplate::Ptr activeJobTemplate_;
@@ -138,6 +142,10 @@ private:
 
   util::HashRateCalculator workerHashRate_;
   util::HashRateCalculator submitHashRate_;
+  uint32_t totalSubmits_;
+  uint32_t successfulSubmits_;
+
+  CcClient::Status ccStatus_;
 };
 
 } // namespace proxy

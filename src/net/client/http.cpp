@@ -13,11 +13,73 @@ namespace client {
 
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 
+namespace {
+template <class Connection, class Request>
+void sendReveiceAsync(Connection& connection, Request& request,
+                      const Http::ResponseHandler responseHandler,
+                      const Http::ErrorHandler errorHandler)
+{
+  if (connection)
+  {
+    http::async_write(
+        connection->getSocket(), *request,
+        [connection, responseHandler, errorHandler, request]
+            (boost::system::error_code error, std::size_t bytes_transferred)
+        {
+          if (error)
+          {
+            errorHandler(error.message());
+          }
+          else
+          {
+            auto buffer = std::make_shared<boost::beast::flat_buffer>();
+            auto response = std::make_shared<http::response<http::string_body> >();
+            http::async_read(
+                connection->getSocket(), *buffer, *response,
+                [responseHandler, errorHandler, buffer, response]
+                    (boost::system::error_code error, std::size_t bytes_transferred)
+                {
+                  if (error)
+                  {
+                    errorHandler(error.message());
+                  }
+                  else
+                  {
+                    LOG_TRACE << "Http::post() response: " << *response;
+                    auto statusClass = http::to_status_class(response->result());
+                    if (statusClass != http::status_class::successful)
+                    {
+                      std::stringstream header;
+                      header << response->base();
+                      errorHandler(header.str());
+                    }
+                    else
+                    {
+                      responseHandler(response->body());
+                    }
+                  }
+                });
+          }
+        });
+  }
+}
+}
+
 Http::Http(const std::shared_ptr<boost::asio::io_service>& ioService,
      const EndPoint& endPoint, const std::string& userAgent)
   : ioService_(ioService), endPoint_(endPoint), userAgent_(userAgent)
 {
+  if (endPoint_.connectionType_ == net::CONNECTION_TYPE_AUTO)
+  {
+    endPoint_.connectionType_ = endPoint_.port_ == 443 ?
+                                net::CONNECTION_TYPE_TLS :
+                                net::CONNECTION_TYPE_TCP;
+  }
+}
 
+Http::~Http()
+{
+  disconnect();
 }
 
 void Http::setBearerAuthenticationToken(const std::string& token)
@@ -53,6 +115,16 @@ void Http::connect(ConnectHandler connectHandler, ErrorHandler errorHandler)
 
 }
 
+void Http::disconnect()
+{
+  if (connection_)
+  {
+    connection_->resetHandler();
+    connection_->disconnect();
+    connection_.reset();
+  }
+}
+
 void Http::post(const std::string& url, const std::string& contentType, const std::string& body,
           const ResponseHandler responseHandler, const ErrorHandler errorHandler)
 {
@@ -72,49 +144,16 @@ void Http::post(const std::string& url, const std::string& contentType, const st
 
   LOG_TRACE << "Http::post() request: " << *request;
 
-  //TODO fix handling of connection type
-  auto connection = std::dynamic_pointer_cast<BoostTlsConnection>(connection_);
-//  auto connection = std::dynamic_pointer_cast<BoostTcpConnection>(connection_);
-  http::async_write(
-      connection->getSocket(), *request,
-      [connection, responseHandler, errorHandler, request]
-          (boost::system::error_code error, std::size_t bytes_transferred)
-      {
-        if (error)
-        {
-          errorHandler(error.message());
-        }
-        else
-        {
-          auto buffer = std::make_shared<boost::beast::flat_buffer>();
-          auto response = std::make_shared<http::response<http::string_body> >();
-          http::async_read(
-              connection->getSocket(), *buffer, *response,
-              [responseHandler, errorHandler, buffer, response]
-                  (boost::system::error_code error, std::size_t bytes_transferred)
-              {
-                if (error)
-                {
-                  errorHandler(error.message());
-                }
-                else
-                {
-                  LOG_TRACE << "Http::post() response: " << *response;
-                  auto statusClass = http::to_status_class(response->result());
-                  if (statusClass != http::status_class::successful)
-                  {
-                    std::stringstream header;
-                    header << response->base();
-                    errorHandler(header.str());
-                  }
-                  else
-                  {
-                    responseHandler(response->body());
-                  }
-                }
-              });
-        }
-      });
+  if (endPoint_.connectionType_ == net::CONNECTION_TYPE_TLS)
+  {
+    auto connection = std::dynamic_pointer_cast<BoostTlsConnection>(connection_);
+    sendReveiceAsync(connection, request, responseHandler, errorHandler);
+  }
+  else
+  {
+    auto connection = std::dynamic_pointer_cast<BoostTcpConnection>(connection_);
+    sendReveiceAsync(connection, request, responseHandler, errorHandler);
+  }
 }
 
 void Http::handleConnect()

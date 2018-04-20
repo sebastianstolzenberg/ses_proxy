@@ -20,7 +20,8 @@ namespace proxy {
 //TODO solo mode with reservedOffset
 
 Pool::Pool(const std::shared_ptr<boost::asio::io_service>& ioService)
-  : ioService_(ioService), keepaliveTimer_(*ioService_)
+  : ioService_(ioService), keepaliveTimer_(*ioService_),
+    totalSubmits_(0), successfulSubmits_(0)
 {
 }
 
@@ -160,6 +161,22 @@ const util::HashRateCalculator& Pool::getSubmitHashRate()
   return submitHashRate_;
 }
 
+CcClient::Status Pool::getCcStatus()
+{
+  ccStatus_.hashRateShort_ = hashRate();
+  ccStatus_.hashRateMedium_ = getWorkerHashRate().getAverageHashRateShortTimeWindow();
+  ccStatus_.hashRateLong_ = getWorkerHashRate().getAverageHashRateLongTimeWindow();
+  ccStatus_.hashRateHighest_ = std::max(ccStatus_.hashRateHighest_, ccStatus_.hashRateShort_);
+  ccStatus_.sharesTotal_ = totalSubmits_;
+  ccStatus_.sharesGood_ = successfulSubmits_;
+  ccStatus_.hashesTotal_ = getWorkerHashRate().getTotalHashes();
+  ccStatus_.numMiners_ = numWorkers();
+  std::ostringstream clientId;
+  ccStatus_.clientId_ = clientId.str();
+  ccStatus_.currentPool_ = poolShortName_;
+  return ccStatus_;
+}
+
 void Pool::handleConnect()
 {
   LOG_POOL_INFO << "Connected";
@@ -284,8 +301,11 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
 {
   submitHashRate_.addHashes(activeJobTemplate_->getDifficulty());
 
-  LOG_POOL_INFO << "Submit success: job, " << jobId << ", " << submitHashRate_;
-
+  ++totalSubmits_;
+  ++successfulSubmits_;
+  LOG_POOL_INFO << "Submit success: job, " << jobId
+                << ", hr, " << submitHashRate_
+                << ", rate, " << successfulSubmits_ << "/" << totalSubmits_;
 
   if (submitStatusHandler)
   {
@@ -302,7 +322,10 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
 void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
                              int code, const std::string& message)
 {
-  LOG_ERROR << poolName_ << ": " << "Submit failed: message, " << code << " " << message << ", job, " << jobId;
+  ++totalSubmits_;
+  LOG_ERROR << poolName_ << ": " << "Submit failed: message, " << code << " "
+                                 << message << ", job, " << jobId
+                                 << ", rate, " << successfulSubmits_ << "/" << totalSubmits_;
 
   if (submitStatusHandler)
   {
@@ -357,8 +380,10 @@ JobResult::SubmitStatus Pool::handleJobResult(const std::string& workerIdentifie
 void Pool::updateName()
 {
   std::ostringstream poolNameStream;
-  poolNameStream << "<" << workerIdentifier_ << "@"
-                 << configuration_.endPoint_.host_ << ":" << configuration_.endPoint_.port_ << ">";
+  poolNameStream << configuration_.endPoint_.host_ << ":" << configuration_.endPoint_.port_;
+  poolShortName_ = poolNameStream.str();
+  poolNameStream = std::ostringstream();
+  poolNameStream << "<" << workerIdentifier_ << "@" << poolShortName_ << ">";
   poolName_ = poolNameStream.str();
 }
 

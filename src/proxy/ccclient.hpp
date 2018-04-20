@@ -58,6 +58,7 @@ public:
 public:
   CcClient(const std::shared_ptr<boost::asio::io_service>& ioService);
   void connect(const Configuration& configuration);
+  void reconnect();
 
   void publishConfig();
   void publishStatus(const Status& status);

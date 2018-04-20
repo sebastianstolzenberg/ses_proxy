@@ -22,9 +22,13 @@ public:
   Http(const std::shared_ptr<boost::asio::io_service>& ioService,
        const EndPoint& endPoint, const std::string& userAgent);
 
+  ~Http();
+
   void setBearerAuthenticationToken(const std::string& token);
 
   void connect(ConnectHandler connectHandler, ErrorHandler errorHandler);
+
+  void disconnect();
 
   void post(const std::string& url, const std::string& contentType, const std::string& body,
             ResponseHandler responseHandler, ErrorHandler errorHandler);
