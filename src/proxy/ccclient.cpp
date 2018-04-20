@@ -33,7 +33,8 @@ std::string CcClient::Status::toJson() const
        <<  "\"current_threads\":" << currentThreads_ << ","
        <<  "\"shares_good\":" << sharesGood_ << ","
        <<  "\"shares_total\":" << sharesTotal_ << ","
-       <<  "\"hashes_total\":" << hashesTotal_
+       <<  "\"hashes_total\":" << hashesTotal_ << ","
+       <<  "\"uptime\":" << upTime_
        << "}}";
 
   return json.str();

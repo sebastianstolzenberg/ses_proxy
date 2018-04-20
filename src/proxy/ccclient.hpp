@@ -37,6 +37,8 @@ public:
 
     size_t numMiners_;
 
+    uint64_t upTime_;
+
     Status();
     std::string toJson() const;
   };

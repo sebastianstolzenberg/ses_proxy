@@ -174,6 +174,9 @@ CcClient::Status Pool::getCcStatus()
   std::ostringstream clientId;
   ccStatus_.clientId_ = clientId.str();
   ccStatus_.currentPool_ = poolShortName_;
+  ccStatus_.currentAlgoName_ = toString(configuration_.algorithm_);
+  ccStatus_.upTime_ = getWorkerHashRate().secondsSinceStart().count();
+  ccStatus_.upTime_ *= 1000;
   return ccStatus_;
 }
 
