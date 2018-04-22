@@ -53,27 +53,27 @@ public:
       auto self = this->shared_from_this();
       resolver->async_resolve(
         query,
-        [this, self, resolver](const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator iterator)
+        [self, resolver](const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator iterator)
         {
           if (error)
           {
-            notifyError(error.message());
+            self->notifyError(error.message());
           }
           else
           {
-            socket_->connect(
+            self->socket_->connect(
               iterator,
-              [this, self](const boost::system::error_code& error)
+              [self](const boost::system::error_code& error)
               {
                 if (error)
                 {
-                  notifyError(error.message());
+                  self->notifyError(error.message());
                 }
                 else
                 {
-                  socket_->get().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
-                  socket_->get().lowest_layer().set_option(boost::asio::socket_base::keep_alive(true));
-                  connectHandler_();
+                  self->socket_->get().lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true));
+                  self->socket_->get().lowest_layer().set_option(boost::asio::socket_base::keep_alive(true));
+                  self->connectHandler_();
                 }
               });
           }
@@ -120,11 +120,11 @@ public:
     auto self = this->shared_from_this();
     boost::asio::async_write(
       socket_->get(), boost::asio::buffer(data.data(), data.size()),
-      [this, self](const boost::system::error_code& error, std::size_t bytes_transferred)
+      [self](const boost::system::error_code& error, std::size_t bytes_transferred)
       {
         if (error)
         {
-          notifyError(error.message());
+          self->notifyError(error.message());
         }
       });
   }
@@ -146,27 +146,28 @@ private:
         socket_->get(),
         receiveBuffer_,
         delimiter_,
-        [this, self, weakSelf](const boost::system::error_code &error,
+        [self, weakSelf](const boost::system::error_code &error,
                      size_t bytes_transferred)
         {
-          if (!weakSelf.expired())
+          auto lockedSelf = weakSelf.lock();
+          if (lockedSelf)
           {
             if (!error)
             {
               std::string data(
-                boost::asio::buffers_begin(receiveBuffer_.data()),
-                boost::asio::buffers_begin(receiveBuffer_.data()) + bytes_transferred);
-              receiveBuffer_.consume(bytes_transferred);
-              LOG_TRACE << "net::client::BoostConnection<" << getConnectedIp() << ":"
-                        << getConnectedPort() << ">::handleRead: " << data;
-              notifyRead(data);
-              triggerRead();
+                boost::asio::buffers_begin(lockedSelf->receiveBuffer_.data()),
+                boost::asio::buffers_begin(lockedSelf->receiveBuffer_.data()) + bytes_transferred);
+              lockedSelf->receiveBuffer_.consume(bytes_transferred);
+              LOG_TRACE << "net::client::BoostConnection<" << lockedSelf->getConnectedIp() << ":"
+                        << lockedSelf->getConnectedPort() << ">::handleRead: " << data;
+              lockedSelf->notifyRead(data);
+              lockedSelf->triggerRead();
             }
             else
             {
-              LOG_ERROR << "<" << getConnectedIp() << ":" << getConnectedPort() << "> Read failed: "
-                        << error.message();
-              notifyError(error.message());
+              LOG_ERROR << "<" << lockedSelf->getConnectedIp() << ":" << lockedSelf->getConnectedPort()
+                        << "> Read failed: " << error.message();
+              lockedSelf->notifyError(error.message());
             }
           }
         });
