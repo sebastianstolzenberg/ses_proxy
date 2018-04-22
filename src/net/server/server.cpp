@@ -72,11 +72,11 @@ public:
     auto self = this->shared_from_this();
     boost::asio::async_write(
       socket_, boost::asio::buffer(data.data(), data.size()),
-      [this, self](const boost::system::error_code& error, std::size_t bytes_transferred)
+      [self](const boost::system::error_code& error, std::size_t bytes_transferred)
       {
         if (error)
         {
-          notifyError(error.message());
+          self->notifyError(error.message());
         }
       });
   }
@@ -147,32 +147,40 @@ public:
     acceptor_.open(endpoint.protocol());
     acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
     acceptor_.bind(endpoint);
-    acceptor_.listen();
+  }
 
+  void startAccept() override
+  {
+    acceptor_.listen();
     accept();
   }
 
 private:
   virtual void accept()
   {
+    std::weak_ptr<BoostServer> weakSelf = std::static_pointer_cast<BoostServer>(shared_from_this());
     auto nextConnection = std::make_shared<BoostConnection<boost::asio::ip::tcp::socket> >(*ioService_);
     acceptor_.async_accept(
       nextConnection->socket().lowest_layer(),
-      [this, nextConnection](boost::system::error_code ec)
+      [weakSelf, nextConnection](boost::system::error_code ec)
       {
-        // Check whether the server was stopped by a signal before this
-        // completion handler had a chance to run.
-        if (!acceptor_.is_open())
+        auto lockedSelf = weakSelf.lock();
+        if (lockedSelf)
         {
-          return;
-        }
+          // Check whether the server was stopped by a signal before this
+          // completion handler had a chance to run.
+          if (!lockedSelf->acceptor_.is_open())
+          {
+            return;
+          }
 
-        if (!ec && newConnecionHandler_)
-        {
-          newConnecionHandler_(nextConnection);
-        }
+          if (!ec && lockedSelf->newConnecionHandler_)
+          {
+            lockedSelf->newConnecionHandler_(nextConnection);
+          }
 
-      accept();
+          lockedSelf->accept();
+        }
       });
   }
 
@@ -199,32 +207,38 @@ public:
 private:
   virtual void accept()
   {
+    std::weak_ptr<BoostTlsServer> weakSelf = std::static_pointer_cast<BoostTlsServer>(shared_from_this());;
     auto nextConnection =
       std::make_shared<BoostConnection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket> > >(*ioService_, context_);
     acceptor_.async_accept(
       nextConnection->socket().lowest_layer(),
-      [this, nextConnection](boost::system::error_code ec)
+      [weakSelf, nextConnection](boost::system::error_code ec)
       {
-        // Check whether the server was stopped by a signal before this
-        // completion handler had a chance to run.
-        if (!acceptor_.is_open())
+        auto lockedSelf = weakSelf.lock();
+        if (lockedSelf)
         {
-          return;
-        }
+          // Check whether the server was stopped by a signal before this
+          // completion handler had a chance to run.
+          if (!lockedSelf->acceptor_.is_open())
+          {
+            return;
+          }
 
-        accept();
+          lockedSelf->accept();
 
-        if (!ec && newConnecionHandler_)
-        {
-          nextConnection->socket().async_handshake(
-            boost::asio::ssl::stream_base::server,
-            [this, nextConnection] (const boost::system::error_code& error)
-            {
-              if (!error && newConnecionHandler_)
+          if (!ec && lockedSelf->newConnecionHandler_)
+          {
+            nextConnection->socket().async_handshake(
+              boost::asio::ssl::stream_base::server,
+              [weakSelf, nextConnection](const boost::system::error_code& error)
               {
-                newConnecionHandler_(nextConnection);
-              }
-            });
+                auto lockedSelf = weakSelf.lock();
+                if (lockedSelf && !error && lockedSelf->newConnecionHandler_)
+                {
+                  lockedSelf->newConnecionHandler_(nextConnection);
+                }
+              });
+          }
         }
       });
   }

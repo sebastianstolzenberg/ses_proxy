@@ -15,10 +15,12 @@ namespace server {
 
 typedef std::function<void(Connection::Ptr connection)> NewConnectionHandler;
 
-class Server : private boost::noncopyable
+class Server : private boost::noncopyable, public std::enable_shared_from_this<Server>
 {
 public:
   typedef std::shared_ptr<Server> Ptr;
+
+  virtual void startAccept() = 0;
 
 public:
   virtual ~Server() {};

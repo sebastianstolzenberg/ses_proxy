@@ -93,6 +93,8 @@ public:
   void disconnect() override
   {
     resetHandler();
+    boost::system::error_code ec;
+    socket_->get().lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
     socket_->get().lowest_layer().close();
   }
 
@@ -140,34 +142,31 @@ private:
   void triggerRead()
   {
     // captures a shared pointer to keep the connection object alive until it is disconnected
-    auto self = selfSustainUntilDisconnect_ ? this->shared_from_this() : BoostConnection<SOCKET>::Ptr();
-    std::weak_ptr<BoostConnection<SOCKET> > weakSelf = this->shared_from_this();
+    auto self = this->shared_from_this();
     boost::asio::async_read_until(
         socket_->get(),
         receiveBuffer_,
         delimiter_,
-        [self, weakSelf](const boost::system::error_code &error,
-                     size_t bytes_transferred)
+        [self](const boost::system::error_code &error, size_t bytes_transferred)
         {
-          auto lockedSelf = weakSelf.lock();
-          if (lockedSelf)
+          if (self)
           {
             if (!error)
             {
               std::string data(
-                boost::asio::buffers_begin(lockedSelf->receiveBuffer_.data()),
-                boost::asio::buffers_begin(lockedSelf->receiveBuffer_.data()) + bytes_transferred);
-              lockedSelf->receiveBuffer_.consume(bytes_transferred);
-              LOG_TRACE << "net::client::BoostConnection<" << lockedSelf->getConnectedIp() << ":"
-                        << lockedSelf->getConnectedPort() << ">::handleRead: " << data;
-              lockedSelf->notifyRead(data);
-              lockedSelf->triggerRead();
+                boost::asio::buffers_begin(self->receiveBuffer_.data()),
+                boost::asio::buffers_begin(self->receiveBuffer_.data()) + bytes_transferred);
+              self->receiveBuffer_.consume(bytes_transferred);
+              LOG_TRACE << "net::client::BoostConnection<" << self->getConnectedIp() << ":"
+                        << self->getConnectedPort() << ">::handleRead: " << data;
+              self->notifyRead(data);
+              self->triggerRead();
             }
             else
             {
-              LOG_ERROR << "<" << lockedSelf->getConnectedIp() << ":" << lockedSelf->getConnectedPort()
+              LOG_ERROR << "<" << self->getConnectedIp() << ":" << self->getConnectedPort()
                         << "> Read failed: " << error.message();
-              lockedSelf->notifyError(error.message());
+              self->notifyError(error.message());
             }
           }
         });

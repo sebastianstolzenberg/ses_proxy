@@ -9,7 +9,7 @@ namespace ses {
 namespace net {
 namespace client {
 
-class BoostTlsSocket
+class BoostTlsSocket : public std::enable_shared_from_this<BoostTlsSocket>
 {
 public:
   typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> SocketType;
@@ -25,9 +25,10 @@ public:
   template<class ITERATOR, class HANDLER>
   void connect(ITERATOR &iterator, HANDLER handler)
   {
+    auto self = shared_from_this();
     boost::asio::async_connect(
         socket_.lowest_layer(), iterator,
-        [this, handler](const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator)
+        [self, handler](const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator)
         {
           if (error)
           {
@@ -35,7 +36,7 @@ public:
           }
           else
           {
-            socket_.async_handshake(boost::asio::ssl::stream_base::client, handler);
+            self->socket_.async_handshake(boost::asio::ssl::stream_base::client, handler);
           }
         });
   }

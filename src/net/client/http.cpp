@@ -15,7 +15,7 @@ namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 
 namespace {
 template <class Connection, class Request>
-void sendReveiceAsync(Connection& connection, Request& request,
+void sendReveiceAsync(const std::shared_ptr<Connection> connection, Request& request,
                       const Http::ResponseHandler responseHandler,
                       const Http::ErrorHandler errorHandler)
 {
