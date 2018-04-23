@@ -512,7 +512,7 @@ void Pool::removeJob(const std::string& jobId)
 bool Pool::assignJobToWorker(const Worker::Ptr& worker)
 {
   bool accepted = false;
-  if (worker && activeJobTemplate_)
+  if (worker && activeJobTemplate_ && worker->getAlgorithm() == getAlgotrithm())
   {
     //TODO PoW aware worker selection
     auto job = activeJobTemplate_->getJobFor(worker->getIdentifier(), worker->getType());
