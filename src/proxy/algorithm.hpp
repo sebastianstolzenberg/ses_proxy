@@ -1,23 +1,21 @@
 #pragma once
 
+#include <string>
+
 namespace ses {
 namespace proxy {
 
 enum Algorithm
 {
   ALGORITHM_CRYPTONIGHT,
-  ALGORITHM_CRYPTONIGHT_LITE
+  ALGORITHM_CRYPTONIGHT_LITE,
+  ALGORITHM_CRYPTONIGHT_LITE_IPBC,
+  ALGORITHM_CRYPTONIGHT_HEAVY
 };
 
-inline const char* toString(Algorithm algorithm)
-{
-  switch(algorithm)
-  {
-    case ALGORITHM_CRYPTONIGHT: return "cryptonight";
-    case ALGORITHM_CRYPTONIGHT_LITE: return "cryptonight-lite";
-    default: return "unknown";
-  }
-}
+const char* toString(Algorithm algorithm);
+
+Algorithm toAlgorithm(const std::string& algoString);
 
 } // namespace proxy
 } // namespace ses

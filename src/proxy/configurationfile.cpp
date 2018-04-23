@@ -23,18 +23,6 @@ net::ConnectionType parseConnectionType(const std::string& connectionTypeString)
   return connectionType;
 }
 
-Algorithm parseAlgorithm(const std::string& algorithmString)
-{
-  Algorithm algorithm = Algorithm::ALGORITHM_CRYPTONIGHT;
-  std::string compare = algorithmString;
-  boost::algorithm::to_lower(compare);
-  if (compare == "cryptonight-lite")
-  {
-    algorithm = Algorithm::ALGORITHM_CRYPTONIGHT_LITE;
-  }
-  return algorithm;
-}
-
 void parsePoolConfigurations(boost::property_tree::ptree& ptree, std::list<Pool::Configuration>& list)
 {
   double totalWeight = 0;
@@ -49,7 +37,7 @@ void parsePoolConfigurations(boost::property_tree::ptree& ptree, std::list<Pool:
     configuration.pass_ = pool.second.get<std::string>("password");
     configuration.weight_ = std::fmax(0.0, pool.second.get<double>("weight"));
     totalWeight += configuration.weight_;
-    configuration.algorithm_ = parseAlgorithm(pool.second.get<std::string>("algorithm", ""));
+    configuration.algorithm_ = toAlgorithm(pool.second.get<std::string>("algorithm", ""));
     list.push_back(configuration);
   }
 
@@ -73,7 +61,7 @@ void parseServerConfigurations(boost::property_tree::ptree& ptree, std::list<Ser
       parseConnectionType(server.second.get<std::string>("connectionType", "auto"));
     configuration.endPoint_.certificateChainFile_ = server.second.get<std::string>("certificateChainFile", "");
     configuration.endPoint_.privateKeyFile_ = server.second.get<std::string>("privateKeyFile", "");
-    configuration.defaultAlgorithm_ = parseAlgorithm(server.second.get<std::string>("defaultAlgorithm", ""));
+    configuration.defaultAlgorithm_ = toAlgorithm(server.second.get<std::string>("defaultAlgorithm", ""));
     configuration.defaultDifficulty_ = server.second.get<uint32_t>("defaultDifficulty", 5000);
     configuration.targetSecondsBetweenSubmits_ = server.second.get<uint32_t>("targetSecondsBetweenSubmits", 15);
     list.push_back(configuration);

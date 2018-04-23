@@ -69,7 +69,7 @@ add_executable(ses_proxy
         src/proxy/blob.cpp
         src/proxy/workeridentifier.cpp
         src/proxy/configurationfile.cpp
-        src/proxy/ccclient.cpp)
+        src/proxy/ccclient.cpp src/proxy/algorithm.cpp)
 
 target_link_libraries(ses_proxy
         ses_proxy_net
