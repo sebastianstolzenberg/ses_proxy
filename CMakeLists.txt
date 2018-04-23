@@ -76,13 +76,8 @@ target_link_libraries(ses_proxy
         ses_proxy_stratum
         ses_proxy_util
         cryptonote
-        Boost::program_options
-        Boost::log_setup
-        Boost::log
-        Boost::thread
-        Boost::system
-        OpenSSL::SSL
-        OpenSSL::Crypto
+        ${Boost_LIBRARIES}
+        ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT})
 #add_dependencies(ses_proxy cryptonote)
 
