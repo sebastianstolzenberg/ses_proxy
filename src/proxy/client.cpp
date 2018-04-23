@@ -117,7 +117,7 @@ void Client::handleReceived(const std::string& data)
 //      LOG_DEBUG << "proxy::Client::handleReceived request, id, " << id << ", method, " << method
 //                << ", params, " << params;
       stratum::server::parseRequest(id, method, params,
-                                    std::bind(&Client::handleLogin, this, _1, _2, _3, _4),
+                                    std::bind(&Client::handleLogin, this, _1, _2, _3, _4, _5),
                                     std::bind(&Client::handleGetJob, this, _1),
                                     std::bind(&Client::handleSubmit, this, _1, _2, _3, _4, _5, _6, _7),
                                     std::bind(&Client::handleKeepAliveD, this, _1, _2),
@@ -144,7 +144,8 @@ void Client::handleDisconnect(const std::string& error)
   }
 }
 
-void Client::handleLogin(const std::string& jsonRequestId, const std::string& login, const std::string& pass, const std::string& agent)
+void Client::handleLogin(const std::string& jsonRequestId, const std::string& login, const std::string& pass,
+                         const std::string& agent, const std::vector<std::string>& algorithms)
 {
   LOG_DEBUG << "ses::proxy::Client::handleLogin()"
             << ", login, " << login

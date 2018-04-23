@@ -16,7 +16,8 @@ void parseLogin(const std::string& jsonRequestId, const std::string& params, Log
   auto login = tree.get<std::string>("login", "");
   auto pass = tree.get<std::string>("pass", "");
   auto agent = tree.get<std::string>("agent", "");
-  handler(jsonRequestId, login, pass, agent);
+  std::vector<std::string> algorithms;
+  handler(jsonRequestId, login, pass, agent, algorithms);
 }
 
 void parseSubmit(const std::string& jsonRequestId, const std::string& params, SubmitHandler& handler)

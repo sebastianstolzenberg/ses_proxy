@@ -51,7 +51,8 @@ private:
   void handleDisconnect(const std::string& error);
 
   void handleLogin(const std::string& jsonRequestId,
-                   const std::string& login, const std::string& pass, const std::string& agent);
+                   const std::string& login, const std::string& pass, const std::string& agent,
+                   const std::vector<std::string>& algorithms);
   void handleGetJob(const std::string& jsonRequestId);
   void handleSubmit(const std::string& jsonRequestId,
                     const std::string& identifier, const std::string& jobIdentifier,

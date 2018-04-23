@@ -13,7 +13,8 @@ namespace stratum {
 namespace server {
 
 typedef std::function<void(const std::string& jsonRequestId, const std::string& login,
-                           const std::string& pass, const std::string& agent)> LoginHandler;
+                           const std::string& pass, const std::string& agent,
+                           const std::vector<std::string>& algorithms)> LoginHandler;
 typedef std::function<void(const std::string& jsonRequestId)> GetJobHandler;
 typedef std::function<void(const std::string& jsonRequestId, const std::string& identifier,
                            const std::string& jobIdentifier, const std::string& nonce,
