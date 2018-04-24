@@ -92,33 +92,29 @@ private:
   void triggerRead()
   {
     // captures a shared pointer to keep the connection object alive until it is disconnected
-    auto self = selfSustainUntilDisconnect_ ?
-                std::enable_shared_from_this<BoostConnection<SocketType> >::shared_from_this() :
-                BoostConnection::Ptr();
-    std::weak_ptr<BoostConnection<SocketType> > weakSelf = this->shared_from_this();
+    auto self = std::enable_shared_from_this<BoostConnection<SocketType> >::shared_from_this();
     boost::asio::async_read_until(
         socket_,
         receiveBuffer_,
         delimiter_,
-        [self, weakSelf](boost::system::error_code error, size_t bytes_transferred)
+        [self](boost::system::error_code error, size_t bytes_transferred)
         {
-          auto lockedSelf = weakSelf.lock();
-          if (lockedSelf)
+          if (self)
           {
             if (!error)
             {
-              boost::asio::streambuf::const_buffers_type bufs = lockedSelf->receiveBuffer_.data();
+              boost::asio::streambuf::const_buffers_type bufs = self->receiveBuffer_.data();
               std::string data(boost::asio::buffers_begin(bufs),
-                               boost::asio::buffers_begin(bufs) + lockedSelf->receiveBuffer_.size());
-              lockedSelf->receiveBuffer_.consume(lockedSelf->receiveBuffer_.size());
+                               boost::asio::buffers_begin(bufs) + self->receiveBuffer_.size());
+              self->receiveBuffer_.consume(self->receiveBuffer_.size());
               LOG_TRACE << "net::server::BoostConnection received : " << data;
-              lockedSelf->notifyRead(data);
-              lockedSelf->triggerRead();
+              self->notifyRead(data);
+              self->triggerRead();
             }
             else
             {
               LOG_TRACE << "net::server::BoostConnection Read failed: " << error.message();
-              lockedSelf->notifyError(error.message());
+              self->notifyError(error.message());
             }
           }
         });
@@ -158,28 +154,27 @@ public:
 private:
   virtual void accept()
   {
-    std::weak_ptr<BoostServer> weakSelf = std::static_pointer_cast<BoostServer>(shared_from_this());
+    auto self = std::static_pointer_cast<BoostServer>(shared_from_this());
     auto nextConnection = std::make_shared<BoostConnection<boost::asio::ip::tcp::socket> >(*ioService_);
     acceptor_.async_accept(
       nextConnection->socket().lowest_layer(),
-      [weakSelf, nextConnection](boost::system::error_code ec)
+      [self, nextConnection](boost::system::error_code ec)
       {
-        auto lockedSelf = weakSelf.lock();
-        if (lockedSelf)
+        if (self)
         {
           // Check whether the server was stopped by a signal before this
           // completion handler had a chance to run.
-          if (!lockedSelf->acceptor_.is_open())
+          if (!self->acceptor_.is_open())
           {
             return;
           }
 
-          if (!ec && lockedSelf->newConnecionHandler_)
+          if (!ec && self->newConnecionHandler_)
           {
-            lockedSelf->newConnecionHandler_(nextConnection);
+            self->newConnecionHandler_(nextConnection);
           }
 
-          lockedSelf->accept();
+          self->accept();
         }
       });
   }
@@ -207,35 +202,33 @@ public:
 private:
   virtual void accept()
   {
-    std::weak_ptr<BoostTlsServer> weakSelf = std::static_pointer_cast<BoostTlsServer>(shared_from_this());;
+    auto self = std::static_pointer_cast<BoostTlsServer>(shared_from_this());
     auto nextConnection =
       std::make_shared<BoostConnection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket> > >(*ioService_, context_);
     acceptor_.async_accept(
       nextConnection->socket().lowest_layer(),
-      [weakSelf, nextConnection](boost::system::error_code ec)
+      [self, nextConnection](boost::system::error_code ec)
       {
-        auto lockedSelf = weakSelf.lock();
-        if (lockedSelf)
+        if (self)
         {
           // Check whether the server was stopped by a signal before this
           // completion handler had a chance to run.
-          if (!lockedSelf->acceptor_.is_open())
+          if (!self->acceptor_.is_open())
           {
             return;
           }
 
-          lockedSelf->accept();
+          self->accept();
 
-          if (!ec && lockedSelf->newConnecionHandler_)
+          if (!ec && self->newConnecionHandler_)
           {
             nextConnection->socket().async_handshake(
               boost::asio::ssl::stream_base::server,
-              [weakSelf, nextConnection](const boost::system::error_code& error)
+              [self, nextConnection](const boost::system::error_code& error)
               {
-                auto lockedSelf = weakSelf.lock();
-                if (lockedSelf && !error && lockedSelf->newConnecionHandler_)
+                if (self && !error && self->newConnecionHandler_)
                 {
-                  lockedSelf->newConnecionHandler_(nextConnection);
+                  self->newConnecionHandler_(nextConnection);
                 }
               });
           }
