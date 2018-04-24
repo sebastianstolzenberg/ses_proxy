@@ -129,7 +129,7 @@ void CcClient::sendStatus(const Status& status)
   if (httpClient_)
   {
     std::ostringstream url;
-    url << "/client/setClientStatus?clientId=" << configuration_.userAgent_ << "-" << status.clientId_;
+    url << "/client/setProxyStatus?clientId=" << configuration_.userAgent_ << "-" << status.clientId_;
 
     std::ostringstream body;
     body << status.toJson();
