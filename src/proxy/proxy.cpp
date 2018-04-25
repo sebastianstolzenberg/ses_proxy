@@ -88,8 +88,6 @@ Proxy::Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, const st
   : ioService_(ioService), configurationFilePath_(configurationFilePath), loadBalancerTimer_(*ioService)
 {
   ccProxyStatus_.version_ = "0.1";
-
-  reloadConfiguration();
 }
 
 void Proxy::run()
@@ -194,13 +192,16 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
         if (pool->getAlgotrithm() == newClient->getAlgorithm() &&
             pool->addWorker(newClient))
         {
+          auto self = shared_from_this();
           newClient->setDisconnectHandler(
-              [this, newClient]()
+              [self, newClient]()
               {
                 // removes the client from the pools when they disconnect
-                for (auto pool : pools_) pool->removeWorker(newClient);
-                clients_.remove(newClient);
-//                clientsTracker_.removeHasher(newClient);
+                for (auto pool : self->pools_)
+                {
+                  pool->removeWorker(newClient);
+                }
+                self->clients_.remove(newClient);
               });
           break;
         }
@@ -213,13 +214,14 @@ void Proxy::triggerLoadBalancerTimer()
 {
   //TODO optimize timer period
   loadBalancerTimer_.expires_from_now(boost::posix_time::seconds(loadBalanceInterval_));
+  auto self = shared_from_this();
   loadBalancerTimer_.async_wait(
-    [this](const boost::system::error_code& error)
+    [self](const boost::system::error_code& error)
     {
       if (!error)
       {
-        triggerLoadBalancerTimer();
-        std::thread(std::bind(&Proxy::balancePoolLoads, shared_from_this())).detach();
+        self->triggerLoadBalancerTimer();
+        std::thread(std::bind(&Proxy::balancePoolLoads, self)).detach();
       }
     });
 }

@@ -47,6 +47,8 @@ public:
   void disconnect() override
   {
     resetHandler();
+    boost::system::error_code ec;
+    socket_.lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
     socket_.lowest_layer().close();
   }
 
@@ -92,7 +94,7 @@ private:
   void triggerRead()
   {
     // captures a shared pointer to keep the connection object alive until it is disconnected
-    auto self = std::enable_shared_from_this<BoostConnection<SocketType> >::shared_from_this();
+    auto self = this->shared_from_this();
     boost::asio::async_read_until(
         socket_,
         receiveBuffer_,

@@ -64,6 +64,7 @@ int main(int argc,  char** argv)
 
   ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>(ioService,
                                                                      parameters.configurationFilePath_);
+  proxy->reloadConfiguration();
   proxy->run();
   return 0;
 }
