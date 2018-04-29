@@ -54,7 +54,9 @@ public:
 public:
   Pool(const std::shared_ptr<boost::asio::io_service>& ioService);
   ~Pool();
+
   void connect(const Configuration& configuration);
+  void disconnect();
 
   bool addWorker(const Worker::Ptr& worker);
   bool removeWorker(const Worker::Ptr& worker);

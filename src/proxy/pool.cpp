@@ -25,6 +25,11 @@ Pool::Pool(const std::shared_ptr<boost::asio::io_service>& ioService)
 {
 }
 
+Pool::~Pool()
+{
+  disconnect();
+}
+
 void Pool::connect(const Configuration& configuration)
 {
   LOG_INFO << "Connecting new pool - " << configuration;
@@ -33,11 +38,13 @@ void Pool::connect(const Configuration& configuration)
   updateName();
 }
 
-Pool::~Pool()
+void Pool::disconnect()
 {
   if (connection_)
   {
+    connection_->resetHandler();
     connection_->disconnect();
+    connection_.reset();
   }
 }
 
@@ -257,16 +264,19 @@ void Pool::handleDisconnect(const std::string& error)
 {
   LOG_POOL_INFO << "Disconnected: " << error;
 
+  disconnect();
+
   // tries to reconnect in 5 seconds
   std::weak_ptr<Pool> weakSelf = shared_from_this();
   auto timer = std::make_shared<boost::asio::deadline_timer>(*ioService_);
   timer->expires_from_now(boost::posix_time::seconds(5));
   timer->async_wait(
-    [this, weakSelf, timer](const boost::system::error_code& error)
+    [weakSelf, timer](const boost::system::error_code& error)
     {
-      if (!error && !weakSelf.expired())
+      auto lockedSelf = weakSelf.lock();
+      if (!error && !lockedSelf)
       {
-        connect();
+        lockedSelf->connect();
       }
     });
 }
@@ -392,13 +402,7 @@ void Pool::updateName()
 
 void Pool::connect()
 {
-  if (connection_)
-  {
-    connection_->resetHandler();
-    connection_->disconnect();
-    connection_.reset();
-  }
-
+  disconnect();
   connection_ = net::client::establishConnection(ioService_,
                                                  configuration_.endPoint_,
                                                  std::bind(&Pool::handleConnect, this),

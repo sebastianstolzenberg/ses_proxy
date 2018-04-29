@@ -97,8 +97,32 @@ void Proxy::run()
 
 void Proxy::reloadConfiguration()
 {
+  // tears down old connections
+  boost::system::error_code error;
+  loadBalancerTimer_.cancel(error);
+
+  servers_.clear();
+
+  for (auto& client : clients_)
+  {
+    client->disconnect();
+  }
+  clients_.clear();
+
+  for (auto& pool : pools_)
+  {
+    pool->disconnect();
+  }
+  pools_.clear();
+
+  ccClient_.reset();
+
+
+  // parses new configuration
   ses::proxy::Configuration configuration = ses::proxy::parseConfigurationFile(configurationFilePath_);
 
+
+  // sets up new connections
   configureLogging(configuration.logLevel_, false);
 
   numThreads_ = configuration.threads_;
@@ -263,7 +287,10 @@ void Proxy::balancePoolLoads()
              << " , weight , " << pool->getWeight();
   }
 
-  ccClient_->send();
+  if (ccClient_)
+  {
+    ccClient_->send();
+  }
 }
 //
 ////  clientsTracker_.sampleCurrentState();

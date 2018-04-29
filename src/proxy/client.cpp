@@ -48,6 +48,11 @@ void Client::setConnection(const net::Connection::Ptr& connection)
   }
 }
 
+void Client::disconnect()
+{
+  setConnection(net::Connection::Ptr());
+}
+
 WorkerIdentifier Client::getIdentifier() const
 {
   return identifier_;
@@ -138,6 +143,7 @@ void Client::handleReceived(const std::string& data)
 void Client::handleDisconnect(const std::string& error)
 {
   LOG_CLIENT_INFO << "Disconnected";
+  disconnect();
   if (disconnectHandler_)
   {
     disconnectHandler_();

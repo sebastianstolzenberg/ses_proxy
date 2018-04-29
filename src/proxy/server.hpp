@@ -48,6 +48,7 @@ public:
 
 public:
   Server(const std::shared_ptr<boost::asio::io_service>& ioService);
+  ~Server();
   void start(const Configuration& configuration, const NewClientHandler& newClientHandler);
 
 public:

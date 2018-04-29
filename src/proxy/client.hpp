@@ -31,6 +31,7 @@ public:
 
   void setDisconnectHandler(const DisconnectHandler& disconnectHandler);
   void setConnection(const net::Connection::Ptr& connection);
+  void disconnect();
 
 public: // from Worker
   WorkerIdentifier getIdentifier() const override;

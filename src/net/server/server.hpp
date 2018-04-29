@@ -21,6 +21,7 @@ public:
   typedef std::shared_ptr<Server> Ptr;
 
   virtual void startAccept() = 0;
+  virtual void cancelAccept() = 0;
 
 public:
   virtual ~Server() {};

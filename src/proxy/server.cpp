@@ -14,6 +14,11 @@ Server::Server(const std::shared_ptr<boost::asio::io_service>& ioService)
 {
 }
 
+Server::~Server()
+{
+  server_->cancelAccept();
+}
+
 void Server::start(const Configuration& configuration, const NewClientHandler& newClientHandler)
 {
   LOG_INFO << "Starting server - " << configuration;

@@ -153,6 +153,12 @@ public:
     accept();
   }
 
+  void cancelAccept() override
+  {
+    boost::system::error_code error;
+    acceptor_.cancel(error);
+  }
+
 private:
   virtual void accept()
   {
@@ -171,12 +177,15 @@ private:
             return;
           }
 
-          if (!ec && self->newConnecionHandler_)
+          if (!ec)
           {
-            self->newConnecionHandler_(nextConnection);
-          }
+            self->accept();
 
-          self->accept();
+            if (self->newConnecionHandler_)
+            {
+              self->newConnecionHandler_(nextConnection);
+            }
+          }
         }
       });
   }
@@ -220,19 +229,22 @@ private:
             return;
           }
 
-          self->accept();
-
-          if (!ec && self->newConnecionHandler_)
+          if (!ec)
           {
-            nextConnection->socket().async_handshake(
-              boost::asio::ssl::stream_base::server,
-              [self, nextConnection](const boost::system::error_code& error)
-              {
-                if (self && !error && self->newConnecionHandler_)
+            self->accept();
+
+            if (self->newConnecionHandler_)
+            {
+              nextConnection->socket().async_handshake(
+                boost::asio::ssl::stream_base::server,
+                [self, nextConnection](const boost::system::error_code& error)
                 {
-                  self->newConnecionHandler_(nextConnection);
-                }
-              });
+                  if (self && !error && self->newConnecionHandler_)
+                  {
+                    self->newConnecionHandler_(nextConnection);
+                  }
+                });
+            }
           }
         }
       });
