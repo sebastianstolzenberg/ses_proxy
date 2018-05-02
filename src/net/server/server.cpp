@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <mutex>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 
@@ -93,6 +94,7 @@ protected:
 private:
   void triggerRead()
   {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     // captures a shared pointer to keep the connection object alive until it is disconnected
     auto self = this->shared_from_this();
     boost::asio::async_read_until(
@@ -105,6 +107,7 @@ private:
           {
             if (!error)
             {
+              std::lock_guard<std::recursive_mutex> lock(self->mutex_);
               boost::asio::streambuf::const_buffers_type bufs = self->receiveBuffer_.data();
               std::string data(boost::asio::buffers_begin(bufs),
                                boost::asio::buffers_begin(bufs) + self->receiveBuffer_.size());
@@ -123,6 +126,7 @@ private:
   }
 
 private:
+  std::recursive_mutex mutex_;
   SocketType socket_;
   boost::asio::streambuf receiveBuffer_;
   bool selfSustainUntilDisconnect_;
