@@ -164,7 +164,8 @@ private:
             }
             else
             {
-              LOG_ERROR << "<" << self->getConnectedIp() << ":" << self->getConnectedPort()
+              LOG_ERROR << "net::client::BoostConnection<"
+                        << self->getConnectedIp() << ":" << self->getConnectedPort()
                         << "> Read failed: " << error.message();
               self->notifyError(error.message());
             }

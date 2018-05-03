@@ -108,17 +108,21 @@ private:
             if (!error)
             {
               std::lock_guard<std::recursive_mutex> lock(self->mutex_);
-              boost::asio::streambuf::const_buffers_type bufs = self->receiveBuffer_.data();
-              std::string data(boost::asio::buffers_begin(bufs),
-                               boost::asio::buffers_begin(bufs) + self->receiveBuffer_.size());
-              self->receiveBuffer_.consume(self->receiveBuffer_.size());
-              LOG_TRACE << "net::server::BoostConnection received : " << data;
+              std::string data(
+                  boost::asio::buffers_begin(self->receiveBuffer_.data()),
+                  boost::asio::buffers_begin(self->receiveBuffer_.data()) + bytes_transferred);
+              self->receiveBuffer_.consume(bytes_transferred);
+              LOG_TRACE << "net::server::BoostConnection<"
+                        << self->getConnectedIp() << ":" << self->getConnectedPort()
+                        << "> received : " << data;
               self->notifyRead(data);
               self->triggerRead();
             }
             else
             {
-              LOG_TRACE << "net::server::BoostConnection Read failed: " << error.message();
+              LOG_ERROR << "\"net::server::BoostConnection<"
+                        << self->getConnectedIp() << ":" << self->getConnectedPort()
+                        << "> Read failed: " << error.message();
               self->notifyError(error.message());
             }
           }
