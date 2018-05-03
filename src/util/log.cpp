@@ -6,6 +6,7 @@
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/sinks/syslog_backend.hpp>
+#include <boost/log/sinks/text_file_backend.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
@@ -130,6 +131,18 @@ void initialize(boost::log::trivial::severity_level level, bool syslog)
 
 //  auto sink = boost::log::add_console_log();
 //  sink->set_formatter(&formatter);
+
+//  auto fileBackend =
+//      boost::make_shared<boost::log::sinks::text_file_backend>(
+//          boost::log::keywords::file_name = "ses_proxy_%5N.log",
+//          boost::log::keywords::rotation_size = 5 * 1024 * 1024,
+//          boost::log::keywords::time_based_rotation =
+//              boost::log::sinks::file::rotation_at_time_point(12, 0, 0)
+//      );
+//  auto fileSink =
+//      boost::make_shared<boost::log::sinks::synchronous_sink<boost::log::sinks::text_file_backend> >(fileBackend);
+//  logger->add_sink(fileSink);
+
 
   if (!syslog)
   {
