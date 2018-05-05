@@ -123,7 +123,7 @@ void Proxy::reloadConfiguration()
 
 
   // sets up new connections
-  configureLogging(configuration.logLevel_, false);
+ configureLogging(configuration.logLevel_, false);
 
   numThreads_ = configuration.threads_;
   loadBalanceInterval_ = configuration.poolLoadBalanceIntervalSeconds_;

@@ -55,7 +55,9 @@ public:
 
   bool isConnected() const override
   {
-    return socket_.lowest_layer().is_open();
+    boost::system::error_code ec;
+    auto remoteEndpoint = socket_.lowest_layer().remote_endpoint(ec);
+    return !ec && socket_.lowest_layer().is_open();
   }
 
   std::string getConnectedIp() const override
