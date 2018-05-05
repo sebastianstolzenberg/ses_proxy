@@ -147,7 +147,7 @@ void initialize(boost::log::trivial::severity_level level, bool syslog)
   if (!syslog)
   {
     boost::log::add_console_log(
-      std::clog,
+      std::cout,
       boost::log::keywords::format =
         (
           boost::log::expressions::stream
