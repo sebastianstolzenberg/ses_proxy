@@ -110,11 +110,9 @@ private:
             if (!error)
             {
               std::lock_guard<std::recursive_mutex> lock(self->mutex_);
-//              std::string data(
-//                  boost::asio::buffers_begin(self->receiveBuffer_.data()),
-//                  boost::asio::buffers_begin(self->receiveBuffer_.data()) + bytes_transferred);
-              std::string data(std::istreambuf_iterator<char>(&self->receiveBuffer_),
-                               std::istreambuf_iterator<char>());
+              std::string data(
+                  boost::asio::buffers_begin(self->receiveBuffer_.data()),
+                  boost::asio::buffers_end(self->receiveBuffer_.data()));
               self->receiveBuffer_.consume(self->receiveBuffer_.size());
               LOG_TRACE << "net::server::BoostConnection<"
                         << self->getConnectedIp() << ":" << self->getConnectedPort()
