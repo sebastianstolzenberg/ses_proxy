@@ -113,7 +113,7 @@ private:
               std::string data(
                   boost::asio::buffers_begin(self->receiveBuffer_.data()),
                   boost::asio::buffers_end(self->receiveBuffer_.data()));
-              self->receiveBuffer_.consume(self->receiveBuffer_.size());
+              self->receiveBuffer_.consume(data.size());
               LOG_TRACE << "net::server::BoostConnection<"
                         << self->getConnectedIp() << ":" << self->getConnectedPort()
                         << "> received : " << data;
@@ -122,7 +122,7 @@ private:
             }
             else
             {
-              LOG_ERROR << "\"net::server::BoostConnection<"
+              LOG_ERROR << "net::server::BoostConnection<"
                         << self->getConnectedIp() << ":" << self->getConnectedPort()
                         << "> Read failed: " << error.message();
               self->notifyError(error.message());
