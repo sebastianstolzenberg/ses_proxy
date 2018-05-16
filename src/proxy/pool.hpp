@@ -27,7 +27,7 @@ public:
 
   struct Configuration
   {
-    Configuration() : algorithm_(ALGORITHM_CRYPTONIGHT), weight_(0) {}
+    Configuration() : algorithm_(Algorithm::CRYPTONIGHT), weight_(0) {}
     Configuration(const net::EndPoint& endPoint, const std::string& user, const std::string& pass,
                   Algorithm algorithm, double weight)
       : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm), weight_(weight)

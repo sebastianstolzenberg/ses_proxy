@@ -26,8 +26,8 @@ public:
 
 public:
   Client(const std::shared_ptr<boost::asio::io_service>& ioService,
-         const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty,
-         uint32_t targetSecondsBetweenSubmits);
+         const WorkerIdentifier& id, Algorithm defaultAlgorithm, AlgorithmVariant defaultAlgorithmVariant,
+         uint32_t defaultDifficulty, uint32_t targetSecondsBetweenSubmits);
 
   void setDisconnectHandler(const DisconnectHandler& disconnectHandler);
   void setConnection(const net::Connection::Ptr& connection);
@@ -53,7 +53,7 @@ private:
 
   void handleLogin(const std::string& jsonRequestId,
                    const std::string& login, const std::string& pass, const std::string& agent,
-                   const std::vector<std::string>& algorithms);
+                   const std::string& algorithm, const std::vector<std::string>& algorithmVariants);
   void handleGetJob(const std::string& jsonRequestId);
   void handleSubmit(const std::string& jsonRequestId,
                     const std::string& identifier, const std::string& jobIdentifier,
@@ -87,6 +87,7 @@ private:
   std::string clientName_;
   WorkerIdentifier identifier_;
   Algorithm algorithm_;
+  std::set<AlgorithmVariant> algorithmVariants_;
   WorkerType type_;
   std::string useragent_;
   std::string username_;

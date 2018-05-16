@@ -16,12 +16,13 @@ namespace ses {
 namespace proxy {
 
 Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
-               const WorkerIdentifier& id, Algorithm defaultAlgorithm, uint32_t defaultDifficulty,
-               uint32_t targetSecondsBetweenSubmits)
+               const WorkerIdentifier& id, Algorithm defaultAlgorithm, AlgorithmVariant defaultAlgorithmVariant,
+               uint32_t defaultDifficulty, uint32_t targetSecondsBetweenSubmits)
   : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN),
     difficulty_(defaultDifficulty), targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits),
     submits_(0)
 {
+  algorithmVariants_.insert(defaultAlgorithmVariant);
 }
 
 void Client::setDisconnectHandler(const DisconnectHandler& disconnectHandler)
@@ -122,7 +123,7 @@ void Client::handleReceived(const std::string& data)
 //      LOG_DEBUG << "proxy::Client::handleReceived request, id, " << id << ", method, " << method
 //                << ", params, " << params;
       stratum::server::parseRequest(id, method, params,
-                                    std::bind(&Client::handleLogin, this, _1, _2, _3, _4, _5),
+                                    std::bind(&Client::handleLogin, this, _1, _2, _3, _4, _5, _6),
                                     std::bind(&Client::handleGetJob, this, _1),
                                     std::bind(&Client::handleSubmit, this, _1, _2, _3, _4, _5, _6, _7),
                                     std::bind(&Client::handleKeepAliveD, this, _1, _2),
@@ -151,12 +152,15 @@ void Client::handleDisconnect(const std::string& error)
 }
 
 void Client::handleLogin(const std::string& jsonRequestId, const std::string& login, const std::string& pass,
-                         const std::string& agent, const std::vector<std::string>& algorithms)
+                         const std::string& agent, const std::string& algorithm,
+                         const std::vector<std::string>& algorithmVariants)
 {
   LOG_DEBUG << "ses::proxy::Client::handleLogin()"
             << ", login, " << login
             << ", pass, " << pass
-            << ", agent, " << agent;
+            << ", agent, " << agent
+            << ", algorithm, " << algorithm
+            << ", algorithmVariants, " << algorithmVariants;
 
   if (login.empty())
   {
@@ -172,6 +176,18 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
     useragent_ = agent;
     username_ = login;
     password_ = pass;
+    if (!algorithm.empty())
+    {
+      algorithm_ = toAlgorithm(algorithm);
+    }
+    if (!algorithmVariants.empty())
+    {
+      algorithmVariants_.clear();
+      for (auto& algorithmVariant : algorithmVariants)
+      {
+        algorithmVariants_.insert(toAlgorithmVariant(algorithmVariant));
+      }
+    }
 
     if (useragent_.find("xmr-node-proxy") != std::string::npos)
     {

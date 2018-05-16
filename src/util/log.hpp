@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/manipulators/dump.hpp>
 #include <boost/log/expressions/keyword.hpp>
@@ -41,3 +43,21 @@ std::string currentExceptionDiagnosticInformation();
 
 #define LOG_CURRENT_EXCEPTION LOG_ERROR << ses::log::currentExceptionDiagnosticInformation();
 
+
+// helper for logging vector contents
+template<typename OutStream, typename T>
+inline OutStream& operator<< (OutStream& out, const std::vector<T>& vector)
+{
+  out << "{";
+  size_t last = vector.size() - 1;
+  for(size_t i = 0; i < vector.size(); ++i)
+  {
+    out << vector[i];
+    if (i != last)
+    {
+      out << ", ";
+    }
+  }
+  out << "}";
+  return out;
+}

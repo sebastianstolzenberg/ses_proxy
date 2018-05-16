@@ -62,6 +62,7 @@ void parseServerConfigurations(boost::property_tree::ptree& ptree, std::list<Ser
     configuration.endPoint_.certificateChainFile_ = server.second.get<std::string>("certificateChainFile", "");
     configuration.endPoint_.privateKeyFile_ = server.second.get<std::string>("privateKeyFile", "");
     configuration.defaultAlgorithm_ = toAlgorithm(server.second.get<std::string>("defaultAlgorithm", ""));
+    configuration.defaultAlgorithmVariant_ = toAlgorithmVariant(server.second.get<std::string>("defaultAlgorithmVariant", ""));
     configuration.defaultDifficulty_ = server.second.get<uint32_t>("defaultDifficulty", 5000);
     configuration.targetSecondsBetweenSubmits_ = server.second.get<uint32_t>("targetSecondsBetweenSubmits", 15);
     list.push_back(configuration);

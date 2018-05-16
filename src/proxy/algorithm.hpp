@@ -7,15 +7,31 @@ namespace proxy {
 
 enum Algorithm
 {
-  ALGORITHM_CRYPTONIGHT,
-  ALGORITHM_CRYPTONIGHT_LITE,
-  ALGORITHM_CRYPTONIGHT_LITE_IPBC,
-  ALGORITHM_CRYPTONIGHT_HEAVY
+  CRYPTONIGHT,
+  CRYPTONIGHT_LITE,
+  CRYPTONIGHT_HEAVY
 };
 
 const char* toString(Algorithm algorithm);
 
 Algorithm toAlgorithm(const std::string& algoString);
+
+
+
+enum AlgorithmVariant
+{
+  ANY,
+  V0,
+  V1,
+  IPBC,
+  ALLOY,
+  XTL
+};
+
+const char* toString(AlgorithmVariant algorithmVariant);
+
+AlgorithmVariant toAlgorithmVariant(const std::string& algorithmVariantString);
+
 
 } // namespace proxy
 } // namespace ses

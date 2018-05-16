@@ -16,18 +16,19 @@ void parseLogin(const std::string& jsonRequestId, const std::string& params, Log
   auto login = tree.get<std::string>("login", "");
   auto pass = tree.get<std::string>("pass", "");
   auto agent = tree.get<std::string>("agent", "");
-  auto algorithmsNode = tree.get_child_optional("algorithms");
-  std::vector<std::string> algorithms;
-  if (algorithmsNode)
+  auto algorithm = tree.get<std::string>("algo", "");
+  auto algorithmVariantsNode = tree.get_child_optional("supported-variants");
+  std::vector<std::string> algorithmVariants;
+  if (algorithmVariantsNode)
   {
-    algorithms.reserve(algorithmsNode->size());
-    for (auto algorithmNode : *algorithmsNode)
+    algorithmVariants.reserve(algorithmVariantsNode->size());
+    for (auto algorithmNode : *algorithmVariantsNode)
     {
       auto algorithmString = algorithmNode.second.get_value<std::string>("");
-      algorithms.push_back(algorithmString);
+      algorithmVariants.push_back(algorithmString);
     }
   }
-  handler(jsonRequestId, login, pass, agent, algorithms);
+  handler(jsonRequestId, login, pass, agent, algorithm, algorithmVariants);
 }
 
 void parseSubmit(const std::string& jsonRequestId, const std::string& params, SubmitHandler& handler)
