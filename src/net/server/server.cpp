@@ -99,11 +99,12 @@ private:
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // captures a shared pointer to keep the connection object alive until it is disconnected
     auto self = this->shared_from_this();
+    auto receiveBuffer = std::make_shared<boost::asio::streambuf>();
     boost::asio::async_read_until(
         socket_,
-        receiveBuffer_,
+        *receiveBuffer,
         delimiter_,
-        [self](boost::system::error_code error, size_t bytes_transferred)
+        [self, receiveBuffer](boost::system::error_code error, size_t bytes_transferred)
         {
           if (self)
           {
@@ -111,9 +112,9 @@ private:
             {
               std::lock_guard<std::recursive_mutex> lock(self->mutex_);
               std::string data(
-                  boost::asio::buffers_begin(self->receiveBuffer_.data()),
-                  boost::asio::buffers_end(self->receiveBuffer_.data()));
-              self->receiveBuffer_.consume(data.size());
+                  boost::asio::buffers_begin(receiveBuffer->data()),
+                  boost::asio::buffers_end(receiveBuffer->data()));
+              receiveBuffer->consume(data.size());
               LOG_TRACE << "net::server::BoostConnection<"
                         << self->getConnectedIp() << ":" << self->getConnectedPort()
                         << "> received : " << data;
@@ -134,7 +135,7 @@ private:
 private:
   std::recursive_mutex mutex_;
   SocketType socket_;
-  boost::asio::streambuf receiveBuffer_;
+//  boost::asio::streambuf receiveBuffer_;
   bool selfSustainUntilDisconnect_;
   std::string delimiter_;
 };
