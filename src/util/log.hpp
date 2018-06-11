@@ -43,14 +43,15 @@ std::string currentExceptionDiagnosticInformation();
 
 #define LOG_CURRENT_EXCEPTION LOG_ERROR << ses::log::currentExceptionDiagnosticInformation();
 
-
+namespace std
+{
 // helper for logging vector contents
-template<typename OutStream, typename T>
-inline OutStream& operator<< (OutStream& out, const std::vector<T>& vector)
+template <typename OutStream, typename T>
+inline OutStream& operator<<(OutStream& out, const std::vector<T>& vector)
 {
   out << "{";
   size_t last = vector.size() - 1;
-  for(size_t i = 0; i < vector.size(); ++i)
+  for (size_t i = 0; i < vector.size(); ++i)
   {
     out << vector[i];
     if (i != last)
@@ -60,4 +61,5 @@ inline OutStream& operator<< (OutStream& out, const std::vector<T>& vector)
   }
   out << "}";
   return out;
+}
 }
