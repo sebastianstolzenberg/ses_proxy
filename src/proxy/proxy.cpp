@@ -109,11 +109,14 @@ void Proxy::reloadConfiguration()
   }
   clients_.clear();
 
-  for (auto& pool : pools_)
+  for (auto& poolGroup : poolGroups_)
   {
-    pool->disconnect();
+    for (auto& pool : poolGroup.second.pools_)
+    {
+      pool->disconnect();
+    }
   }
-  pools_.clear();
+  poolGroups_.clear();
 
   ccClient_.reset();
 
@@ -128,11 +131,18 @@ void Proxy::reloadConfiguration()
   numThreads_ = configuration.threads_;
   loadBalanceInterval_ = configuration.poolLoadBalanceIntervalSeconds_;
 
-  for (const auto& poolConfig : configuration.pools_)
+  for (const auto& poolGroupConfig : configuration.poolGroups_)
   {
-    if (poolConfig.weight_ != 0)
+    auto& poolGroup = poolGroups_[poolGroupConfig.priority_];
+    // appends the name, just in case the same priority has been configured for more than one group
+    poolGroup.name_ += poolGroupConfig.name_;
+
+    for (const auto& poolConfig : poolGroupConfig.pools_)
     {
-      addPool(poolConfig);
+      if (poolConfig.weight_ != 0)
+      {
+        addPool(poolConfig, poolGroup.pools_);
+      }
     }
   }
 
@@ -148,13 +158,12 @@ void Proxy::reloadConfiguration()
 
 }
 
-void Proxy::addPool(const Pool::Configuration& configuration)
+void Proxy::addPool(const Pool::Configuration& configuration, std::list<Pool::Ptr>& pools)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   auto pool = std::make_shared<Pool>(ioService_);
   pool->connect(configuration);
-  pools_.push_back(pool);
-//  poolsTracker_.addHasher(pool);
+  pools.push_back(pool);
 
   triggerLoadBalancerTimer();
 }
@@ -181,53 +190,64 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
     clients_.push_back(newClient);
 //    clientsTracker_.addHasher(newClient);
 
-    if (!pools_.empty())
+    for (auto& poolGroup : poolGroups_)
     {
-      // sorts the pools to find the pool which needs the next miner the most
-      pools_.sort([newClient](const auto& a, const auto& b)
-                  {
-                    if (b->getAlgotrithm() != newClient->getAlgorithm())
-                    {
-                      return true;
-                    }
-                    else if (a->getAlgotrithm() != newClient->getAlgorithm())
-                    {
-                      return false;
-                    }
-                    double aWeighted = a->weightedHashRate();
-                    double bWeighted = b->weightedHashRate();
-                    if (aWeighted == bWeighted)
-                    {
-                      return a->getWeight() > b->getWeight();
-                    }
-                    else
-                    {
-                      return aWeighted < bWeighted;
-                    }
-                  });
-      LOG_INFO << "Ordered pools by weighted load:";
-      for (auto pool : pools_) LOG_INFO << "  " << pool->getDescriptor()
-                                        << ", weightedHashRate, " << pool->weightedHashRate()
-                                        << ", weight, " << pool->getWeight()
-                                        << ", workers, " << pool->numWorkers()
-                                        << ", algorithm, " << pool->getAlgotrithm();
-      for (auto pool : pools_)
+      if (!poolGroup.second.pools_.empty())
       {
-        if (pool->getAlgotrithm() == newClient->getAlgorithm() &&
-            pool->addWorker(newClient))
+        // sorts the pools to find the pool which needs the next miner the most
+        poolGroup.second.pools_.sort([newClient](const auto& a, const auto& b)
+                    {
+                      if (b->getAlgotrithm() != newClient->getAlgorithm())
+                      {
+                        return true;
+                      }
+                      else if (a->getAlgotrithm() != newClient->getAlgorithm())
+                      {
+                        return false;
+                      }
+                      double aWeighted = a->weightedHashRate();
+                      double bWeighted = b->weightedHashRate();
+                      if (aWeighted == bWeighted)
+                      {
+                        return a->getWeight() > b->getWeight();
+                      }
+                      else
+                      {
+                        return aWeighted < bWeighted;
+                      }
+                    });
+
+        LOG_INFO << "Ordered pools by weighted load:";
+        for (auto pool : poolGroup.second.pools_)
+          LOG_INFO << "  " << pool->getDescriptor()
+                   << ", weightedHashRate, " << pool->weightedHashRate()
+                   << ", weight, " << pool->getWeight()
+                   << ", workers, " << pool->numWorkers()
+                   << ", algorithm, " << pool->getAlgotrithm();
+
+        for (auto pool : poolGroup.second.pools_)
         {
-          auto self = shared_from_this();
-          newClient->setDisconnectHandler(
-              [self, newClient]()
-              {
-                // removes the client from the pools when they disconnect
-                for (auto pool : self->pools_)
+          if (pool->getAlgotrithm() == newClient->getAlgorithm() &&
+              pool->addWorker(newClient))
+          {
+            auto self = shared_from_this();
+            newClient->setDisconnectHandler(
+                [self, newClient]()
                 {
-                  pool->removeWorker(newClient);
-                }
-                self->clients_.remove(newClient);
-              });
-          break;
+                  // removes the client from the pools when they disconnect
+                  for (auto& poolGroup : self->poolGroups_)
+                  {
+                    for (auto& pool : poolGroup.second.pools_)
+                    {
+                      pool->removeWorker(newClient);
+                    }
+                  }
+                  self->clients_.remove(newClient);
+                });
+
+            // worker has been assigned to a pool
+            return;
+          }
         }
       }
     }
@@ -254,37 +274,53 @@ void Proxy::balancePoolLoads()
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
-  if (pools_.size() > 1 && !clients_.empty())
+  for (auto& poolGroup : poolGroups_)
   {
-    util::hashrate::rebalance(clients_, pools_);
-  }
-
-  size_t poolNumber = 0;
-  for (auto& pool : pools_)
-  {
-    auto numPoolWorkers = pool->numWorkers();
-    auto poolHashRate = pool->hashRate();
-    auto poolHashRateAverageMedium = pool->getWorkerHashRate().getAverageHashRateShortTimeWindow();
-    auto poolHashRateAverageLong = pool->getWorkerHashRate().getAverageHashRateLongTimeWindow();
-    auto poolTotalHashes = pool->getSubmitHashRate().getTotalHashes();
-
-    if (ccClient_)
+    if (poolGroup.second.pools_.size() > 1 && !clients_.empty())
     {
-      CcClient::Status ccPoolStatus = pool->getCcStatus();
-      std::ostringstream clientId;
-      clientId << ccProxyStatus_.clientId_ << "_Pool_" << std::setw(2) << std::setfill('0') << poolNumber;
-      ccPoolStatus.clientId_ = clientId.str();
-      ++poolNumber;
-      ccClient_->publishStatus(ccPoolStatus);
+      // TODO check if at least on of the pools in the group is connected
+      util::hashrate::rebalance(clients_, poolGroup.second.pools_);
+      // TODO check if unassigned clients remain and assign them to the next group
+    }
+    else
+    {
+      // pool group cannot accept clients, continues with next group
+      continue;
     }
 
-    LOG_WARN << "After rebalance: " << pool->getDescriptor()
-             << " , numWorkers, " << numPoolWorkers
-             << " , workersHashRate, " << poolHashRate
-             << " , workersHashRateAverage, " << poolHashRateAverageLong
-             << " , submitHashRateAverage10min, " << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
-             << " , submittedHashes, " << poolTotalHashes
-             << " , weight , " << pool->getWeight();
+    size_t poolNumber = 0;
+    for (auto& pool : poolGroup.second.pools_)
+    {
+      auto numPoolWorkers = pool->numWorkers();
+      auto poolHashRate = pool->hashRate();
+      auto
+          poolHashRateAverageMedium = pool->getWorkerHashRate().getAverageHashRateShortTimeWindow();
+      auto poolHashRateAverageLong = pool->getWorkerHashRate().getAverageHashRateLongTimeWindow();
+      auto poolTotalHashes = pool->getSubmitHashRate().getTotalHashes();
+
+      if (ccClient_)
+      {
+        CcClient::Status ccPoolStatus = pool->getCcStatus();
+        std::ostringstream clientId;
+        clientId << ccProxyStatus_.clientId_ << "_Pool_" << std::setw(2) << std::setfill('0')
+                 << poolNumber;
+        ccPoolStatus.clientId_ = clientId.str();
+        ++poolNumber;
+        ccClient_->publishStatus(ccPoolStatus);
+      }
+
+      LOG_WARN << "After rebalance: " << pool->getDescriptor()
+               << " , numWorkers, " << numPoolWorkers
+               << " , workersHashRate, " << poolHashRate
+               << " , workersHashRateAverage, " << poolHashRateAverageLong
+               << " , submitHashRateAverage10min, "
+               << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
+               << " , submittedHashes, " << poolTotalHashes
+               << " , weight , " << pool->getWeight();
+
+      // clients have been assigned to the poolgroup with the highest priority
+      break;
+    }
   }
 
   if (ccClient_)

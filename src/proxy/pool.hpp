@@ -150,5 +150,21 @@ private:
   CcClient::Status ccStatus_;
 };
 
+class PoolGroup
+{
+public:
+  typedef std::shared_ptr<Pool> Ptr;
+
+  struct Configuration
+  {
+    std::string name_;
+    uint32_t priority_;
+    std::list<Pool::Configuration> pools_;
+  };
+
+  std::string name_;
+  std::list<Pool::Ptr> pools_;
+};
+
 } // namespace proxy
 } // namespace ses

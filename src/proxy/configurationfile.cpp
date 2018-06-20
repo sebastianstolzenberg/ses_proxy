@@ -23,31 +23,41 @@ net::ConnectionType parseConnectionType(const std::string& connectionTypeString)
   return connectionType;
 }
 
-void parsePoolConfigurations(boost::property_tree::ptree& ptree, std::list<Pool::Configuration>& list)
+void parsePoolConfigurations(boost::property_tree::ptree& ptree,
+                             std::list<PoolGroup::Configuration>& list)
 {
-  double totalWeight = 0;
-  for (auto& pool : ptree.get_child("pools"))
+  for (auto& poolGroup : ptree.get_child("poolgroups"))
   {
-    Pool::Configuration configuration;
-    configuration.endPoint_.host_ = pool.second.get<std::string>("host");
-    configuration.endPoint_.port_ = pool.second.get<uint16_t>("port");
-    configuration.endPoint_.connectionType_ =
-      parseConnectionType(pool.second.get<std::string>("connectionType", "auto"));
-    configuration.user_ = pool.second.get<std::string>("username");
-    configuration.pass_ = pool.second.get<std::string>("password");
-    configuration.weight_ = std::fmax(0.0, pool.second.get<double>("weight"));
-    totalWeight += configuration.weight_;
-    configuration.algorithm_ = toAlgorithm(pool.second.get<std::string>("algorithm", ""));
-    list.push_back(configuration);
+    PoolGroup::Configuration pgConfiguration;
+    pgConfiguration.name_ = poolGroup.second.get<std::string>("name");
+    pgConfiguration.priority_ = poolGroup.second.get<uint16_t>("priority");
+
+    double totalWeight = 0;
+    for (auto& pool : poolGroup.second.get_child("pools"))
+    {
+      Pool::Configuration configuration;
+      configuration.endPoint_.host_ = pool.second.get<std::string>("host");
+      configuration.endPoint_.port_ = pool.second.get<uint16_t>("port");
+      configuration.endPoint_.connectionType_ =
+          parseConnectionType(pool.second.get<std::string>("connectionType", "auto"));
+      configuration.user_ = pool.second.get<std::string>("username");
+      configuration.pass_ = pool.second.get<std::string>("password");
+      configuration.weight_ = std::fmax(0.0, pool.second.get<double>("weight"));
+      totalWeight += configuration.weight_;
+      configuration.algorithm_ = toAlgorithm(pool.second.get<std::string>("algorithm", ""));
+      pgConfiguration.pools_.push_back(configuration);
+    }
+
+    if (totalWeight > 0.0)
+    {
+      for (auto& configuration : pgConfiguration.pools_)
+      {
+        configuration.weight_ /= totalWeight;
+      }
+    }
+    list.emplace_back(pgConfiguration);
   }
 
-  if (totalWeight > 0.0)
-  {
-    for (auto& configuration : list)
-    {
-      configuration.weight_ /= totalWeight;
-    }
-  }
 }
 
 void parseServerConfigurations(boost::property_tree::ptree& ptree, std::list<Server::Configuration>& list)
@@ -97,7 +107,7 @@ Configuration parseConfigurationFile(const std::string& fileName)
   boost::property_tree::json_parser::read_json(fileName, ptree);
 
   Configuration configuration;
-  parsePoolConfigurations(ptree, configuration.pools_);
+  parsePoolConfigurations(ptree, configuration.poolGroups_);
   parseServerConfigurations(ptree, configuration.server_);
   parseCcClientConfigurations(ptree, configuration.ccCient_);
   configuration.logLevel_ = ptree.get<uint32_t>("logLevel", 4);

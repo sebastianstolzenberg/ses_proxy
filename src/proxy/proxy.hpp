@@ -23,7 +23,7 @@ public:
   void run();
 
   void reloadConfiguration();
-  void addPool(const Pool::Configuration& configuration);
+  void addPool(const Pool::Configuration& configuration, std::list<Pool::Ptr>& pools);
   void addServer(const Server::Configuration& configuration);
   void addCcClient(const CcClient::Configuration& configuration);
 
@@ -43,7 +43,7 @@ private:
   boost::asio::deadline_timer loadBalancerTimer_;
   std::recursive_mutex mutex_;
 
-  std::list<Pool::Ptr> pools_;
+  std::map<uint32_t, PoolGroup> poolGroups_;
   std::list<Server::Ptr> servers_;
   std::list<Client::Ptr> clients_;
 
