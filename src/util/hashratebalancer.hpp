@@ -89,10 +89,23 @@ template <class ProducerImplementation>
 class ProducerPool
 {
 public:
+  ProducerPool() = default;
+
   template <class ProducerContainer>
   ProducerPool(ProducerContainer& container)
     : producers_(container.begin(), container.end())
   {
+  }
+
+  template <class ProducerContainer>
+  explicit operator ProducerContainer()
+  {
+    ProducerContainer result;
+    for (auto& producer : producers_)
+    {
+      result.push_back(producer.producer_);
+    }
+    return result;
   }
 
   void sampleCurrentState()
@@ -138,8 +151,10 @@ public:
   }
 
   template <class ProducerImplementation>
-  void distributeProducers(ProducerPool<ProducerImplementation>& producers)
+  ProducerPool<ProducerImplementation> distributeProducers(
+      ProducerPool<ProducerImplementation>& producers)
   {
+    ProducerPool<ProducerImplementation> remaining;
     if (!consumers_.empty())
     {
       determineTargetHashRates(producers.accumulatedHashRate_);
@@ -159,9 +174,13 @@ public:
             consumer.releaseProducer(producer);
           }
         }
+        if (!assigned)
+        {
+          remaining.producers_.push_back(producer);
+        }
       }
-      //TODO handle producer which have not been accepted by any of the consumers
     }
+    return remaining;
   }
 
   std::deque<Consumer<ConsumerImplementation> > consumers_;
@@ -183,7 +202,7 @@ ProducerPool<typename ProducerContainer::value_type> convertToProducerPool(Produ
 };
 
 template <class ProducerContainer, class ConsumerContainer>
-void rebalance(ProducerContainer& producer, ConsumerContainer& consumer)
+ProducerContainer rebalance(ProducerContainer& producer, ConsumerContainer& consumer)
 {
   ProducerPool<typename ProducerContainer::value_type> producerPool(producer);
 
@@ -191,7 +210,10 @@ void rebalance(ProducerContainer& producer, ConsumerContainer& consumer)
 
   // samples the current state
   producerPool.sampleCurrentState();
-  consumerPool.distributeProducers(producerPool);
+  ProducerPool<typename ProducerContainer::value_type> remaining =
+      consumerPool.distributeProducers(producerPool);
+
+  return static_cast<ProducerContainer>(remaining);
 }
 
 } // namespace hashrate

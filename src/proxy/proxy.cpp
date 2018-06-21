@@ -274,13 +274,13 @@ void Proxy::balancePoolLoads()
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
 
+  std::list<Client::Ptr> remainingClients = clients_;
   for (auto& poolGroup : poolGroups_)
   {
-    if (poolGroup.second.pools_.size() > 1 && !clients_.empty())
+    if (poolGroup.second.pools_.size() > 1 && !remainingClients.empty())
     {
       // TODO check if at least on of the pools in the group is connected
-      util::hashrate::rebalance(clients_, poolGroup.second.pools_);
-      // TODO check if unassigned clients remain and assign them to the next group
+      remainingClients = util::hashrate::rebalance(remainingClients, poolGroup.second.pools_);
     }
     else
     {
@@ -309,7 +309,8 @@ void Proxy::balancePoolLoads()
         ccClient_->publishStatus(ccPoolStatus);
       }
 
-      LOG_WARN << "After rebalance: " << pool->getDescriptor()
+      LOG_WARN << "After rebalance: "
+               << poolGroup.second.name_ << ":" << pool->getDescriptor()
                << " , numWorkers, " << numPoolWorkers
                << " , workersHashRate, " << poolHashRate
                << " , workersHashRateAverage, " << poolHashRateAverageLong
@@ -317,9 +318,6 @@ void Proxy::balancePoolLoads()
                << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
                << " , submittedHashes, " << poolTotalHashes
                << " , weight , " << pool->getWeight();
-
-      // clients have been assigned to the poolgroup with the highest priority
-      break;
     }
   }
 
