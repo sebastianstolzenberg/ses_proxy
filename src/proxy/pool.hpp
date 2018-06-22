@@ -27,10 +27,11 @@ public:
 
   struct Configuration
   {
-    Configuration() : algorithm_(Algorithm::CRYPTONIGHT), weight_(0) {}
+    Configuration() : algorithm_(AlgorithmType::CRYPTONIGHT), weight_(0) {}
     Configuration(const net::EndPoint& endPoint, const std::string& user, const std::string& pass,
-                  Algorithm algorithm, double weight)
-      : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm), weight_(weight)
+                  AlgorithmType algorithm, AlgorithmVariant algorithmVariant, double weight)
+      : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm),
+        algorithmVariant_(algorithmVariant), weight_(weight)
     {
     }
 
@@ -40,6 +41,7 @@ public:
              << ", user, " << configuration.user_
              << ", pass, " << configuration.pass_
              << ", algorithm, " << configuration.algorithm_
+             << ", algorithmVariant, " << configuration.algorithmVariant_
              << ", weight, " << configuration.weight_;
       return stream;
     }
@@ -47,7 +49,8 @@ public:
     net::EndPoint endPoint_;
     std::string user_;
     std::string pass_;
-    Algorithm algorithm_;
+    AlgorithmType algorithm_;
+    AlgorithmVariant algorithmVariant_;
     double weight_;
   };
 
@@ -64,7 +67,7 @@ public:
   const std::list<Worker::Ptr>& getWorkersSortedByHashrateDescending();
 
   const std::string& getDescriptor() const;
-  Algorithm getAlgotrithm() const;
+  Algorithm getAlgorithm() const;
   double getWeight() const;
 
   size_t numWorkers() const;

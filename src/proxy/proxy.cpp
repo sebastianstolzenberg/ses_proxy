@@ -126,7 +126,7 @@ void Proxy::reloadConfiguration()
 
 
   // sets up new connections
- configureLogging(configuration.logLevel_, false);
+  configureLogging(configuration.logLevel_, false);
 
   numThreads_ = configuration.threads_;
   loadBalanceInterval_ = configuration.poolLoadBalanceIntervalSeconds_;
@@ -197,11 +197,11 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
         // sorts the pools to find the pool which needs the next miner the most
         poolGroup.second.pools_.sort([newClient](const auto& a, const auto& b)
                     {
-                      if (b->getAlgotrithm() != newClient->getAlgorithm())
+                      if (!newClient->supports(b->getAlgorithm()))
                       {
                         return true;
                       }
-                      else if (a->getAlgotrithm() != newClient->getAlgorithm())
+                      else if (!newClient->supports(a->getAlgorithm()))
                       {
                         return false;
                       }
@@ -223,12 +223,11 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
                    << ", weightedHashRate, " << pool->weightedHashRate()
                    << ", weight, " << pool->getWeight()
                    << ", workers, " << pool->numWorkers()
-                   << ", algorithm, " << pool->getAlgotrithm();
+                   << ", algorithm, " << pool->getAlgorithm();
 
         for (auto pool : poolGroup.second.pools_)
         {
-          if (pool->getAlgotrithm() == newClient->getAlgorithm() &&
-              pool->addWorker(newClient))
+          if (pool->addWorker(newClient))
           {
             auto self = shared_from_this();
             newClient->setDisconnectHandler(

@@ -5,42 +5,42 @@
 namespace ses {
 namespace proxy {
 
-const char* toString(Algorithm algorithm)
+const char* toString(AlgorithmType algorithmType)
 {
-  switch (algorithm)
+  switch (algorithmType)
   {
-    case Algorithm::CRYPTONIGHT:
+    case AlgorithmType::CRYPTONIGHT:
       return "cryptonight";
-    case Algorithm::CRYPTONIGHT_LITE:
+    case AlgorithmType::CRYPTONIGHT_LITE:
       return "cryptonight-lite";
-    case Algorithm::CRYPTONIGHT_HEAVY:
+    case AlgorithmType::CRYPTONIGHT_HEAVY:
       return "cryptonight-heavy";
     default:
       return "unknown";
   }
 }
 
-Algorithm toAlgorithm(const std::string& algorithmString)
+AlgorithmType toAlgorithmType(const std::string& algorithmString)
 {
-  Algorithm algorithm = Algorithm::CRYPTONIGHT;
+  AlgorithmType algorithmType = AlgorithmType::CRYPTONIGHT;
   std::string compare = algorithmString;
   boost::algorithm::to_lower(compare);
-  if (compare == toString(Algorithm::CRYPTONIGHT_LITE))
+  if (compare == toString(AlgorithmType::CRYPTONIGHT_LITE))
   {
-    algorithm = Algorithm::CRYPTONIGHT_LITE;
+    algorithmType = AlgorithmType::CRYPTONIGHT_LITE;
   }
-  else if (compare == toString(Algorithm::CRYPTONIGHT_HEAVY))
+  else if (compare == toString(AlgorithmType::CRYPTONIGHT_HEAVY))
   {
-    algorithm = Algorithm::CRYPTONIGHT_HEAVY;
+    algorithmType = AlgorithmType::CRYPTONIGHT_HEAVY;
   }
-  return algorithm;
+  return algorithmType;
 }
 
 const char* toString(AlgorithmVariant algorithmVariant)
 {
   switch (algorithmVariant)
   {
-    case ANY: return "-1"; break;
+    case ANY: return "any"; break;
     case V0: return "0"; break;
     case V1: return "1"; break;
     case IPBC: return "ipbc"; break;
@@ -65,6 +65,39 @@ AlgorithmVariant toAlgorithmVariant(const std::string& algorithmVariantString)
     }
   }
   return algorithmVariant;
+}
+
+Algorithm::Algorithm()
+    : algorithmType_(CRYPTONIGHT), algorithmVariant_(ANY)
+{
+}
+
+Algorithm::Algorithm(AlgorithmType algorithmType_)
+    : algorithmType_(algorithmType_)
+{
+}
+
+Algorithm::Algorithm(AlgorithmType algorithmType_, AlgorithmVariant algorithmVariant_)
+: algorithmType_( algorithmType_), algorithmVariant_(algorithmVariant_)
+{
+}
+
+bool Algorithm::operator==(const Algorithm& rhs) const
+{
+  return algorithmType_ == rhs.algorithmType_ &&
+         (algorithmVariant_ == rhs.algorithmVariant_ ||
+          algorithmVariant_ == AlgorithmVariant::ANY ||
+          rhs.algorithmVariant_ == AlgorithmVariant::ANY);
+}
+
+AlgorithmType Algorithm::getAlgorithmType_() const
+{
+  return algorithmType_;
+}
+
+AlgorithmVariant Algorithm::getAlgorithmVariant_() const
+{
+  return algorithmVariant_;
 }
 
 }

@@ -24,8 +24,9 @@ protected:
 
 public:
   virtual WorkerIdentifier getIdentifier() const = 0;
-  virtual Algorithm getAlgorithm() const = 0;
   virtual WorkerType getType() const = 0;
+
+  virtual bool supports(Algorithm algorithm) const = 0;
   virtual void assignJob(const Job::Ptr& job) = 0;
 
   virtual bool isConnected() const = 0;

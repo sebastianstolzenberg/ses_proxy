@@ -108,7 +108,7 @@ const std::string& Pool::getDescriptor() const
   return poolName_;
 }
 
-Algorithm Pool::getAlgotrithm() const
+Algorithm Pool::getAlgorithm() const
 {
   return configuration_.algorithm_;
 }
@@ -516,7 +516,8 @@ void Pool::removeJob(const std::string& jobId)
 bool Pool::assignJobToWorker(const Worker::Ptr& worker)
 {
   bool accepted = false;
-  if (worker && activeJobTemplate_ && worker->getAlgorithm() == getAlgotrithm())
+  if (worker && activeJobTemplate_ &&
+      worker->supports(getAlgorithm()))
   {
     //TODO PoW aware worker selection
     auto job = activeJobTemplate_->getJobFor(worker->getIdentifier(), worker->getType());

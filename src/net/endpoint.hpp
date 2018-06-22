@@ -19,7 +19,7 @@ public:
   {
     stream << "host, " << endPoint.host_
            << ", port, " << endPoint.port_
-           << ", type, " << endPoint.connectionType_;
+           << ", type, " << toString(endPoint.connectionType_);
     return stream;
   }
 

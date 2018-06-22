@@ -34,7 +34,7 @@ void Server::handleNewConnection(net::Connection::Ptr connection)
 {
   auto workerId = boost::uuids::random_generator()();
   auto client = std::make_shared<Client>(ioService_, workerId, configuration_.defaultAlgorithm_,
-                                         configuration_.defaultAlgorithmVariant_, configuration_.defaultDifficulty_,
+                                         configuration_.defaultDifficulty_,
                                          configuration_.targetSecondsBetweenSubmits_);
   if (newClientHandler_)
   {

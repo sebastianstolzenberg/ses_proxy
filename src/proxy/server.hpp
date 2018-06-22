@@ -22,11 +22,11 @@ public:
 
   struct Configuration
   {
-    Configuration() : defaultAlgorithm_(Algorithm::CRYPTONIGHT), defaultAlgorithmVariant_(AlgorithmVariant::ANY),
+    Configuration() : defaultAlgorithm_(AlgorithmType::CRYPTONIGHT, AlgorithmVariant::ANY),
                       defaultDifficulty_(5000), targetSecondsBetweenSubmits_(15) {}
-    Configuration(const net::EndPoint& endPoint, Algorithm defaultAlgorithm, AlgorithmVariant defaultAlgorithmVariant,
+    Configuration(const net::EndPoint& endPoint, AlgorithmType defaultAlgorithm, AlgorithmVariant defaultAlgorithmVariant,
                   uint32_t defaultDifficulty, uint32_t targetSecondsBetweenSubmits)
-      : endPoint_(endPoint), defaultAlgorithm_(defaultAlgorithm), defaultAlgorithmVariant_(defaultAlgorithmVariant),
+      : endPoint_(endPoint), defaultAlgorithm_(defaultAlgorithm, defaultAlgorithmVariant),
         defaultDifficulty_(defaultDifficulty), targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits)
     {
     }
@@ -34,8 +34,7 @@ public:
     friend std::ostream& operator<<(std::ostream& stream, const Configuration& configuration)
     {
       stream << configuration.endPoint_
-             << ", defaultAlgorithm, " << toString(configuration.defaultAlgorithm_)
-             << ", defaultAlgorithmVariant, " << toString(configuration.defaultAlgorithmVariant_)
+             << ", defaultAlgorithm, " << configuration.defaultAlgorithm_
              << ", defaultDifficulty, " << configuration.defaultDifficulty_
              << ", targetSecondsBetweenSubmits, " << configuration.targetSecondsBetweenSubmits_;
       return stream;
@@ -43,7 +42,6 @@ public:
 
     net::EndPoint endPoint_;
     Algorithm defaultAlgorithm_;
-    AlgorithmVariant defaultAlgorithmVariant_;
     uint32_t defaultDifficulty_;
     uint32_t targetSecondsBetweenSubmits_;
   };

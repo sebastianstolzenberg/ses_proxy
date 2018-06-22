@@ -13,6 +13,7 @@
 #include "proxy/workeridentifier.hpp"
 #include "proxy/jobresult.hpp"
 #include "proxy/blob.hpp"
+#include "proxy/algorithm.hpp"
 #include "util/target.hpp"
 
 namespace ses {

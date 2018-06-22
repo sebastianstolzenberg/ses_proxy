@@ -26,7 +26,7 @@ public:
 
 public:
   Client(const std::shared_ptr<boost::asio::io_service>& ioService,
-         const WorkerIdentifier& id, Algorithm defaultAlgorithm, AlgorithmVariant defaultAlgorithmVariant,
+         const WorkerIdentifier& id, Algorithm defaultAlgorithm,
          uint32_t defaultDifficulty, uint32_t targetSecondsBetweenSubmits);
 
   void setDisconnectHandler(const DisconnectHandler& disconnectHandler);
@@ -35,8 +35,8 @@ public:
 
 public: // from Worker
   WorkerIdentifier getIdentifier() const override;
-  Algorithm getAlgorithm() const override;
   WorkerType getType() const override ;
+  bool supports(Algorithm algorithm) const;
   void assignJob(const Job::Ptr& job) override;
 
   bool isConnected() const override;
@@ -86,7 +86,7 @@ private:
 
   std::string clientName_;
   WorkerIdentifier identifier_;
-  Algorithm algorithm_;
+  AlgorithmType algorithmType_;
   std::set<AlgorithmVariant> algorithmVariants_;
   WorkerType type_;
   std::string useragent_;

@@ -16,13 +16,13 @@ namespace ses {
 namespace proxy {
 
 Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
-               const WorkerIdentifier& id, Algorithm defaultAlgorithm, AlgorithmVariant defaultAlgorithmVariant,
+               const WorkerIdentifier& id, Algorithm defaultAlgorithm,
                uint32_t defaultDifficulty, uint32_t targetSecondsBetweenSubmits)
-  : ioService_(ioService), identifier_(id), algorithm_(defaultAlgorithm), type_(WorkerType::UNKNOWN),
-    difficulty_(defaultDifficulty), targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits),
-    submits_(0)
+  : ioService_(ioService), identifier_(id), algorithmType_(defaultAlgorithm.getAlgorithmType_()),
+    type_(WorkerType::UNKNOWN), difficulty_(defaultDifficulty),
+    targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits), submits_(0)
 {
-  algorithmVariants_.insert(defaultAlgorithmVariant);
+  algorithmVariants_.insert(defaultAlgorithm.getAlgorithmVariant_());
 }
 
 void Client::setDisconnectHandler(const DisconnectHandler& disconnectHandler)
@@ -59,14 +59,18 @@ WorkerIdentifier Client::getIdentifier() const
   return identifier_;
 }
 
-Algorithm Client::getAlgorithm() const
-{
-  return algorithm_;
-}
-
 WorkerType Client::getType() const
 {
   return type_;
+}
+
+bool Client::supports(Algorithm algorithm) const
+{
+  // Supports jobs only when the algorithm matches.
+  // Additionaly the algorithm variant must be supported
+  return (algorithmType_ == algorithm.getAlgorithmType_()) &&
+         ((algorithmVariants_.count(algorithm.getAlgorithmVariant_()) > 0) ||
+          (algorithmVariants_.count(AlgorithmVariant::ANY) > 0));
 }
 
 void Client::assignJob(const Job::Ptr& job)
@@ -176,9 +180,10 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
     useragent_ = agent;
     username_ = login;
     password_ = pass;
+
     if (!algorithm.empty())
     {
-      algorithm_ = toAlgorithm(algorithm);
+      algorithmType_ = toAlgorithmType(algorithm);
     }
     if (!algorithmVariants.empty())
     {
