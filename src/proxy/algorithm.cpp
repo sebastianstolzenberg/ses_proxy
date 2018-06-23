@@ -46,6 +46,9 @@ const char* toString(AlgorithmVariant algorithmVariant)
     case IPBC: return "ipbc"; break;
     case ALLOY: return "alloy"; break;
     case XTL: return "xtl"; break;
+    case MSR: return "msr"; break;
+    case XHV: return "xhv"; break;
+    case RTO: return "rto"; break;
     default:
       return "unknown";
   }
@@ -56,7 +59,7 @@ AlgorithmVariant toAlgorithmVariant(const std::string& algorithmVariantString)
   AlgorithmVariant algorithmVariant = AlgorithmVariant::ANY;
   std::string compare = algorithmVariantString;
   boost::algorithm::to_lower(compare);
-  for (int variant = AlgorithmVariant::ANY; variant <= AlgorithmVariant::XTL; variant++)
+  for (int variant = AlgorithmVariant::ANY; variant < AlgorithmVariant::_last; variant++)
   {
     if (compare == toString(static_cast<AlgorithmVariant>(variant)))
     {

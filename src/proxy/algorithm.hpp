@@ -25,7 +25,11 @@ enum AlgorithmVariant
   V1,
   IPBC,
   ALLOY,
-  XTL
+  XTL,
+  MSR,
+  XHV,
+  RTO,
+  _last
 };
 
 const char* toString(AlgorithmVariant algorithmVariant);
