@@ -55,7 +55,9 @@ std::string getJobTree(const Job& job)
   std::ostringstream jobTree;
   jobTree << "{"
           << "\"id\":\"" << job.getId() << "\","
-          << "\"job_id\":\"" << job.getJobIdentifier() << "\",";
+          << "\"job_id\":\"" << job.getJobIdentifier() << "\","
+          << "\"algo\":\"" << job.getAlgo() << "\","
+          << "\"variant\":\"" << job.getVariant() << "\",";
   if (job.isBlockTemplate())
   {
     jobTree << "\"blocktemplate_blob\":\"" << job.getBlocktemplateBlob() << "\","

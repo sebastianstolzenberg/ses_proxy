@@ -44,8 +44,9 @@ void parsePoolConfigurations(boost::property_tree::ptree& ptree,
       configuration.pass_ = pool.second.get<std::string>("password");
       configuration.weight_ = std::fmax(0.0, pool.second.get<double>("weight"));
       totalWeight += configuration.weight_;
-      configuration.algorithm_ = toAlgorithmType(pool.second.get<std::string>("algorithm", ""));
-      configuration.algorithmVariant_ = toAlgorithmVariant(pool.second.get<std::string>("algorithmVariant", ""));
+      configuration.algorithm_ =
+        Algorithm(toAlgorithmType(pool.second.get<std::string>("algorithm", "")),
+                  toAlgorithmVariant(pool.second.get<std::string>("algorithmVariant", "")));
       pgConfiguration.pools_.push_back(configuration);
     }
 
@@ -73,8 +74,8 @@ void parseServerConfigurations(boost::property_tree::ptree& ptree, std::list<Ser
     configuration.endPoint_.certificateChainFile_ = server.second.get<std::string>("certificateChainFile", "");
     configuration.endPoint_.privateKeyFile_ = server.second.get<std::string>("privateKeyFile", "");
     configuration.defaultAlgorithm_ =
-        Algorithm(toAlgorithmType(server.second.get<std::string>("defaultAlgorithm", "")),
-                  toAlgorithmVariant(server.second.get<std::string>("defaultAlgorithmVariant", "")));
+      Algorithm(toAlgorithmType(server.second.get<std::string>("defaultAlgorithm", "")),
+                toAlgorithmVariant(server.second.get<std::string>("defaultAlgorithmVariant", "")));
     configuration.defaultDifficulty_ = server.second.get<uint32_t>("defaultDifficulty", 5000);
     configuration.targetSecondsBetweenSubmits_ = server.second.get<uint32_t>("targetSecondsBetweenSubmits", 15);
     list.push_back(configuration);

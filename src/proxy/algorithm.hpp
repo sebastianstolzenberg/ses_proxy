@@ -13,6 +13,7 @@ enum AlgorithmType
 };
 
 const char* toString(AlgorithmType algorithmType);
+const char* toShortName(AlgorithmType algorithmType);
 
 AlgorithmType toAlgorithmType(const std::string& algoString);
 

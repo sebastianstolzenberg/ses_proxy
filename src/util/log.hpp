@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <set>
 
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/manipulators/dump.hpp>
@@ -26,6 +27,27 @@ BOOST_LOG_ATTRIBUTE_KEYWORD(component, "Component", ses::log::Component)
 void initialize(boost::log::trivial::severity_level level, bool syslog);
 
 std::string currentExceptionDiagnosticInformation();
+
+template <typename OutStream, typename Range>
+inline OutStream& logRange(OutStream& out, const Range& range)
+{
+  out << "{";
+  typename Range::const_iterator current = range.begin();
+  typename Range::const_iterator next = current;
+  ++next;
+  typename Range::const_iterator end = range.end();
+  for (;current != end; current = next++)
+  {
+    out << *current;
+    if (next != end)
+    {
+      out << ", ";
+    }
+  }
+  out << "}";
+  return out;
+}
+
 } // namespace log
 } // namespace ses
 
@@ -47,19 +69,13 @@ namespace std
 {
 // helper for logging vector contents
 template <typename OutStream, typename T>
-inline OutStream& operator<<(OutStream& out, const std::vector<T>& vector)
+inline OutStream& operator<<(OutStream& out, const vector<T>& range)
 {
-  out << "{";
-  size_t last = vector.size() - 1;
-  for (size_t i = 0; i < vector.size(); ++i)
-  {
-    out << vector[i];
-    if (i != last)
-    {
-      out << ", ";
-    }
-  }
-  out << "}";
-  return out;
+  return ses::log::logRange(out, range);
+}
+template <typename OutStream, typename T>
+inline OutStream& operator<<(OutStream& out, const set<T>& range)
+{
+  return ses::log::logRange(out, range);
 }
 }

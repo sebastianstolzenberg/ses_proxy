@@ -29,9 +29,8 @@ public:
   {
     Configuration() : algorithm_(AlgorithmType::CRYPTONIGHT), weight_(0) {}
     Configuration(const net::EndPoint& endPoint, const std::string& user, const std::string& pass,
-                  AlgorithmType algorithm, AlgorithmVariant algorithmVariant, double weight)
-      : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm),
-        algorithmVariant_(algorithmVariant), weight_(weight)
+                  Algorithm algorithm, double weight)
+      : endPoint_(endPoint), user_(user), pass_(pass), algorithm_(algorithm), weight_(weight)
     {
     }
 
@@ -41,7 +40,6 @@ public:
              << ", user, " << configuration.user_
              << ", pass, " << configuration.pass_
              << ", algorithm, " << configuration.algorithm_
-             << ", algorithmVariant, " << configuration.algorithmVariant_
              << ", weight, " << configuration.weight_;
       return stream;
     }
@@ -49,8 +47,7 @@ public:
     net::EndPoint endPoint_;
     std::string user_;
     std::string pass_;
-    AlgorithmType algorithm_;
-    AlgorithmVariant algorithmVariant_;
+    Algorithm algorithm_;
     double weight_;
   };
 

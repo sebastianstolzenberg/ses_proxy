@@ -11,9 +11,9 @@ namespace proxy {
 class WorkerJobTemplate : public BaseJobTemplate
 {
 public:
-  WorkerJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Blob& blob,
-                    uint64_t difficulty, uint32_t height, uint32_t targetDifficulty)
-    : BaseJobTemplate(identifier, jobIdentifier, blob), nextClientNonce_(1), difficulty_(difficulty),
+  WorkerJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Algorithm& algorithm,
+                    const Blob& blob, uint64_t difficulty, uint32_t height, uint32_t targetDifficulty)
+    : BaseJobTemplate(identifier, jobIdentifier, algorithm, blob), nextClientNonce_(1), difficulty_(difficulty),
       height_(height), targetDifficulty_(targetDifficulty)
   {
   }
@@ -57,7 +57,7 @@ protected:
                   std::dynamic_pointer_cast<WorkerJobTemplate>(shared_from_this()),
                   nextClientNonce_,
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-      job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), std::move(blob),
+      job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), algorithm_, std::move(blob),
                                 util::difficultyToTarget(targetDifficulty_), resultHandler);
       ++nextClientNonce_;
       //TODO connect ResultHandler

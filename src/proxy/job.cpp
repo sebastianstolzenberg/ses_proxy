@@ -11,10 +11,10 @@ namespace proxy {
 class MinerJob: public Job, public std::enable_shared_from_this<MinerJob>
 {
 public:
-  MinerJob(const WorkerIdentifier& workerIdentifier, const std::string& jobIdentifier,
+  MinerJob(const WorkerIdentifier& workerIdentifier, const std::string& jobIdentifier, const Algorithm& algorithm,
            const Blob& blob, const util::Target& target, const JobResult::Handler& jobResultHandler)
-    : assignedWorker_(workerIdentifier), jobIdentifier_(jobIdentifier), blob_(blob), target_(target),
-      jobResultHandler_(jobResultHandler)
+    : assignedWorker_(workerIdentifier), jobIdentifier_(jobIdentifier), algorithm_(algorithm), blob_(blob),
+      target_(target), jobResultHandler_(jobResultHandler)
   {
   }
 
@@ -49,6 +49,11 @@ public:
     return jobIdentifier_;
   }
 
+  Algorithm getAlgorithm() const override
+  {
+    return algorithm_;
+  };
+
   util::Target getTarget() const override
   {
     return target_;
@@ -61,22 +66,25 @@ public:
 
   stratum::Job asStratumJob() const override
   {
-    return stratum::Job(toString(assignedWorker_), jobIdentifier_, blob_.toHexString(), target_.toHexString());
+    return stratum::Job(toString(assignedWorker_), jobIdentifier_, toShortName(algorithm_.getAlgorithmType_()),
+                        toString(algorithm_.getAlgorithmVariant_()), blob_.toHexString(), target_.toHexString());
   }
 
 private:
   JobResult::Handler jobResultHandler_;
   WorkerIdentifier assignedWorker_;
   std::string jobIdentifier_;
+  Algorithm algorithm_;
   Blob blob_;
   util::Target target_;
 };
 
 
 Job::Ptr Job::createMinerJob(const WorkerIdentifier& workerIdentifier, const std::string& jobIdentifier,
-                        const Blob& blob, const util::Target& target, const JobResult::Handler& jobResultHandler)
+                             const Algorithm& algorithm, const Blob& blob, const util::Target& target,
+                             const JobResult::Handler& jobResultHandler)
 {
-  return std::make_shared<MinerJob>(workerIdentifier, jobIdentifier, blob, target, jobResultHandler);
+  return std::make_shared<MinerJob>(workerIdentifier, jobIdentifier, algorithm, blob, target, jobResultHandler);
 }
 
 } // namespace proxy

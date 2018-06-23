@@ -11,9 +11,9 @@ namespace proxy {
 class NiceHashJobTemplate : public BaseJobTemplate
 {
 public:
-  NiceHashJobTemplate(const std::string& identifier, const std::string& jobIdentifier,
+  NiceHashJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Algorithm& algorithm,
                       const Blob& blob, const util::Target target)
-    : BaseJobTemplate(identifier, jobIdentifier, blob), target_(target), lastNiceHash_(0)
+    : BaseJobTemplate(identifier, jobIdentifier, algorithm, blob), target_(target), lastNiceHash_(0)
   {
   }
 
@@ -45,7 +45,8 @@ private:
           std::bind(&NiceHashJobTemplate::handleResult,
                     std::dynamic_pointer_cast<NiceHashJobTemplate>(shared_from_this()),
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-        job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), std::move(blob), target_, resultHandler);
+        job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), algorithm_, std::move(blob), target_,
+                                  resultHandler);
         //TODO connect ResultHandler
       }
     }

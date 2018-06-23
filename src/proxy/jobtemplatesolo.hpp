@@ -11,9 +11,9 @@ namespace proxy {
 class SoloJobTemplate : public BaseJobTemplate
 {
 public:
-  SoloJobTemplate(const std::string& identifier, const std::string& jobIdentifier,
+  SoloJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Algorithm& algorithm,
                   const Blob& blob, const util::Target& target)
-    : BaseJobTemplate(identifier, jobIdentifier, blob), target_(target)
+    : BaseJobTemplate(identifier, jobIdentifier, algorithm, blob), target_(target)
   {
   }
 
@@ -40,7 +40,7 @@ protected:
           std::bind(&SoloJobTemplate::handleResult,
                     std::dynamic_pointer_cast<SoloJobTemplate>(shared_from_this()),
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-        job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), blob_, target_, resultHandler);
+        job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), algorithm_, blob_, target_, resultHandler);
         //TODO connect ResultHandler
       }
     }

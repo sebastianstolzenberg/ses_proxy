@@ -1,3 +1,4 @@
+#include <string>
 #include <boost/algorithm/string.hpp>
 
 #include "proxy/algorithm.hpp"
@@ -20,16 +21,33 @@ const char* toString(AlgorithmType algorithmType)
   }
 }
 
+const char* toShortName(AlgorithmType algorithmType)
+{
+  switch (algorithmType)
+  {
+    case AlgorithmType::CRYPTONIGHT:
+      return "cn";
+    case AlgorithmType::CRYPTONIGHT_LITE:
+      return "cn-lite";
+    case AlgorithmType::CRYPTONIGHT_HEAVY:
+      return "cn-heavy";
+    default:
+      return "unknown";
+  }
+}
+
 AlgorithmType toAlgorithmType(const std::string& algorithmString)
 {
   AlgorithmType algorithmType = AlgorithmType::CRYPTONIGHT;
   std::string compare = algorithmString;
   boost::algorithm::to_lower(compare);
-  if (compare == toString(AlgorithmType::CRYPTONIGHT_LITE))
+  if (compare == toString(AlgorithmType::CRYPTONIGHT_LITE) ||
+      compare == toShortName(AlgorithmType::CRYPTONIGHT_LITE))
   {
     algorithmType = AlgorithmType::CRYPTONIGHT_LITE;
   }
-  else if (compare == toString(AlgorithmType::CRYPTONIGHT_HEAVY))
+  else if (compare == toString(AlgorithmType::CRYPTONIGHT_HEAVY) ||
+           compare == toShortName(AlgorithmType::CRYPTONIGHT_HEAVY))
   {
     algorithmType = AlgorithmType::CRYPTONIGHT_HEAVY;
   }
@@ -105,3 +123,4 @@ AlgorithmVariant Algorithm::getAlgorithmVariant_() const
 
 }
 }
+

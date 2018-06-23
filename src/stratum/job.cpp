@@ -3,10 +3,12 @@
 namespace ses {
 namespace stratum {
 
-Job::Job(const std::string& id, const std::string& jobId, const std::string& blobHexString,
-         const std::string& targetHexString)
+Job::Job(const std::string& id, const std::string& jobId, const std::string& algo, const std::string& variant,
+         const std::string& blobHexString, const std::string& targetHexString)
   : id_(id)
   , jobId_(jobId)
+  , algo_(algo)
+  , variant_(variant)
   , blob_(blobHexString)
   , target_(targetHexString)
 {
@@ -51,6 +53,16 @@ const std::string& Job::getJobIdentifier() const
 void Job::setJobIdentifier(const std::string& jobId)
 {
   jobId_ = jobId;
+}
+
+const std::string& Job::getAlgo() const
+{
+  return algo_;
+}
+
+const std::string& Job::getVariant() const
+{
+  return variant_;
 }
 
 const std::string& Job::getBlob() const

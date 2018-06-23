@@ -26,7 +26,8 @@ public:
 
 public:
   Job::Ptr createMinerJob(const WorkerIdentifier& workerIdentifier, const std::string& jobIdentifier,
-                          const Blob& blob, const util::Target& target, const JobResult::Handler& jobResultHandler);
+                          const Algorithm& algorithm, const Blob& blob, const util::Target& target,
+                          const JobResult::Handler& jobResultHandler);
 
   virtual ~Job() = default;
 
@@ -36,6 +37,7 @@ public:
   virtual size_t numHashesFound() const = 0;
   virtual size_t currentHashRate() const = 0;
   virtual const std::string& getJobIdentifier() const = 0;
+  virtual Algorithm getAlgorithm() const = 0;
   virtual util::Target getTarget() const = 0;
   virtual uint32_t getDifficulty() const = 0;
   virtual stratum::Job asStratumJob() const = 0;

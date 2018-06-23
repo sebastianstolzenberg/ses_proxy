@@ -15,7 +15,7 @@
 namespace ses {
 namespace proxy {
 
-JobTemplate::Ptr JobTemplate::create(const std::string& workerIdentifier,
+JobTemplate::Ptr JobTemplate::create(const std::string& workerIdentifier, const Algorithm& algorithm,
                                      const stratum::Job& stratumJob)
 {
   JobTemplate::Ptr jobTemplate;
@@ -45,7 +45,7 @@ JobTemplate::Ptr JobTemplate::create(const std::string& workerIdentifier,
     if (blob.hasClientPoolOffset())
     {
       jobTemplate =
-          std::make_shared<MasterJobTemplate>(identifier, jobIdentifier, std::move(blob),
+          std::make_shared<MasterJobTemplate>(identifier, jobIdentifier, algorithm, std::move(blob),
                                               difficulty, height, targetDifficulty);
     }
     else
@@ -59,11 +59,12 @@ JobTemplate::Ptr JobTemplate::create(const std::string& workerIdentifier,
     util::Target target(stratumJob.getTarget());
     if (blob.getNiceHash() == static_cast<uint8_t>(0))
     {
-      jobTemplate = std::make_shared<NiceHashJobTemplate>(identifier, jobIdentifier, std::move(blob), target);
+      jobTemplate = std::make_shared<NiceHashJobTemplate>(identifier, jobIdentifier, algorithm, std::move(blob),
+                                                          target);
     }
     else
     {
-      jobTemplate = std::make_shared<SoloJobTemplate>(identifier, jobIdentifier, std::move(blob), target);
+      jobTemplate = std::make_shared<SoloJobTemplate>(identifier, jobIdentifier, algorithm, std::move(blob), target);
     }
   }
 

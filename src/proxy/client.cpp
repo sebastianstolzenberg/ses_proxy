@@ -68,6 +68,8 @@ bool Client::supports(Algorithm algorithm) const
 {
   // Supports jobs only when the algorithm matches.
   // Additionaly the algorithm variant must be supported
+  LOG_CLIENT_INFO << "Client::supports, algorithm, " << algorithm
+                  << ", algorithmType_, " << toString(algorithmType_);
   return (algorithmType_ == algorithm.getAlgorithmType_()) &&
          ((algorithmVariants_.count(algorithm.getAlgorithmVariant_()) > 0) ||
           (algorithmVariants_.count(AlgorithmVariant::ANY) > 0));
@@ -209,7 +211,9 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
 
     updateName();
 
-    LOG_CLIENT_INFO << "Logged in as " << username_ << " with " << useragent_;
+    LOG_CLIENT_INFO << "Logged in as " << username_ << " with " << useragent_
+                    << ", algorithm, " << toString(algorithmType_)
+                    << ", variants, " << algorithmVariants_;
 
     std::string responseResult =
       stratum::server::createLoginResponse(boost::uuids::to_string(identifier_),
@@ -427,6 +431,7 @@ stratum::Job Client::buildStratumJob()
   stratumJob.setTarget(modifiedTarget);
   LOG_CLIENT_INFO << "Sending job to client"
                   << ", id, " << currentJob_->getJobIdentifier()
+                  << ", algorithm, " << currentJob_->getAlgorithm()
                   << ", clientDifficulty, " << modifiedDifficulty
                   << ", jobDifficulty, " << currentJob_->getDifficulty()
                   << ", target, " << modifiedTarget;

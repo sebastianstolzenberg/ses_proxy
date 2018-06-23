@@ -10,9 +10,9 @@ namespace proxy {
 class MasterJobTemplate : public BaseJobTemplate
 {
 public:
-  MasterJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Blob& blob,
-                    uint64_t difficulty, uint32_t height, uint32_t targetDifficulty)
-    : BaseJobTemplate(identifier, jobIdentifier, blob), nextPoolNonce_(1), difficulty_(difficulty),
+  MasterJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Algorithm& algorithm,
+                    const Blob& blob, uint64_t difficulty, uint32_t height, uint32_t targetDifficulty)
+    : BaseJobTemplate(identifier, jobIdentifier, algorithm, blob), nextPoolNonce_(1), difficulty_(difficulty),
       height_(height), targetDifficulty_(targetDifficulty)
   {
   }
@@ -95,8 +95,8 @@ protected:
     Blob blob = blob_;
     blob.setClientPool(nextPoolNonce_);
     subTemplate =
-      std::make_shared<WorkerJobTemplate>(toString(workerIdentifier), generateJobIdentifier(), std::move(blob),
-                                          difficulty_, height_, targetDifficulty_);
+      std::make_shared<WorkerJobTemplate>(toString(workerIdentifier), generateJobIdentifier(), algorithm_,
+                                          std::move(blob), difficulty_, height_, targetDifficulty_);
     subTemplate->setJobResultHandler(
       std::bind(&MasterJobTemplate::handleResult,
                 std::dynamic_pointer_cast<MasterJobTemplate>(shared_from_this()),

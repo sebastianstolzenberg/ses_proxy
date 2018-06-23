@@ -11,12 +11,12 @@ class Job
 {
 public:
   Job() = default;
-  Job(const std::string& id, const std::string& jobId, const std::string& blobHexString,
-      const std::string& targetHexString);
+  Job(const std::string& id, const std::string& jobId, const std::string& algo, const std::string& variant,
+      const std::string& blobHexString, const std::string& targetHexString);
 
-  Job(const std::string& blocktemplate_blob,
-      const std::string& difficulty, const std::string& height,
-      const std::string& reserved_offset, const std::string& client_nonce_offset);
+//  Job(const std::string& blocktemplate_blob,
+//      const std::string& difficulty, const std::string& height,
+//      const std::string& reserved_offset, const std::string& client_nonce_offset);
 
   Job(const std::string& id, const std::string& jobId, const std::string& blobHexString,
       const std::string& targetHexString,
@@ -30,6 +30,10 @@ public:
 
   const std::string& getJobIdentifier() const;
   void setJobIdentifier(const std::string& jobId);
+
+  const std::string& getAlgo() const;
+  const std::string& getVariant() const;
+
   const std::string& getBlob() const;
 
   const std::string& getTarget() const;
@@ -58,6 +62,8 @@ private:
   std::string jobId_;
   std::string target_;
   std::string id_;
+  std::string algo_;
+  std::string variant_;
 
   //nodejs specific fields
   std::string blocktemplateBlob_;
