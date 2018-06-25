@@ -23,6 +23,7 @@ class Client : public Worker,
 public:
   typedef std::shared_ptr<Client> Ptr;
   typedef std::function<void()> DisconnectHandler;
+  typedef std::function<void(const Client::Ptr& client)> NeedsJobHandler;
 
 public:
   Client(const std::shared_ptr<boost::asio::io_service>& ioService,
@@ -32,6 +33,7 @@ public:
   void setDisconnectHandler(const DisconnectHandler& disconnectHandler);
   void setConnection(const net::Connection::Ptr& connection);
   void disconnect();
+  void setNeedsJobHandler(const NeedsJobHandler& needsJobHandler);
 
 public: // from Worker
   WorkerIdentifier getIdentifier() const override;
@@ -43,6 +45,7 @@ public: // from Worker
   const util::HashRateCalculator& getHashRate() const override;
 
 public:
+  bool isLoggedIn() const;
   const std::string& getUseragent() const;
   const std::string& getUsername() const;
   const std::string& getPassword() const;
@@ -80,6 +83,7 @@ private:
   std::recursive_mutex mutex_;
 
   DisconnectHandler disconnectHandler_;
+  NeedsJobHandler needsJobHandler_;
 
   net::Connection::WeakPtr connection_;
   std::map<std::string, std::string> outstandingRequests_;
@@ -89,6 +93,7 @@ private:
   AlgorithmType algorithmType_;
   std::set<AlgorithmVariant> algorithmVariants_;
   WorkerType type_;
+  bool loggedIn_;
   std::string useragent_;
   std::string username_;
   std::string password_;

@@ -29,6 +29,7 @@ public:
 
 public:
   void handleNewClient(const Client::Ptr& newClient);
+  void handleClientNeedsJob(const Client::Ptr& client);
 
 private:
   void triggerLoadBalancerTimer();
@@ -46,6 +47,7 @@ private:
   std::map<uint32_t, PoolGroup> poolGroups_;
   std::list<Server::Ptr> servers_;
   std::list<Client::Ptr> clients_;
+  std::list<Client::Ptr> newClients_;
 
   CcClient::Ptr ccClient_;
   CcClient::Status ccProxyStatus_;

@@ -19,7 +19,7 @@ Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
                const WorkerIdentifier& id, Algorithm defaultAlgorithm,
                uint32_t defaultDifficulty, uint32_t targetSecondsBetweenSubmits)
   : ioService_(ioService), identifier_(id), algorithmType_(defaultAlgorithm.getAlgorithmType_()),
-    type_(WorkerType::UNKNOWN), difficulty_(defaultDifficulty),
+    type_(WorkerType::UNKNOWN), loggedIn_(false), difficulty_(defaultDifficulty),
     targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits), submits_(0)
 {
   algorithmVariants_.insert(defaultAlgorithm.getAlgorithmVariant_());
@@ -52,6 +52,11 @@ void Client::setConnection(const net::Connection::Ptr& connection)
 void Client::disconnect()
 {
   setConnection(net::Connection::Ptr());
+}
+
+void Client::setNeedsJobHandler(const NeedsJobHandler& needsJobHandler)
+{
+  needsJobHandler_ = needsJobHandler;
 }
 
 WorkerIdentifier Client::getIdentifier() const
@@ -99,6 +104,11 @@ bool Client::isConnected() const
 const util::HashRateCalculator& Client::getHashRate() const
 {
   return hashrate_;
+}
+
+bool Client::isLoggedIn() const
+{
+  return loggedIn_;
 }
 
 const std::string& Client::getUseragent() const
@@ -174,6 +184,7 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
     useragent_.clear();
     username_.clear();
     password_.clear();
+    loggedIn_ = false;
   }
   else
   {
@@ -215,10 +226,17 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
                     << ", algorithm, " << toString(algorithmType_)
                     << ", variants, " << algorithmVariants_;
 
+    if (!currentJob_ && needsJobHandler_)
+    {
+      // tries to acquire a job before continueing here
+      needsJobHandler_(shared_from_this());
+    }
+
     std::string responseResult =
       stratum::server::createLoginResponse(boost::uuids::to_string(identifier_),
                                            currentJob_ ? buildStratumJob() : boost::optional<stratum::Job>());
     sendResponse(jsonRequestId, responseResult);
+    loggedIn_ = true;
   }
 }
 
@@ -415,7 +433,7 @@ void Client::sendErrorResponse(const std::string& jsonRequestId, const std::stri
 void Client::sendJobNotification()
 {
   auto connection = connection_.lock();
-  if (currentJob_ && connection)
+  if (currentJob_ && connection && isLoggedIn())
   {
     connection->send(
       net::jsonrpc::notification("job", stratum::server::createJobNotification(buildStratumJob())));

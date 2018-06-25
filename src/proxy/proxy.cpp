@@ -186,36 +186,43 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
   if (newClient)
   {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    newClients_.push_back(newClient);
+    newClient->setNeedsJobHandler(std::bind(&Proxy::handleClientNeedsJob, this, std::placeholders::_1));
+  }
+}
 
-    clients_.push_back(newClient);
-//    clientsTracker_.addHasher(newClient);
+void Proxy::handleClientNeedsJob(const Client::Ptr& client)
+{
+  if (client)
+  {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
 
     for (auto& poolGroup : poolGroups_)
     {
       if (!poolGroup.second.pools_.empty())
       {
         // sorts the pools to find the pool which needs the next miner the most
-        poolGroup.second.pools_.sort([newClient](const auto& a, const auto& b)
-                    {
-                      if (!newClient->supports(b->getAlgorithm()))
-                      {
-                        return true;
-                      }
-                      else if (!newClient->supports(a->getAlgorithm()))
-                      {
-                        return false;
-                      }
-                      double aWeighted = a->weightedHashRate();
-                      double bWeighted = b->weightedHashRate();
-                      if (aWeighted == bWeighted)
-                      {
-                        return a->getWeight() > b->getWeight();
-                      }
-                      else
-                      {
-                        return aWeighted < bWeighted;
-                      }
-                    });
+        poolGroup.second.pools_.sort([client](const auto& a, const auto& b)
+                                     {
+                                       if (!client->supports(b->getAlgorithm()))
+                                       {
+                                         return true;
+                                       }
+                                       else if (!client->supports(a->getAlgorithm()))
+                                       {
+                                         return false;
+                                       }
+                                       double aWeighted = a->weightedHashRate();
+                                       double bWeighted = b->weightedHashRate();
+                                       if (aWeighted == bWeighted)
+                                       {
+                                         return a->getWeight() > b->getWeight();
+                                       }
+                                       else
+                                       {
+                                         return aWeighted < bWeighted;
+                                       }
+                                     });
 
         LOG_INFO << "Ordered pools by weighted load:";
         for (auto pool : poolGroup.second.pools_)
@@ -227,22 +234,25 @@ void Proxy::handleNewClient(const Client::Ptr& newClient)
 
         for (auto pool : poolGroup.second.pools_)
         {
-          if (pool->addWorker(newClient))
+          if (pool->addWorker(client))
           {
+            newClients_.remove(client);
+            clients_.push_back(client);
+
             auto self = shared_from_this();
-            newClient->setDisconnectHandler(
-                [self, newClient]()
+            client->setDisconnectHandler(
+              [self, client]()
+              {
+                // removes the client from the pools when they disconnect
+                for (auto& poolGroup : self->poolGroups_)
                 {
-                  // removes the client from the pools when they disconnect
-                  for (auto& poolGroup : self->poolGroups_)
+                  for (auto& pool : poolGroup.second.pools_)
                   {
-                    for (auto& pool : poolGroup.second.pools_)
-                    {
-                      pool->removeWorker(newClient);
-                    }
+                    pool->removeWorker(client);
                   }
-                  self->clients_.remove(newClient);
-                });
+                }
+                self->clients_.remove(client);
+              });
 
             // worker has been assigned to a pool
             return;
