@@ -73,8 +73,8 @@ bool Client::supports(Algorithm algorithm) const
 {
   // Supports jobs only when the algorithm matches.
   // Additionaly the algorithm variant must be supported
-  LOG_CLIENT_INFO << "Client::supports, algorithm, " << algorithm
-                  << ", algorithmType_, " << toString(algorithmType_);
+  LOG_TRACE << clientName_ << " supports, algorithm, " << algorithm
+                           << ", algorithmType_, " << toString(algorithmType_);
   return (algorithmType_ == algorithm.getAlgorithmType_()) &&
          ((algorithmVariants_.count(algorithm.getAlgorithmVariant_()) > 0) ||
           (algorithmVariants_.count(AlgorithmVariant::ANY) > 0));

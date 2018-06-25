@@ -122,7 +122,7 @@
       "targetSecondsBetweenSubmits": 10
     }
   ],
-  "logLevel": 6,
+  "logLevel": 4,
   "threads": 1,
   "poolLoadBalanceIntervalSeconds": 5
 }

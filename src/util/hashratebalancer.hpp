@@ -61,7 +61,7 @@ public:
     double actualAverage = consumer_->getWorkerHashRate().getAverageHashRateLongTimeWindow();
     // substracts current deviation of the average from the ideal average
     remainingTargetHashRate_ = 2 * targetHashRate_ - actualAverage;
-    std::cout << "(t" << targetHashRate_ << ",a" << actualAverage << ",r" << remainingTargetHashRate_ << ")";
+//    std::cout << "(t" << targetHashRate_ << ",a" << actualAverage << ",r" << remainingTargetHashRate_ << ")";
   }
 
   template <class ProducerImplementation>
