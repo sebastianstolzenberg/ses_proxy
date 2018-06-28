@@ -26,7 +26,8 @@ public:
   void toStream(std::ostream& stream) const override
   {
     stream << "NiceHashJobTemplate, jobId, " << jobIdentifier_
-           << ", target, " << target_.toHexString();
+           << ", target, " << target_.toHexString()
+           << ", difficulty, " << util::targetToDifficulty(target_);
   }
 
 private:
