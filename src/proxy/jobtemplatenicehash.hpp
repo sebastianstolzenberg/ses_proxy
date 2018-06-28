@@ -48,7 +48,7 @@ private:
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
         job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), algorithm_, std::move(blob), target_,
                                   resultHandler);
-        LOG_DEBUG << "NiceHashJobTemplate::getNextSubJob generated new blob with start nonce " << blob.getNonce();
+//        LOG_DEBUG << "NiceHashJobTemplate::getNextSubJob generated new blob with start nonce " << blob.getNonce();
         //TODO connect ResultHandler
       }
     }
