@@ -13,7 +13,7 @@ class NiceHashJobTemplate : public BaseJobTemplate
 public:
   NiceHashJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Algorithm& algorithm,
                       const Blob& blob, const util::Target target)
-    : BaseJobTemplate(identifier, jobIdentifier, algorithm, blob), target_(target), lastNiceHash_(0)
+    : BaseJobTemplate(identifier, jobIdentifier, algorithm, blob), target_(target), nextNiceHash_(0)
   {
   }
 
@@ -37,17 +37,18 @@ private:
     Job::Ptr job;
     if (workerType != WorkerType::PROXY)
     {
-      if (lastNiceHash_ < std::numeric_limits<uint8_t>::max())
+      if (nextNiceHash_ <= std::numeric_limits<uint8_t>::max())
       {
-        ++lastNiceHash_;
         Blob blob = blob_;
-        blob.setNiceHash(lastNiceHash_);
+        blob.setNiceHash(nextNiceHash_);
+        ++nextNiceHash_;
         JobResult::Handler resultHandler =
           std::bind(&NiceHashJobTemplate::handleResult,
                     std::dynamic_pointer_cast<NiceHashJobTemplate>(shared_from_this()),
                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
         job = Job::createMinerJob(workerIdentifier, generateJobIdentifier(), algorithm_, std::move(blob), target_,
                                   resultHandler);
+        LOG_DEBUG << "NiceHashJobTemplate::getNextSubJob generated new blob with start nonce " << blob.getNonce();
         //TODO connect ResultHandler
       }
     }
@@ -93,7 +94,7 @@ private:
 
 private:
   util::Target target_;
-  uint8_t lastNiceHash_;
+  uint32_t nextNiceHash_;
   std::set<uint32_t> foundNonces_;
 };
 

@@ -87,12 +87,12 @@ bool Blob::isTemplate() const
 
 uint8_t Blob::getNiceHash() const
 {
-  return *(reinterpret_cast<const uint8_t*>(blob_.data() + nonceOffset_));
+  return *(reinterpret_cast<const uint8_t*>(blob_.data() + nonceOffset_ + 3));
 }
 
 void Blob::setNiceHash(uint8_t niceHash)
 {
-  *(reinterpret_cast<uint8_t*>(blob_.data() + nonceOffset_)) = niceHash;
+  *(reinterpret_cast<uint8_t*>(blob_.data() + nonceOffset_ + 3)) = niceHash;
 }
 
 uint32_t Blob::getNonce() const
