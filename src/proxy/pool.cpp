@@ -592,15 +592,20 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
 
 void Pool::triggerKeepaliveTimer()
 {
+  auto self = shared_from_this();
   keepaliveTimer_.expires_from_now(boost::posix_time::seconds(30));
   keepaliveTimer_.async_wait(
-      [this](const boost::system::error_code& error)
+      [self](const boost::system::error_code& error)
       {
         if (!error)
         {
-          sendRequest(REQUEST_TYPE_KEEPALIVE,
-                      stratum::client::createKeepalivedParams(workerIdentifier_));
-          triggerKeepaliveTimer();
+          std::lock_guard<std::recursive_mutex> lock(self->mutex_);
+          if (!self->workerIdentifier_.empty())
+          {
+            self->sendRequest(REQUEST_TYPE_KEEPALIVE,
+                              stratum::client::createKeepalivedParams(self->workerIdentifier_));
+          }
+          self->triggerKeepaliveTimer();
         }
       });
 }
