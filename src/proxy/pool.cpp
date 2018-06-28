@@ -12,7 +12,10 @@
 #undef LOG_COMPONENT
 #define LOG_COMPONENT pool
 
+#define LOG_POOL_ERROR LOG_ERROR << poolName_ << ": "
 #define LOG_POOL_INFO LOG_INFO << poolName_ << ": "
+#define LOG_POOL_DEBUG LOG_DEBUG << poolName_ << ": "
+#define LOG_POOL_TRACE LOG_TRACE << poolName_ << ": "
 
 namespace ses {
 namespace proxy {
@@ -64,8 +67,8 @@ bool Pool::addWorker(const Worker::Ptr& worker)
     if (accepted)
     {
       workers_.push_back(worker);
-      LOG_POOL_INFO << "Added worker " << worker->getIdentifier() << ", hashRate, " << worker->getHashRate()
-                    << ", numWorkers, " << workers_.size();
+      LOG_POOL_DEBUG << "Added worker " << worker->getIdentifier() << ", hashRate, " << worker->getHashRate()
+                     << ", numWorkers, " << workers_.size();
 
     }
   }
@@ -81,8 +84,8 @@ bool Pool::removeWorker(const Worker::Ptr& worker)
   {
     workers_.erase(workerIt);
     removed = true;
-    LOG_POOL_INFO << "Removed worker " << worker->getIdentifier() << ", hashRate, " << worker->getHashRate()
-                  << ", numWorkers, " << workers_.size();
+    LOG_POOL_DEBUG << "Removed worker " << worker->getIdentifier() << ", hashRate, " << worker->getHashRate()
+                   << ", numWorkers, " << workers_.size();
   }
   return removed;
 }
@@ -213,8 +216,8 @@ void Pool::handleReceived(const std::string& data)
     data,
     [this](const std::string& id, const std::string& method, const std::string& params)
     {
-      LOG_DEBUG << "proxy::Pool::handleReceived request, id, " << id << ", method, " << method
-                << ", params, " << params;
+      LOG_POOL_DEBUG << "proxy::Pool::handleReceived request, id, " << id << ", method, " << method
+                     << ", params, " << params;
     },
     [this](const std::string& id, const std::string& result, const std::string& error)
     {
@@ -283,7 +286,7 @@ void Pool::handleDisconnect(const std::string& error)
 
 void Pool::handleLoginSuccess(const std::string& id, const boost::optional<stratum::Job>& job)
 {
-  LOG_TRACE << "proxy::Pool::handleLoginSuccess, id, " << id;
+  LOG_POOL_TRACE << "proxy::Pool::handleLoginSuccess, id, " << id;
 
   workerIdentifier_ = id;
   updateName();
@@ -295,18 +298,18 @@ void Pool::handleLoginSuccess(const std::string& id, const boost::optional<strat
 
 void Pool::handleLoginError(int code, const std::string& message)
 {
-  LOG_ERROR << poolName_ << ": " << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message<< std::endl;
+  LOG_POOL_ERROR << "proxy::Pool::handleLoginError, code, " << code << ", message, " << message;
 }
 
 void Pool::handleGetJobSuccess(const stratum::Job& job)
 {
-  LOG_TRACE << "proxy::Pool::handleGetJobSuccess";
+  LOG_POOL_TRACE << "proxy::Pool::handleGetJobSuccess";
   setJob(job);
 }
 
 void Pool::handleGetJobError(int code, const std::string& message)
 {
-  LOG_ERROR << poolName_ << ": " << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message;
+  LOG_POOL_ERROR << "proxy::Pool::handleGetJobError, code, " << code << ", message, " << message;
 }
 
 void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::SubmitStatusHandler& submitStatusHandler,
@@ -316,9 +319,9 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
 
   ++totalSubmits_;
   ++successfulSubmits_;
-  LOG_POOL_INFO << "Submit success: job, " << jobId
-                << ", hr, " << submitHashRate_
-                << ", rate, " << successfulSubmits_ << "/" << totalSubmits_;
+  LOG_POOL_DEBUG << "Submit success: job, " << jobId
+                 << ", hr, " << submitHashRate_
+                 << ", rate, " << successfulSubmits_ << "/" << totalSubmits_;
 
   if (submitStatusHandler)
   {
@@ -328,7 +331,7 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
   auto job = jobTemplates_[jobId];
   if (job)
   {
-    LOG_DEBUG << "proxy::Pool, job " << job->getJobIdentifier() << ", numHashes " << job->numHashesFound();
+    LOG_POOL_DEBUG << "proxy::Pool, job " << job->getJobIdentifier() << ", numHashes " << job->numHashesFound();
   }
 }
 
@@ -336,9 +339,8 @@ void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitSt
                              int code, const std::string& message)
 {
   ++totalSubmits_;
-  LOG_ERROR << poolName_ << ": " << "Submit failed: message, " << code << " "
-                                 << message << ", job, " << jobId
-                                 << ", rate, " << successfulSubmits_ << "/" << totalSubmits_;
+  LOG_POOL_ERROR << "Submit failed: message, " << code << " " << message << ", job, " << jobId
+                 << ", rate, " << successfulSubmits_ << "/" << totalSubmits_;
 
   if (submitStatusHandler)
   {
@@ -377,7 +379,7 @@ void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitSt
 
 void Pool::handleNewJob(const stratum::Job& job)
 {
-  LOG_TRACE << "proxy::Pool::handleNewJob, job.jobIdentifier_, " << job.getJobIdentifier();
+  LOG_POOL_TRACE << "proxy::Pool::handleNewJob, job.jobIdentifier_, " << job.getJobIdentifier();
   setJob(job);
 }
 
@@ -463,7 +465,7 @@ void Pool::setJob(const stratum::Job& job)
     try
     {
       auto newJobTemplate = JobTemplate::create(workerIdentifier_, getAlgorithm(), job);
-      LOG_POOL_INFO << "Received new job: " << *newJobTemplate;
+      LOG_POOL_DEBUG << "Received new job: " << *newJobTemplate;
       newJobTemplate->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
                                                     std::placeholders::_1, std::placeholders::_2,
                                                     std::placeholders::_3));
@@ -477,18 +479,18 @@ void Pool::setJob(const stratum::Job& job)
   }
   else if (activeJobTemplate_ && job.getJobIdentifier() != activeJobTemplate_->getJobIdentifier())
   {
-    LOG_DEBUG << __PRETTY_FUNCTION__ << " Known job template, setting it as active job template";
+    LOG_POOL_DEBUG << " Known job template, setting it as active job template";
     activateJob(knownJob->second);
   }
   else
   {
-    LOG_DEBUG << __PRETTY_FUNCTION__ << " Known job template which is active already";
+    LOG_POOL_DEBUG << " Known job template which is active already";
   }
 }
 
 void Pool::activateJob(const JobTemplate::Ptr& job)
 {
-  LOG_POOL_INFO << "Activating job: " << *job;
+  LOG_POOL_DEBUG << "Activating job: " << *job;
   activeJobTemplate_ = job;
   for (const auto& worker : workers_)
   {
@@ -552,12 +554,12 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     uint32_t resultDifficulty = jobResult.getDifficulty();
     if (jobResult.isNodeJsResult())
     {
-      LOG_POOL_INFO << "Submitting hash: job, " << jobIt->second->getJobIdentifier()
-                    << ", difficulty, " << resultDifficulty
-                    << ", nonce, " << jobResult.getNonceHexString()
-                    << ", workerNonce, " << jobResult.getWorkerNonce()
-                    << ", poolNonce, " << jobResult.getPoolNonce()
-                    << ", hash, " << jobResult.getHashHexString();
+      LOG_POOL_DEBUG << "Submitting hash: job, " << jobIt->second->getJobIdentifier()
+                     << ", difficulty, " << resultDifficulty
+                     << ", nonce, " << jobResult.getNonceHexString()
+                     << ", workerNonce, " << jobResult.getWorkerNonce()
+                     << ", poolNonce, " << jobResult.getPoolNonce()
+                     << ", hash, " << jobResult.getHashHexString();
       id = sendRequest(REQUEST_TYPE_SUBMIT,
                        stratum::client::createSubmitParams(workerIdentifier_,
                                                            jobIt->second->getJobIdentifier(),
@@ -568,10 +570,10 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     }
     else
     {
-      LOG_POOL_INFO << "Submitting hash: job, " << jobIt->second->getJobIdentifier()
-                    << ", difficulty, " << resultDifficulty
-                    << ", nonce, " << jobResult.getNonceHexString()
-                    << ", hash, " << jobResult.getHashHexString();
+      LOG_POOL_DEBUG << "Submitting hash: job, " << jobIt->second->getJobIdentifier()
+                     << ", difficulty, " << resultDifficulty
+                     << ", nonce, " << jobResult.getNonceHexString()
+                     << ", hash, " << jobResult.getHashHexString();
       id = sendRequest(REQUEST_TYPE_SUBMIT,
                        stratum::client::createSubmitParams(workerIdentifier_,
                                                            jobIt->second->getJobIdentifier(),

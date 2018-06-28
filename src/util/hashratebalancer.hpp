@@ -141,7 +141,7 @@ public:
     {
       consumer.setTargetHashRate(totalAvailableHashRate);
     }
-    std::cout << std::endl;
+//    std::cout << std::endl;
   }
 
   void sortByRemainingHashRateDescending()

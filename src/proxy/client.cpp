@@ -11,6 +11,8 @@
 #undef LOG_COMPONENT
 #define LOG_COMPONENT client
 #define LOG_CLIENT_INFO LOG_INFO << clientName_ << ": "
+#define LOG_CLIENT_DEBUG LOG_DEBUG << clientName_ << ": "
+#define LOG_CLIENT_TRACE LOG_TRACE << clientName_ << ": "
 
 namespace ses {
 namespace proxy {
@@ -73,8 +75,8 @@ bool Client::supports(Algorithm algorithm) const
 {
   // Supports jobs only when the algorithm matches.
   // Additionaly the algorithm variant must be supported
-  LOG_TRACE << clientName_ << " supports, algorithm, " << algorithm
-                           << ", algorithmType_, " << toString(algorithmType_);
+  LOG_CLIENT_TRACE << " supports, algorithm, " << algorithm
+                   << ", algorithmType_, " << toString(algorithmType_);
   return (algorithmType_ == algorithm.getAlgorithmType_()) &&
          ((algorithmVariants_.count(algorithm.getAlgorithmVariant_()) > 0) ||
           (algorithmVariants_.count(AlgorithmVariant::ANY) > 0));
@@ -83,7 +85,6 @@ bool Client::supports(Algorithm algorithm) const
 void Client::assignJob(const Job::Ptr& job)
 {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
-  LOG_DEBUG << __PRETTY_FUNCTION__;
   if (job)
   {
 //    job->setAssignedWorker(identifier_);
@@ -136,8 +137,8 @@ void Client::handleReceived(const std::string& data)
     data,
     [this](const std::string& id, const std::string& method, const std::string& params)
     {
-//      LOG_DEBUG << "proxy::Client::handleReceived request, id, " << id << ", method, " << method
-//                << ", params, " << params;
+      LOG_CLIENT_TRACE << "proxy::Client::handleReceived request, id, " << id << ", method, " << method
+                       << ", params, " << params;
       stratum::server::parseRequest(id, method, params,
                                     std::bind(&Client::handleLogin, this, _1, _2, _3, _4, _5, _6),
                                     std::bind(&Client::handleGetJob, this, _1),
@@ -147,19 +148,19 @@ void Client::handleReceived(const std::string& data)
     },
     [this](const std::string& id, const std::string& result, const std::string& error)
     {
-      LOG_DEBUG << "proxy::Client::handleReceived response, id, " << id << ", result, " << result
-                << ", error, " << error;
+      LOG_CLIENT_TRACE << "proxy::Client::handleReceived response, id, " << id << ", result, " << result
+                       << ", error, " << error;
     },
     [this](const std::string& method, const std::string& params)
     {
-      LOG_DEBUG << "proxy::Client::handleReceived notification, method, " << method << ", params, "
-                << params;
+      LOG_CLIENT_TRACE << "proxy::Client::handleReceived notification, method, " << method << ", params, "
+                       << params;
     });
 }
 
 void Client::handleDisconnect(const std::string& error)
 {
-  LOG_CLIENT_INFO << "Disconnected";
+  LOG_CLIENT_DEBUG << "Disconnected";
   disconnect();
   if (disconnectHandler_)
   {
@@ -171,12 +172,12 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
                          const std::string& agent, const std::string& algorithm,
                          const std::vector<std::string>& algorithmVariants)
 {
-  LOG_DEBUG << "ses::proxy::Client::handleLogin()"
-            << ", login, " << login
-            << ", pass, " << pass
-            << ", agent, " << agent
-            << ", algorithm, " << algorithm
-            << ", algorithmVariants, " << algorithmVariants;
+  LOG_CLIENT_DEBUG << "ses::proxy::Client::handleLogin()"
+                   << ", login, " << login
+                   << ", pass, " << pass
+                   << ", agent, " << agent
+                   << ", algorithm, " << algorithm
+                   << ", algorithmVariants, " << algorithmVariants;
 
   if (login.empty())
   {
@@ -222,9 +223,9 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
 
     updateName();
 
-    LOG_CLIENT_INFO << "Logged in as " << username_ << " with " << useragent_
-                    << ", algorithm, " << toString(algorithmType_)
-                    << ", variants, " << algorithmVariants_;
+    LOG_CLIENT_DEBUG << "Logged in as " << username_ << " with " << useragent_
+                     << ", algorithm, " << toString(algorithmType_)
+                     << ", variants, " << algorithmVariants_;
 
     if (!currentJob_ && needsJobHandler_)
     {
@@ -259,13 +260,13 @@ void Client::handleSubmit(const std::string& jsonRequestId,
                           const std::string& nonce, const std::string& result,
                           const std::string& workerNonce, const std::string& poolNonce)
 {
-  LOG_DEBUG << "ses::proxy::Client::handleSubmit()"
-            << ", identifier, " << identifier
-            << ", jobIdentifier, " << jobIdentifier
-            << ", nonce, " << nonce
-            << ", result, " << result
-            << ", workerNonce, " << workerNonce
-            << ", poolNonce, " << poolNonce;
+  LOG_CLIENT_DEBUG << "ses::proxy::Client::handleSubmit()"
+                   << ", identifier, " << identifier
+                   << ", jobIdentifier, " << jobIdentifier
+                   << ", nonce, " << nonce
+                   << ", result, " << result
+                   << ", workerNonce, " << workerNonce
+                   << ", poolNonce, " << poolNonce;
 
   if (identifier != toString(identifier_))
   {
@@ -314,7 +315,7 @@ void Client::handleSubmit(const std::string& jsonRequestId,
 
 void Client::handleKeepAliveD(const std::string& jsonRequestId, const std::string& identifier)
 {
-  LOG_DEBUG << "ses::proxy::Client::handleKeepAliveD(), identifier, " << identifier;
+  LOG_CLIENT_DEBUG << "ses::proxy::Client::handleKeepAliveD(), identifier, " << identifier;
   if (identifier != toString(identifier_))
   {
     sendErrorResponse(jsonRequestId, "Unauthenticated");
@@ -393,12 +394,12 @@ void Client::updateHashrates(uint32_t difficulty)
     difficulty_ = hashrate_.getAverageHashRateLongTimeWindow() * targetSecondsBetweenSubmits_;
   }
 
-  LOG_CLIENT_INFO << "Submit success "
-                  << ", submits, " << submits_ << ", hashes, " << hashrate_.getTotalHashes()
-                  << ", hashrate, " << hashrate_.getHashRateLastUpdate()
-                  << ", hashrate1Min, " << hashrate_.getAverageHashRateShortTimeWindow()
-                  << ", hashrate10Min, " << hashrate_.getAverageHashRateLongTimeWindow()
-                  << ", newClientDifficulty, " << difficulty_;
+  LOG_CLIENT_DEBUG << "Submit success "
+                   << ", submits, " << submits_ << ", hashes, " << hashrate_.getTotalHashes()
+                   << ", hashrate, " << hashrate_.getHashRateLastUpdate()
+                   << ", hashrate1Min, " << hashrate_.getAverageHashRateShortTimeWindow()
+                   << ", hashrate10Min, " << hashrate_.getAverageHashRateLongTimeWindow()
+                   << ", newClientDifficulty, " << difficulty_;
 
 //  if (timeLastJobTransmit > std::chrono::seconds(30))
 //  {
@@ -447,12 +448,12 @@ stratum::Job Client::buildStratumJob()
   jobs_[currentJob_->getJobIdentifier()].second = modifiedDifficulty;
   stratum::Job stratumJob = currentJob_->asStratumJob();
   stratumJob.setTarget(modifiedTarget);
-  LOG_CLIENT_INFO << "Sending job to client"
-                  << ", id, " << currentJob_->getJobIdentifier()
-                  << ", algorithm, " << currentJob_->getAlgorithm()
-                  << ", clientDifficulty, " << modifiedDifficulty
-                  << ", jobDifficulty, " << currentJob_->getDifficulty()
-                  << ", target, " << modifiedTarget;
+  LOG_CLIENT_DEBUG << "Sending job to client"
+                   << ", id, " << currentJob_->getJobIdentifier()
+                   << ", algorithm, " << currentJob_->getAlgorithm()
+                   << ", clientDifficulty, " << modifiedDifficulty
+                   << ", jobDifficulty, " << currentJob_->getDifficulty()
+                   << ", target, " << modifiedTarget;
 //  lastJobTransmitTimePoint_ = std::chrono::system_clock::now();
   return stratumJob;
 }
