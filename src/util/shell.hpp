@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <functional>
 #include <map>
@@ -13,11 +14,12 @@ namespace util {
 class Command
 {
 public:
-  typedef std::function<void (const std::string& parameter)> Handler;
+  typedef std::function<void (const std::vector<std::string>& parameter)> Handler;
+
 public:
   Command() = default;
 
-  Command(const std::string& command, Handler& handler, const std::string& description = "")
+  Command(const std::string& command, Handler handler, const std::string& description = "")
     : command_(command), handler_(handler), description_(description)
   {
   }
@@ -27,12 +29,17 @@ public:
     return command_;
   }
 
+  const std::string& getDescription() const
+  {
+    return description_;
+  }
+
   bool operator==(const std::string& otherCommand)
   {
     return command_ == otherCommand;
   }
 
-  void operator()(const std::string& parameter)
+  void operator()(const std::vector<std::string>& parameter)
   {
     if (handler_)
     {
@@ -46,19 +53,20 @@ private:
   Handler handler_;
 };
 
-class Shell
+class Shell : public std::enable_shared_from_this<Shell>
 {
 public:
+  typedef std::shared_ptr<Shell> Ptr;
 
   Shell(const std::shared_ptr<boost::asio::io_service>& ioService)
-    : userOutput_(*ioService, ::dup(STDOUT_FILENO)),
-      userInput_(*ioService, ::dup(STDIN_FILENO)),
+    : ioService_(ioService), userOutput_(*ioService, ::dup(STDOUT_FILENO)), userInput_(*ioService, ::dup(STDIN_FILENO)),
       userInputBuffer_(1000)
   {
-
+    // add default commands
+    addCommand(Command("l", std::bind(&Shell::listCommands, this), " List commands"));
   }
 
-  void addCommand(Command& command)
+  void addCommand(const Command& command)
   {
     commands_[command.getCommand()] = command;
   }
@@ -68,60 +76,74 @@ public:
     commands_.erase(command);
   }
 
-  void Shell::startWaitingForNextUserInput()
+  void start()
   {
-    // Read a line of input entered by the user.
-    boost::asio::async_read_until(userInput_, userInputBuffer_, '\n',
-                                  boost::bind(&Shell::handleUserInput, this,
-                                              boost::asio::placeholders::error,
-                                              boost::asio::placeholders::bytes_transferred));
-  }
-
-  void Shell::handleUserInput(const boost::system::error_code& error,
-                              std::size_t length)
-  {
-    if (!error)
-    {
-      std::string command(extractString(userInputBuffer_.data(), length));
-      // TODO: fix zeroization for NIAP testing/demonstations. The input buffer
-      // needs to be wiped, because it may contain the SIP password when entering
-      // it. The code which is commented out sometimes corrupts the input buffer
-      // handling. This causes that no further commands can be entered. An proper
-      // solution is needed for this problem.
-      // uint8_t* buffer = (uint8_t*) boost::asio::buffer_cast<const char*>(userInputBuffer_.data());
-      // crypto_util::memsetSec(buffer - length, 0, length);
-      userInputBuffer_.consume(length);
-
-      processCommand(command);
-      crypto_util::memsetSec((uint8_t*) command.data(), 0, command.size());
-    }
-
     startWaitingForNextUserInput();
   }
 
-  std::string Shell::readStringFromUserInput(const std::string& defaultString)
+  void stop()
   {
-    std::size_t length = boost::asio::read_until(userInput_, userInputBuffer_, '\n');
-    std::string result = extractString(userInputBuffer_.data(), length);
-    userInputBuffer_.consume(length);
+    userInput_.close();
+    userOutput_.close();
+  }
 
-    // drops new line character from string
-    result.erase(result.end() - 1);
-
-    if (result.empty())
+  void listCommands()
+  {
+    for (auto& command : commands_)
     {
-      result = defaultString;
+      std::cout << command.second.getCommand() << " : " << command.second.getDescription() << std::endl;
     }
-
-    return result;
   }
 
 private:
-  std::map<std::string, Command> commands_;
+  void startWaitingForNextUserInput()
+  {
+    // Read a line of input entered by the user.
+    auto self = shared_from_this();
+    boost::asio::async_read_until(
+      userInput_, userInputBuffer_, '\n',
+      [self, this](const boost::system::error_code& error, std::size_t length)
+      {
+        if (!error)
+        {
+          std::string input(boost::asio::buffers_begin(userInputBuffer_.data()),
+                            boost::asio::buffers_begin(userInputBuffer_.data()) + length);
+          userInputBuffer_.consume(length);
+
+          processInput(input);
+          startWaitingForNextUserInput();
+        }
+      });
+  }
+
+  void processInput(const std::string& input)
+  {
+    boost::char_separator<char> separator(" \n");
+    boost::tokenizer<boost::char_separator<char> > tokens(input, separator);
+    std::string command;
+    std::vector<std::string> parameters;
+    for (const auto& token : tokens)
+    {
+      if (command.empty())
+      {
+        command = token;
+      }
+      else
+      {
+        parameters.push_back(token);
+      }
+    }
+    commands_[command](parameters);
+  }
+
+private:
+  std::shared_ptr<boost::asio::io_service> ioService_;
 
   boost::asio::posix::stream_descriptor userOutput_;
   boost::asio::posix::stream_descriptor userInput_;
   boost::asio::streambuf userInputBuffer_;
+
+  std::map<std::string, Command> commands_;
 };
 
 } // namespace util

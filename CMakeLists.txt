@@ -7,9 +7,10 @@ include("cmake/HunterGate.cmake")
 
 set(HUNTER_STATUS_DEBUG OFF)
 set(HUNTER_TLS_VERIFY ON)
+
 HunterGate(
-        URL "https://github.com/ruslo/hunter/archive/v0.20.39.tar.gz"
-        SHA1 "b49c4b58e17c1473e822f8b21fcde92fee25791d"
+        URL "https://github.com/ruslo/hunter/archive/v0.22.19.tar.gz"
+        SHA1 "54749ffc945f78362aa680a7abbafcaa40ff9069"
 )
 
 ###############################################################################
