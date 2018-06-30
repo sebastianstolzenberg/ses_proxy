@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 
-option(HUNTER_ENABLED "Use hunter package manager for dependency resolution" ON)
+option(HUNTER_ENABLED "Use hunter package manager for dependency resolution" OFF)
 option(CC_SUPPORT "Enable support for XMRIGCC's Control Center" OFF)
 
 ###############################################################################
@@ -94,7 +94,8 @@ target_link_libraries(ses_proxy
         cryptonote
         ${Boost_LIBRARIES}
         ${OPENSSL_LIBRARIES}
-        ${CMAKE_THREAD_LIBS_INIT})
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${CMAKE_DL_LIBS})
 #add_dependencies(ses_proxy cryptonote)
 
 add_subdirectory(test EXCLUDE_FROM_ALL)
