@@ -36,6 +36,12 @@ private:
   void triggerLoadBalancerTimer();
   void balancePoolLoads();
 
+private: // shell related
+  void setupShell();
+  void printProxyStatus();
+  void printPoolsStatus();
+  void printMinerStatus();
+
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;
   std::string configurationFilePath_;
@@ -53,7 +59,7 @@ private:
   CcClient::Ptr ccClient_;
   CcClient::Status ccProxyStatus_;
 
-  util::Shell::Ptr shell_;
+  util::shell::Shell::Ptr shell_;
 
 //  util::HashRateCollector<Client> clientsTracker_;
 //  util::HashRateCollector<Pool> poolsTracker_;

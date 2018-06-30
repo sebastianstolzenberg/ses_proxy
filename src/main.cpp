@@ -46,6 +46,8 @@ Parameters parseCommandLine(int argc,  char** argv)
 
 int main(int argc,  char** argv)
 {
+  std::cout << std::endl << std::endl << "Starting proxy." << std::endl << std::endl;
+
   std::shared_ptr<boost::asio::io_service> ioService = std::make_shared<boost::asio::io_service>();
 
   Parameters parameters;
@@ -66,5 +68,7 @@ int main(int argc,  char** argv)
                                                                      parameters.configurationFilePath_);
   proxy->reloadConfiguration();
   proxy->run();
+
+  std::cout << std::endl << std::endl << "Proxy terminated." << std::endl << std::endl;
   return 0;
 }

@@ -93,24 +93,10 @@ void waitForSignal(boost::asio::io_service& ioService, size_t numThreads)
 
 Proxy::Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, const std::string& configurationFilePath)
   : ioService_(ioService), configurationFilePath_(configurationFilePath), loadBalancerTimer_(*ioService),
-    shell_(std::make_shared<util::Shell>(ioService))
+    shell_(std::make_shared<util::shell::Shell>(ioService))
 {
   ccProxyStatus_.version_ = "0.1";
-
-  shell_->addCommand(
-    util::Command(
-      "log",
-      [](const std::vector<std::string>& parameter)
-      {
-        uint32_t logLevel;
-        if (parameter.size() > 0 && boost::conversion::try_lexical_convert(parameter[0], logLevel))
-        {
-          std::cout << "Changing log level to " << logLevel << std::endl;
-          setLogLevel(logLevel);
-        }
-      },
-      "Changes the log level to the value given as first parameter. "
-      "(0 - off, 1 - fatal, 2 - error, 3 - warning, 4 - info, 5 - debug, 6 - trace"));
+  setupShell();
 }
 
 void Proxy::run()
@@ -365,6 +351,97 @@ void Proxy::balancePoolLoads()
   }
 #endif
 }
+
+void Proxy::setupShell()
+{
+  shell_->addCommand(util::shell::Command("quit",
+                                          [this] (const util::shell::Command::Parameters&) {ioService_->stop();},
+                                          "Terminates the proxy."));
+
+  shell_->addCommand(
+    util::shell::Command(
+      "log",
+      [](const util::shell::Command::Parameters& parameter)
+      {
+        uint32_t logLevel;
+        if (parameter.size() > 0 && boost::conversion::try_lexical_convert(parameter[0], logLevel))
+        {
+          std::cout << "Changing log level to " << logLevel << std::endl;
+          setLogLevel(logLevel);
+        }
+      },
+      "Changes the log level to the value given as first parameter. "
+      "(0 - off, 1 - fatal, 2 - error, 3 - warning, 4 - info, 5 - debug, 6 - trace"));
+
+  shell_->addCommand(util::shell::Command("status", std::bind(&Proxy::printProxyStatus, this),
+                                          "Prints the current status of the proxy."));
+  shell_->addCommand(util::shell::Command("pools", std::bind(&Proxy::printPoolsStatus, this),
+                                          "Lists the configured pools and their current status."));
+  shell_->addCommand(util::shell::Command("miner", std::bind(&Proxy::printMinerStatus, this),
+                                          "Lists information about connected miners."));
+
+}
+
+void Proxy::printProxyStatus()
+{
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+  size_t numPoolGroups = poolGroups_.size();
+  size_t numPools = 0;
+  size_t numMiner = clients_.size();
+  size_t hashRate = 0;
+
+  for (auto& poolGroup : poolGroups_)
+  {
+    numPools += poolGroup.second.pools_.size();
+    for (auto& pool : poolGroup.second.pools_)
+    {
+      hashRate += pool->hashRate();
+    }
+  }
+  std::cout << std::endl
+            << "Proxy status:"
+            << " hashRate=" << hashRate
+            << " numPoolGroups=" << numPoolGroups
+            << " numPools=" << numPoolGroups
+            << " numMiner=" << numMiner
+            << std::endl << std::endl;
+}
+
+void Proxy::printPoolsStatus()
+{
+  std::ostringstream out;
+
+  out << std::endl;
+  for (auto& poolGroup : poolGroups_)
+  {
+    out << std::endl << " Pool group \"" << poolGroup.second.name_ << "\" (priority " << poolGroup.first << ")" << std::endl;
+    for (auto& pool : poolGroup.second.pools_)
+    {
+      out << "   Pool \"" << pool->getDescriptor() << "\" (" << pool->numWorkers()
+          << " miners, weight " << pool->getWeight() << "):" << std::endl
+          << "     " << pool->getAlgorithm() << std::endl
+          << "     Mined " << pool->getWorkerHashRate() << std::endl
+          << "     Submitted " << pool->getSubmitHashRate() << std::endl;
+    }
+  }
+
+  std::cout << out.str() << std::endl;
+}
+
+void Proxy::printMinerStatus()
+{
+  std::ostringstream out;
+
+  out << std::endl << "Status of the " << clients_.size() << " connected miner(s):" << std::endl;
+  for (auto& client : clients_)
+  {
+    out << " " << client->getIdentifier() << " " << client->getHashRate() << std::endl;
+  }
+
+  std::cout << out.str() << std::endl;
+}
+
 
 } // namespace proxy
 } // namespace ses
