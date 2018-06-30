@@ -113,7 +113,7 @@ void formatMessagePart(boost::log::record_view const& rec, boost::log::formattin
 }
 }
 
-void initialize(boost::log::trivial::severity_level level, bool syslog)
+void initialize(bool syslog)
 {
 //  boost::log::register_simple_formatter_factory<boost::log::trivial::severity_level, char >("Severity");
 
@@ -190,10 +190,13 @@ void initialize(boost::log::trivial::severity_level level, bool syslog)
 
     logger->add_sink(sink);
   }
+}
 
+void setLogLevel(boost::log::trivial::severity_level level)
+{
+  auto logger = boost::log::core::get();
+  logger->reset_filter();
   logger->set_filter(boost::log::trivial::severity >= level);
-
-
 }
 
 std::string currentExceptionDiagnosticInformation()

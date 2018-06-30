@@ -24,7 +24,9 @@ enum Component
 namespace keywords {
 BOOST_LOG_ATTRIBUTE_KEYWORD(component, "Component", ses::log::Component)
 }
-void initialize(boost::log::trivial::severity_level level, bool syslog);
+void initialize(bool syslog);
+
+void setLogLevel(boost::log::trivial::severity_level level);
 
 std::string currentExceptionDiagnosticInformation();
 

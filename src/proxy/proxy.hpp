@@ -8,6 +8,7 @@
 #include "proxy/pool.hpp"
 #include "proxy/ccclient.hpp"
 #include "util/hashratebalancer.hpp"
+#include "util/shell.hpp"
 
 namespace ses {
 namespace proxy {
@@ -51,6 +52,8 @@ private:
 
   CcClient::Ptr ccClient_;
   CcClient::Status ccProxyStatus_;
+
+  util::Shell::Ptr shell_;
 
 //  util::HashRateCollector<Client> clientsTracker_;
 //  util::HashRateCollector<Pool> poolsTracker_;

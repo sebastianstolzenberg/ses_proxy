@@ -63,7 +63,7 @@ public:
       userInputBuffer_(1000)
   {
     // add default commands
-    addCommand(Command("l", std::bind(&Shell::listCommands, this), " List commands"));
+    addCommand(Command("h", std::bind(&Shell::listCommands, this), " List commands"));
   }
 
   void addCommand(const Command& command)

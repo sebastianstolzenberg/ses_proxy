@@ -7,7 +7,6 @@
 #include "proxy/proxy.hpp"
 #include "proxy/configurationfile.hpp"
 #include "util/log.hpp"
-#include "util/shell.hpp"
 
 struct Parameters
 {
@@ -66,10 +65,6 @@ int main(int argc,  char** argv)
   ses::proxy::Proxy::Ptr proxy = std::make_shared<ses::proxy::Proxy>(ioService,
                                                                      parameters.configurationFilePath_);
   proxy->reloadConfiguration();
-
-  auto shell = std::make_shared<ses::util::Shell>(ioService);
-  shell->start();
-
   proxy->run();
   return 0;
 }

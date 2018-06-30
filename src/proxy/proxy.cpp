@@ -3,6 +3,7 @@
 #include <future>
 #include <boost/range/numeric.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "proxy/configurationfile.hpp"
 #include "proxy.hpp"
@@ -15,7 +16,7 @@ namespace ses {
 namespace proxy {
 
 namespace {
-void configureLogging(uint32_t logLevel, bool syslog)
+void setLogLevel(uint32_t logLevel)
 {
   if (logLevel == 0)
   {
@@ -47,8 +48,14 @@ void configureLogging(uint32_t logLevel, bool syslog)
         level = boost::log::trivial::severity_level::fatal;
         break;
     }
-    ses::log::initialize(level, syslog);
+    ses::log::setLogLevel(level);
   }
+}
+
+void configureLogging(uint32_t logLevel, bool syslog)
+{
+  ses::log::initialize(syslog);
+  setLogLevel(logLevel);
 }
 
 void waitForSignal(boost::asio::io_service& ioService, size_t numThreads)
@@ -85,13 +92,30 @@ void waitForSignal(boost::asio::io_service& ioService, size_t numThreads)
 }
 
 Proxy::Proxy(const std::shared_ptr<boost::asio::io_service>& ioService, const std::string& configurationFilePath)
-  : ioService_(ioService), configurationFilePath_(configurationFilePath), loadBalancerTimer_(*ioService)
+  : ioService_(ioService), configurationFilePath_(configurationFilePath), loadBalancerTimer_(*ioService),
+    shell_(std::make_shared<util::Shell>(ioService))
 {
   ccProxyStatus_.version_ = "0.1";
+
+  shell_->addCommand(
+    util::Command(
+      "log",
+      [](const std::vector<std::string>& parameter)
+      {
+        uint32_t logLevel;
+        if (parameter.size() > 0 && boost::conversion::try_lexical_convert(parameter[0], logLevel))
+        {
+          std::cout << "Changing log level to " << logLevel << std::endl;
+          setLogLevel(logLevel);
+        }
+      },
+      "Changes the log level to the value given as first parameter. "
+      "(0 - off, 1 - fatal, 2 - error, 3 - warning, 4 - info, 5 - debug, 6 - trace"));
 }
 
 void Proxy::run()
 {
+  shell_->start();
   waitForSignal(*ioService_, numThreads_);
 }
 
