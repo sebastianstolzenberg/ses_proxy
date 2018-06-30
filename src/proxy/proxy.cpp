@@ -201,8 +201,10 @@ void Proxy::addServer(const Server::Configuration& configuration)
 
 void Proxy::addCcClient(const CcClient::Configuration& configuration)
 {
+#ifdef CC_SUPPORT
   ccClient_ = std::make_shared<CcClient>(ioService_, configuration);
   ccProxyStatus_.clientId_ = configuration.userAgent_;
+#endif
 }
 
 void Proxy::handleNewClient(const Client::Ptr& newClient)
@@ -331,6 +333,7 @@ void Proxy::balancePoolLoads()
       auto poolHashRateAverageLong = pool->getWorkerHashRate().getAverageHashRateLongTimeWindow();
       auto poolTotalHashes = pool->getSubmitHashRate().getTotalHashes();
 
+#ifdef CC_SUPPORT
       if (ccClient_)
       {
         CcClient::Status ccPoolStatus = pool->getCcStatus();
@@ -341,6 +344,7 @@ void Proxy::balancePoolLoads()
         ++poolNumber;
         ccClient_->publishStatus(ccPoolStatus);
       }
+#endif
 
       LOG_WARN << "After rebalance: "
                << poolGroup.second.name_ << ":" << pool->getDescriptor()
@@ -354,10 +358,12 @@ void Proxy::balancePoolLoads()
     }
   }
 
+#ifdef CC_SUPPORT
   if (ccClient_)
   {
     ccClient_->send();
   }
+#endif
 }
 
 } // namespace proxy

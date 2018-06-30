@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 
-###############################################################################
-option(HUNTER_ENABLED "Use hunter package manager for dependency resolution" ON)
 
+option(HUNTER_ENABLED "Use hunter package manager for dependency resolution" ON)
+option(CC_SUPPORT "Enable support for XMRIGCC's Control Center" OFF)
+
+###############################################################################
 include("cmake/HunterGate.cmake")
 
 set(HUNTER_STATUS_DEBUG OFF)
@@ -14,6 +16,7 @@ HunterGate(
 )
 
 ###############################################################################
+
 project(ses_proxy)
 
 find_package(Threads)
@@ -26,7 +29,11 @@ if (HUNTER_ENABLED)
 endif()
 set(Boost_USE_STATIC_LIBS ON)
 hunter_add_package(Boost COMPONENTS program_options log thread system)
-find_package(Boost COMPONENTS program_options log log_setup thread system REQUIRED)
+if (CC_SUPPORT)
+    find_package(Boost 1.66 COMPONENTS program_options log log_setup thread system REQUIRED)
+else()
+    find_package(Boost COMPONENTS program_options log log_setup thread system REQUIRED)
+endif()
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -41,7 +48,7 @@ add_library(ses_proxy_util
         src/util/log.cpp
         src/util/hashratecalculator.cpp
         src/util/pidcontroller.cpp
-        #src/util/shell.cpp
+        src/util/shell.cpp
         )
 
 add_library(ses_proxy_net
@@ -52,7 +59,8 @@ add_library(ses_proxy_net
         src/net/client/boosttcpconnection.cpp
         src/net/server/server.cpp
         src/net/jsonrpc/jsonrpc.cpp
-        src/net/client/http.cpp)
+        $<$<STREQUAL:${CC_SUPPORT},ON>:src/net/client/http.cpp>
+        )
 
 add_library(ses_proxy_stratum
         STATIC
@@ -72,7 +80,12 @@ add_executable(ses_proxy
         src/proxy/blob.cpp
         src/proxy/workeridentifier.cpp
         src/proxy/configurationfile.cpp
-        src/proxy/ccclient.cpp src/proxy/algorithm.cpp)
+        $<$<STREQUAL:${CC_SUPPORT},ON>:src/proxy/ccclient.cpp>
+        src/proxy/algorithm.cpp)
+
+if (CC_SUPPORT)
+    target_compile_definitions(ses_proxy PRIVATE "-DCC_SUPPORT")
+endif()
 
 target_link_libraries(ses_proxy
         ses_proxy_net

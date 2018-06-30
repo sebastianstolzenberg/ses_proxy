@@ -9,11 +9,6 @@
 namespace ses {
 namespace proxy {
 
-CcClient::Status::Status()
-  : hashRateShort_(0), hashRateMedium_(0), hashRateLong_(0), hashRateHighest_(0), currentThreads_(0), sharesGood_(0),
-    sharesTotal_(0), numMiners_(0)
-{}
-
 std::string CcClient::Status::toJson() const
 {
   std::ostringstream json;
