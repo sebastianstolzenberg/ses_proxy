@@ -96,6 +96,22 @@ void Client::assignJob(const Job::Ptr& job)
   }
 }
 
+void Client::revokeJob()
+{
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+  LOG_CLIENT_DEBUG << "Current job has been revoked, requests new job.";
+
+  jobs_.clear();
+  currentJob_.reset();
+
+  if (needsJobHandler_)
+  {
+    // directly asks for a new job
+    needsJobHandler_(shared_from_this());
+  }
+}
+
 bool Client::isConnected() const
 {
   auto connection = connection_.lock();

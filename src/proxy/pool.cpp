@@ -43,11 +43,24 @@ void Pool::connect(const Configuration& configuration)
 
 void Pool::disconnect()
 {
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+  LOG_DEBUG << "Disconnecting from pool and releasing all " << workers_.size() << " workers";
+
   if (connection_)
   {
     connection_->resetHandler();
     connection_->disconnect();
     connection_.reset();
+  }
+
+  jobTemplates_.clear();
+
+  std::list<Worker::Ptr> workers(std::move(workers_));
+  for (auto& worker : workers)
+  {
+    // informs the worker about the invalidated job
+    worker->revokeJob();
   }
 }
 
@@ -265,7 +278,7 @@ void Pool::handleReceived(const std::string& data)
 
 void Pool::handleDisconnect(const std::string& error)
 {
-  LOG_POOL_INFO << "Disconnected: " << error;
+  LOG_POOL_ERROR << "Disconnected: " << error;
 
   disconnect();
 
@@ -274,10 +287,10 @@ void Pool::handleDisconnect(const std::string& error)
   auto timer = std::make_shared<boost::asio::deadline_timer>(*ioService_);
   timer->expires_from_now(boost::posix_time::seconds(5));
   timer->async_wait(
-    [weakSelf, timer](const boost::system::error_code& error)
+    [weakSelf, timer, this](const boost::system::error_code& error)
     {
       auto lockedSelf = weakSelf.lock();
-      if (!error && !lockedSelf)
+      if (!error && lockedSelf)
       {
         lockedSelf->connect();
       }
