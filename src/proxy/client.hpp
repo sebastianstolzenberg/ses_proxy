@@ -40,6 +40,7 @@ public: // from Worker
   WorkerType getType() const override ;
   bool supports(Algorithm algorithm) const;
   void assignJob(const Job::Ptr& job) override;
+  void revokeJob() override;
 
   bool isConnected() const override;
   const util::HashRateCalculator& getHashRate() const override;

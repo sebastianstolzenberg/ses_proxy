@@ -123,7 +123,7 @@ private:
             }
             else
             {
-              LOG_ERROR << "net::server::BoostConnection<"
+              LOG_TRACE << "net::server::BoostConnection<"
                         << self->getConnectedIp() << ":" << self->getConnectedPort()
                         << "> Read failed: " << error.message();
               self->notifyError(error.message());

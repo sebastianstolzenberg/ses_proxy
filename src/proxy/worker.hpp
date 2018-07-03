@@ -28,6 +28,7 @@ public:
 
   virtual bool supports(Algorithm algorithm) const = 0;
   virtual void assignJob(const Job::Ptr& job) = 0;
+  virtual void revokeJob() = 0;
 
   virtual bool isConnected() const = 0;
   virtual const util::HashRateCalculator& getHashRate() const = 0;
