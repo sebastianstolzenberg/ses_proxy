@@ -7,6 +7,7 @@
 
 #include "proxy/configurationfile.hpp"
 #include "proxy.hpp"
+#include "proxy/clientstat.h"
 #include "util/log.hpp"
 
 #undef LOG_COMPONENT
@@ -438,25 +439,44 @@ void Proxy::printMinerStatus()
                    << std::right << std::setw(8) << "Miners | "
                    << std::right << std::setw(12) << "Shares | "
                    << std::right << std::setw(12) << "Rejected | "
-                   << std::right << std::setw(10) << "Hashrate (10m) | "
+                   << std::right << std::setw(10) << "Hashrate (1m) | "
                    << std::right << std::setw(10) << "Hashrate (60m) | "
+                   << std::right << std::setw(10) << "Hashrate (12h) | "
                    << std::right << std::setw(10) << "Hashrate (24h)"
                    << std::endl;
 
-  std::map<std::string, std::tuple<std::string, int, int, int int>> stats;
+  std::map<std::string, ClientStat> clientStats;
 
-  for (auto& client : clients_)
-  {
-    out << std::left << std::setw(12) << client->getUsername().substr(0, 6) << ".." << client->getUsername().substr(client->getUsername().length()-1, 3)
-        << std::left << std::setw(15) << client->getCurrentIp()
-        << std::right << std::setw(8) << 1
-        << std::right << std::setw(12) << "Shares | "
-        << std::right << std::setw(12) << "Rejected | "
-        << std::right << std::setw(10) << "Hashrate (10m) | "
-        << std::right << std::setw(10) << "Hashrate (60m) | "
-        << std::right << std::setw(10) << "Hashrate (24h)"
+  for (auto& client : clients_) {
+    ClientStat clientStat;
+
+    auto it = clientStats.find(client->getUsername());
+    if (it != clientStats.end()) {
+      clientStat = it->second;
+    }
+
+    clientStat.setUsername(client->getUsername());
+    clientStat.setLastIp(client->getCurrentIp());
+    clientStat.incrementMinerCount();
+    clientStat.addHashrateShort(client->getHashRate().getAverageHashRateShortTimeWindow());
+    clientStat.addHashrateLong(client->getHashRate().getAverageHashRateLongTimeWindow());
+  }
+
+  for (auto const& iter : clientStats) {
+    
+    out << std::left << std::setw(12) << iter.second.getUsername().substr(0, 6)
+        << ".." << iter.second.getUsername().substr(0, 6).substr(iter.second.getUsername().substr(0, 6).length()-1, 3)
+        << std::left << std::setw(15) << iter.second.getLastIp()
+        << std::right << std::setw(8) << iter.second.getMinerCount()
+        << std::right << std::setw(12) << iter.second.getSharesGood()
+        << std::right << std::setw(12) << iter.second.getSharesTotal() - iter.second.getSharesGood()
+        << std::right << std::setw(10) << iter.second.getHashrateShort()
+        << std::right << std::setw(10) << iter.second.getHashrateMedium()
+        << std::right << std::setw(10) << iter.second.getHashrateLong()
+        << std::right << std::setw(10) << iter.second.getHashrateExtraLong()
         << std::endl;
   }
+
 
   std::cout << out.str() << std::endl;
 }
