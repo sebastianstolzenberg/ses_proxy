@@ -42,6 +42,7 @@ public: // from Worker
   void assignJob(const Job::Ptr& job) override;
 
   bool isConnected() const override;
+  std::string getCurrentIp() const override;
   const util::HashRateCalculator& getHashRate() const override;
 
 public:

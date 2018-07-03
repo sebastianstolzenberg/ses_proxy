@@ -433,10 +433,29 @@ void Proxy::printMinerStatus()
 {
   std::ostringstream out;
 
-  out << std::endl << "Status of the " << clients_.size() << " connected miner(s):" << std::endl;
+  out << std::endl << std::left << std::setw(12) << "User | "
+                   << std::left << std::setw(15) << "Last IP | "
+                   << std::right << std::setw(8) << "Miners | "
+                   << std::right << std::setw(12) << "Shares | "
+                   << std::right << std::setw(12) << "Rejected | "
+                   << std::right << std::setw(10) << "Hashrate (10m) | "
+                   << std::right << std::setw(10) << "Hashrate (60m) | "
+                   << std::right << std::setw(10) << "Hashrate (24h)"
+                   << std::endl;
+
+  std::map<std::string, std::tuple<std::string, int, int, int int>> stats;
+
   for (auto& client : clients_)
   {
-    out << " " << client->getIdentifier() << " " << client->getHashRate() << std::endl;
+    out << std::left << std::setw(12) << client->getUsername().substr(0, 6) << ".." << client->getUsername().substr(client->getUsername().length()-1, 3)
+        << std::left << std::setw(15) << client->getCurrentIp()
+        << std::right << std::setw(8) << 1
+        << std::right << std::setw(12) << "Shares | "
+        << std::right << std::setw(12) << "Rejected | "
+        << std::right << std::setw(10) << "Hashrate (10m) | "
+        << std::right << std::setw(10) << "Hashrate (60m) | "
+        << std::right << std::setw(10) << "Hashrate (24h)"
+        << std::endl;
   }
 
   std::cout << out.str() << std::endl;

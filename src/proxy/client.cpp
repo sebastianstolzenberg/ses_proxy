@@ -102,6 +102,19 @@ bool Client::isConnected() const
   return connection && connection->isConnected();
 }
 
+std::string Client::getCurrentIp() const
+{
+    std::string currentIp;
+    auto connection = connection_.lock();
+
+    if (connection->isConnected())
+    {
+        currentIp = connection->getConnectedIp();
+    }
+
+    return currentIp;
+}
+
 const util::HashRateCalculator& Client::getHashRate() const
 {
   return hashrate_;
