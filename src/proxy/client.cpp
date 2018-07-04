@@ -22,7 +22,7 @@ Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
                uint32_t defaultDifficulty, uint32_t targetSecondsBetweenSubmits)
   : ioService_(ioService), identifier_(id), algorithmType_(defaultAlgorithm.getAlgorithmType_()),
     type_(WorkerType::UNKNOWN), loggedIn_(false), difficulty_(defaultDifficulty),
-    targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits), submits_(0)
+    targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits), totalSubmits_(0), goodSubmits_(0)
 {
   algorithmVariants_.insert(defaultAlgorithm.getAlgorithmVariant_());
 }
@@ -120,20 +120,25 @@ bool Client::isConnected() const
 
 std::string Client::getCurrentIp() const
 {
-    std::string currentIp;
-    auto connection = connection_.lock();
+  std::string currentIp;
+  auto connection = connection_.lock();
 
-    if (connection->isConnected())
-    {
-        currentIp = connection->getConnectedIp();
-    }
+  if (connection->isConnected())
+  {
+    currentIp = connection->getConnectedIp();
+  }
 
-    return currentIp;
+  return currentIp;
 }
 
 const util::HashRateCalculator& Client::getHashRate() const
 {
   return hashrate_;
+}
+
+ClientStatistics Client::getStatistics() const
+{
+  return ClientStatistics(username_, password_, getCurrentIp(), hashrate_, totalSubmits_, goodSubmits_);
 }
 
 bool Client::isLoggedIn() const
@@ -396,6 +401,7 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
     case JobResult::SUBMIT_ACCEPTED:
     default:
     {
+      ++goodSubmits_;
       break;
     }
   }
@@ -414,7 +420,7 @@ void Client::updateName()
 
 void Client::updateHashrates(uint32_t difficulty)
 {
-  ++submits_;
+  ++totalSubmits_;
   hashrate_.addHashes(difficulty);
 
   if (hashrate_.getAverageHashRateLongTimeWindow() != 0 &&
@@ -424,7 +430,7 @@ void Client::updateHashrates(uint32_t difficulty)
   }
 
   LOG_CLIENT_DEBUG << "Submit success "
-                   << ", submits, " << submits_ << ", hashes, " << hashrate_.getTotalHashes()
+                   << ", submits, " << totalSubmits_ << ", hashes, " << hashrate_.getTotalHashes()
                    << ", hashrate, " << hashrate_.getHashRateLastUpdate()
                    << ", hashrate1Min, " << hashrate_.getAverageHashRateShortTimeWindow()
                    << ", hashrate10Min, " << hashrate_.getAverageHashRateLongTimeWindow()

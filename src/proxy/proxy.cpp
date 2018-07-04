@@ -332,15 +332,15 @@ void Proxy::balancePoolLoads()
       }
 #endif
 
-      LOG_WARN << "After rebalance: "
-               << poolGroup.second.name_ << ":" << pool->getDescriptor()
-               << " , numWorkers, " << numPoolWorkers
-               << " , workersHashRate, " << poolHashRate
-               << " , workersHashRateAverage, " << poolHashRateAverageLong
-               << " , submitHashRateAverage10min, "
-               << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
-               << " , submittedHashes, " << poolTotalHashes
-               << " , weight , " << pool->getWeight();
+      LOG_DEBUG << "After rebalance: "
+                << poolGroup.second.name_ << ":" << pool->getDescriptor()
+                << " , numWorkers, " << numPoolWorkers
+                << " , workersHashRate, " << poolHashRate
+                << " , workersHashRateAverage, " << poolHashRateAverageLong
+                << " , submitHashRateAverage10min, "
+                << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
+                << " , submittedHashes, " << poolTotalHashes
+                << " , weight , " << pool->getWeight();
     }
   }
 
@@ -371,7 +371,7 @@ void Proxy::setupShell()
         }
       },
       "Changes the log level to the value given as first parameter. "
-      "(0 - off, 1 - fatal, 2 - error, 3 - warning, 4 - info, 5 - debug, 6 - trace"));
+      "(0 - off, 1 - fatal, 2 - error, 3 - warning, 4 - info, 5 - debug, 6 - trace)"));
 
   shell_->addCommand(util::shell::Command("status", std::bind(&Proxy::printProxyStatus, this),
                                           "Prints the current status of the proxy."));
@@ -432,25 +432,29 @@ void Proxy::printPoolsStatus()
 void Proxy::printMinerStatus()
 {
   std::ostringstream out;
-  out << std::endl;
-  ClientStatistics::printHeading(out);
 
-  std::map<std::string, ClientStatistics> clientStatisticsMap;
+  std::map<std::string, ClientStatistics> clientStatisticsByUser;
+  std::map<std::string, ClientStatistics> clientStatisticsByPassword;
+  std::map<std::string, ClientStatistics> clientStatisticsByIp;
 
   for (auto const & client : clients_)
   {
-    auto& clientStatistics = clientStatisticsMap[client->getUsername()];
-    clientStatistics.setUsername(client->getUsername());
-    clientStatistics.setLastIp(client->getCurrentIp());
-    clientStatistics.incrementMinerCount();
-    clientStatistics.addHashrateShort(client->getHashRate().getAverageHashRateShortTimeWindow());
-    clientStatistics.addHashrateLong(client->getHashRate().getAverageHashRateLongTimeWindow());
+    clientStatisticsByUser[client->getUsername()] += client->getStatistics();
+    clientStatisticsByPassword[client->getPassword()] += client->getStatistics();
+    clientStatisticsByIp[client->getCurrentIp()] += client->getStatistics();
   }
 
-  for (auto const & iter : clientStatisticsMap)
-  {
-    out << iter.second;
-  }
+  out << std::endl << "Grouped by User" << std::endl;
+  ClientStatistics::printHeading(out);
+  for (auto const & iter : clientStatisticsByUser) { out << iter.second; }
+
+  out << std::endl << "Grouped by Password" << std::endl;
+  ClientStatistics::printHeading(out);
+  for (auto const & iter : clientStatisticsByPassword) { out << iter.second; }
+
+  out << std::endl << "Grouped by IP" << std::endl;
+  ClientStatistics::printHeading(out);
+  for (auto const & iter : clientStatisticsByIp) { out << iter.second; }
 
   std::cout << out.str() << std::endl;
 }

@@ -1,125 +1,51 @@
 #pragma once
 
+#include <string>
+#include <ostream>
+
+#include <util/hashratecalculator.hpp>
+
 namespace ses {
 namespace proxy {
 
 class ClientStatistics {
 public:
-  ClientStatistics()
-    : minerCount_(0),
-      sharesTotal_(0),
-      sharesGood_(0),
-      hashrateShort_(0),
-      hashrateMedium_(0),
-      hashrateLong_(0),
-      hashrateExtraLong_(0) {
-  }
+  ClientStatistics();
+  ClientStatistics(const std::string& username, const std::string& password, const std::string lastIp,
+                   const util::HashRateCalculator& hashrate, uint64_t numTotalShares, uint64_t numGoodShares);
 
-  std::string getUsername() const {
-    return username_;
-  }
+  std::string getUsername() const;
+  void setUsername(const std::string& username);
 
-  void setUsername(std::string username) {
-    username_ = username;
-  }
+  std::string getPassword() const;
+  void setPassword(const std::string& password);
 
-  std::string getLastIp() const {
-    return lastIp_;
-  }
+  std::string getLastIp() const;
+  void setLastIp(const std::string& lastIp);
 
-  void setLastIp(std::string lastIp) {
-    lastIp_ = lastIp;
-  }
+  uint16_t getMinerCount() const;
+  void incrementMinerCount();
 
-  uint16_t getMinerCount() const {
-    return minerCount_;
-  }
+  uint64_t getSharesTotal() const;
+  void addSharesTotal(uint64_t sharesTotal);
 
-  void incrementMinerCount() {
-    minerCount_++;
-  }
+  uint64_t getSharesGood() const;
+  void addSharesGood(uint64_t sharesGood);
 
-  uint64_t getSharesTotal() const {
-    return sharesTotal_;
-  }
+  double getHashrateShort() const;
+  double getHashrateMedium() const;
+  double getHashrateLong() const;
+  double getHashrateExtraLong() const;
+  void addHashrate(const util::HashRateCalculator& hashrate);
 
-  void addSharesTotal(uint64_t sharesTotal) {
-    sharesTotal_ += sharesTotal;
-  }
+  ClientStatistics& operator+=(const ClientStatistics& rhs);
 
-  uint64_t getSharesGood() const {
-    return sharesGood_;
-  }
-
-  void addSharesGood(uint64_t sharesGood) {
-    sharesGood_ += sharesGood;
-  }
-
-  double getHashrateShort() const {
-    return hashrateShort_;
-  }
-
-  void addHashrateShort(double hashrateShort) {
-    hashrateShort_ += hashrateShort;
-  }
-
-  double getHashrateMedium() const {
-    return hashrateMedium_;
-  }
-
-  void addHashrateMedium(double hashrateMedium) {
-    hashrateMedium_ += hashrateMedium;
-  }
-
-  double getHashrateLong() const {
-    return hashrateLong_;
-  }
-
-  void addHashrateLong(double hashrateLong) {
-    hashrateLong_ += hashrateLong;
-  }
-
-  double getHashrateExtraLong() const {
-    return hashrateExtraLong_;
-  }
-
-  void addHashrateExtraLong(double hashrateExtraLong) {
-    hashrateExtraLong_ += hashrateExtraLong;
-  }
-
-  static void printHeading(std::ostream& out)
-  {
-    out << " | "
-        << std::left << std::setw(12) << "User" << std::setw(2) << "| "
-        << std::left << std::setw(15) << "Last IP" << std::setw(2) << "| "
-        << std::right << std::setw(8) << "Miners" << std::setw(2) << "| "
-        << std::right << std::setw(12) << "Shares" << std::setw(2) << "| "
-        << std::right << std::setw(12) << "Rejected" << std::setw(2) << "| "
-        << std::right << std::setw(14) << "Hashrate (1m)" << std::setw(2) << "| "
-        << std::right << std::setw(14) << "Hashrate (60m)" << std::setw(2) << "| "
-        << std::right << std::setw(14) << "Hashrate (12h)" << std::setw(2) << "| "
-        << std::right << std::setw(14) << "Hashrate (24h)" << std::setw(2) << "| "
-        << std::endl;
-  }
-
-  friend std::ostream& operator<<(std::ostream& out, ClientStatistics const& stat)
-  {
-    out << " | "
-        << std::left << std::setw(12) << stat.getUsername().substr(0, 11) << std::setw(2) << "| "
-        << std::left << std::setw(15) << stat.getLastIp() << std::setw(2) << "| "
-        << std::right << std::setw(8) << stat.getMinerCount() << std::setw(2) << "| "
-        << std::right << std::setw(12) << stat.getSharesGood() << std::setw(2) << "| "
-        << std::right << std::setw(12) << stat.getSharesTotal() - stat.getSharesGood() << std::setw(2) << "| "
-        << std::right << std::setw(14) << stat.getHashrateShort() << std::setw(2) << "| "
-        << std::right << std::setw(14) << stat.getHashrateMedium() << std::setw(2) << "| "
-        << std::right << std::setw(14) << stat.getHashrateLong() << std::setw(2) << "| "
-        << std::right << std::setw(14) << stat.getHashrateExtraLong() << std::setw(2) << "| "
-        << std::endl;
-    return out;
-  }
+  static void printHeading(std::ostream& out);
+  friend std::ostream& operator<<(std::ostream& out, ClientStatistics const& stat);
 
 private:
   std::string username_;
+  std::string password_;
   std::string lastIp_;
   uint16_t minerCount_;
   uint64_t sharesTotal_;
