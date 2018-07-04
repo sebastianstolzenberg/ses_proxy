@@ -277,7 +277,6 @@ void Proxy::handleClientNeedsJob(const Client::Ptr& client)
 
 void Proxy::triggerLoadBalancerTimer()
 {
-  //TODO optimize timer period
   loadBalancerTimer_.expires_from_now(boost::posix_time::seconds(loadBalanceInterval_));
   auto self = shared_from_this();
   loadBalancerTimer_.async_wait(
