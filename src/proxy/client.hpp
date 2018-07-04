@@ -13,6 +13,7 @@
 #include "proxy/algorithm.hpp"
 #include "proxy/job.hpp"
 #include "proxy/worker.hpp"
+#include "proxy/clientstatistics.hpp"
 
 namespace ses {
 namespace proxy {
@@ -43,7 +44,10 @@ public: // from Worker
   void revokeJob() override;
 
   bool isConnected() const override;
+  std::string getCurrentIp() const override;
   const util::HashRateCalculator& getHashRate() const override;
+
+  ClientStatistics getStatistics() const;
 
 public:
   bool isLoggedIn() const;
@@ -107,7 +111,8 @@ private:
 
 //  std::chrono::time_point<std::chrono::system_clock> lastJobTransmitTimePoint_;
 
-  size_t submits_;
+  size_t totalSubmits_;
+  size_t goodSubmits_;
 
   util::HashRateCalculator hashrate_;
 

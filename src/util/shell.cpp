@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -68,9 +69,11 @@ void Shell::stop()
 
 void Shell::listCommands()
 {
+  std::cout << "Allowed commands:" << std::endl;
   for (auto& command : commands_)
   {
-    std::cout << command.second.getCommand() << " : " << command.second.getDescription() << std::endl;
+    std::cout << " " << std::left << std::setw(10) << command.second.getCommand()
+              << std::setw(1) << " : " << command.second.getDescription() << std::endl;
   }
 }
 

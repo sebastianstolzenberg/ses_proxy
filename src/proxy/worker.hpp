@@ -31,6 +31,7 @@ public:
   virtual void revokeJob() = 0;
 
   virtual bool isConnected() const = 0;
+  virtual std::string getCurrentIp() const = 0;
   virtual const util::HashRateCalculator& getHashRate() const = 0;
 };
 

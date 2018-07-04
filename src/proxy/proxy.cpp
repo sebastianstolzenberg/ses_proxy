@@ -7,6 +7,7 @@
 
 #include "proxy/configurationfile.hpp"
 #include "proxy.hpp"
+#include "proxy/clientstatistics.hpp"
 #include "util/log.hpp"
 
 #undef LOG_COMPONENT
@@ -277,7 +278,6 @@ void Proxy::handleClientNeedsJob(const Client::Ptr& client)
 
 void Proxy::triggerLoadBalancerTimer()
 {
-  //TODO optimize timer period
   loadBalancerTimer_.expires_from_now(boost::posix_time::seconds(loadBalanceInterval_));
   auto self = shared_from_this();
   loadBalancerTimer_.async_wait(
@@ -332,15 +332,15 @@ void Proxy::balancePoolLoads()
       }
 #endif
 
-      LOG_WARN << "After rebalance: "
-               << poolGroup.second.name_ << ":" << pool->getDescriptor()
-               << " , numWorkers, " << numPoolWorkers
-               << " , workersHashRate, " << poolHashRate
-               << " , workersHashRateAverage, " << poolHashRateAverageLong
-               << " , submitHashRateAverage10min, "
-               << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
-               << " , submittedHashes, " << poolTotalHashes
-               << " , weight , " << pool->getWeight();
+      LOG_DEBUG << "After rebalance: "
+                << poolGroup.second.name_ << ":" << pool->getDescriptor()
+                << " , numWorkers, " << numPoolWorkers
+                << " , workersHashRate, " << poolHashRate
+                << " , workersHashRateAverage, " << poolHashRateAverageLong
+                << " , submitHashRateAverage10min, "
+                << pool->getSubmitHashRate().getAverageHashRateLongTimeWindow()
+                << " , submittedHashes, " << poolTotalHashes
+                << " , weight , " << pool->getWeight();
     }
   }
 
@@ -371,7 +371,7 @@ void Proxy::setupShell()
         }
       },
       "Changes the log level to the value given as first parameter. "
-      "(0 - off, 1 - fatal, 2 - error, 3 - warning, 4 - info, 5 - debug, 6 - trace"));
+      "(0 - off, 1 - fatal, 2 - error, 3 - warning, 4 - info, 5 - debug, 6 - trace)"));
 
   shell_->addCommand(util::shell::Command("status", std::bind(&Proxy::printProxyStatus, this),
                                           "Prints the current status of the proxy."));
@@ -433,11 +433,28 @@ void Proxy::printMinerStatus()
 {
   std::ostringstream out;
 
-  out << std::endl << "Status of the " << clients_.size() << " connected miner(s):" << std::endl;
-  for (auto& client : clients_)
+  std::map<std::string, ClientStatistics> clientStatisticsByUser;
+  std::map<std::string, ClientStatistics> clientStatisticsByPassword;
+  std::map<std::string, ClientStatistics> clientStatisticsByIp;
+
+  for (auto const & client : clients_)
   {
-    out << " " << client->getIdentifier() << " " << client->getHashRate() << std::endl;
+    clientStatisticsByUser[client->getUsername()] += client->getStatistics();
+    clientStatisticsByPassword[client->getPassword()] += client->getStatistics();
+    clientStatisticsByIp[client->getCurrentIp()] += client->getStatistics();
   }
+
+  out << std::endl << "Grouped by User" << std::endl;
+  ClientStatistics::printHeading(out);
+  for (auto const & iter : clientStatisticsByUser) { out << iter.second; }
+
+  out << std::endl << "Grouped by Password" << std::endl;
+  ClientStatistics::printHeading(out);
+  for (auto const & iter : clientStatisticsByPassword) { out << iter.second; }
+
+  out << std::endl << "Grouped by IP" << std::endl;
+  ClientStatistics::printHeading(out);
+  for (auto const & iter : clientStatisticsByIp) { out << iter.second; }
 
   std::cout << out.str() << std::endl;
 }

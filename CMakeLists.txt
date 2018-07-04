@@ -71,6 +71,7 @@ add_executable(ses_proxy
         src/main.cpp
         src/proxy/server.cpp
         src/proxy/client.cpp
+        src/proxy/clientstatistics.cpp
         src/proxy/pool.cpp
         src/proxy/proxy.cpp
         src/proxy/jobresult.cpp
