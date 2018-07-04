@@ -3,9 +3,9 @@
 namespace ses {
 namespace proxy {
 
-class ClientStat {
+class ClientStatistics {
 public:
-  ClientStat()
+  ClientStatistics()
     : minerCount_(0),
       sharesTotal_(0),
       sharesGood_(0),
@@ -86,6 +86,38 @@ public:
   void addHashrateExtraLong(double hashrateExtraLong) {
     hashrateExtraLong_ += hashrateExtraLong;
   }
+
+  static void printHeading(std::ostream& out)
+  {
+    out << " | "
+        << std::left << std::setw(12) << "User" << std::setw(2) << "| "
+        << std::left << std::setw(15) << "Last IP" << std::setw(2) << "| "
+        << std::right << std::setw(8) << "Miners" << std::setw(2) << "| "
+        << std::right << std::setw(12) << "Shares" << std::setw(2) << "| "
+        << std::right << std::setw(12) << "Rejected" << std::setw(2) << "| "
+        << std::right << std::setw(14) << "Hashrate (1m)" << std::setw(2) << "| "
+        << std::right << std::setw(14) << "Hashrate (60m)" << std::setw(2) << "| "
+        << std::right << std::setw(14) << "Hashrate (12h)" << std::setw(2) << "| "
+        << std::right << std::setw(14) << "Hashrate (24h)" << std::setw(2) << "| "
+        << std::endl;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, ClientStatistics const& stat)
+  {
+    out << " | "
+        << std::left << std::setw(12) << stat.getUsername().substr(0, 11) << std::setw(2) << "| "
+        << std::left << std::setw(15) << stat.getLastIp() << std::setw(2) << "| "
+        << std::right << std::setw(8) << stat.getMinerCount() << std::setw(2) << "| "
+        << std::right << std::setw(12) << stat.getSharesGood() << std::setw(2) << "| "
+        << std::right << std::setw(12) << stat.getSharesTotal() - stat.getSharesGood() << std::setw(2) << "| "
+        << std::right << std::setw(14) << stat.getHashrateShort() << std::setw(2) << "| "
+        << std::right << std::setw(14) << stat.getHashrateMedium() << std::setw(2) << "| "
+        << std::right << std::setw(14) << stat.getHashrateLong() << std::setw(2) << "| "
+        << std::right << std::setw(14) << stat.getHashrateExtraLong() << std::setw(2) << "| "
+        << std::endl;
+    return out;
+  }
+
 private:
   std::string username_;
   std::string lastIp_;
