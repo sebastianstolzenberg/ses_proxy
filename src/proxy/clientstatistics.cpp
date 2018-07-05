@@ -90,33 +90,35 @@ ClientStatistics& ClientStatistics::operator+=(const ClientStatistics& rhs)
 
 void ClientStatistics::printHeading(std::ostream& out)
 {
-  out << " | "
-      << std::left << std::setw(12) << "User" << std::setw(2) << "| "
-      << std::left << std::setw(12) << "Password" << std::setw(2) << "| "
-      << std::left << std::setw(15) << "Last IP" << std::setw(2) << "| "
-      << std::right << std::setw(8) << "Miners" << std::setw(2) << "| "
-      << std::right << std::setw(12) << "Good Shares" << std::setw(2) << "| "
-      << std::right << std::setw(12) << "Total Shares" << std::setw(2) << "| "
-      << std::right << std::setw(14) << "Hashrate (1m)" << std::setw(2) << "| "
-      << std::right << std::setw(14) << "Hashrate (60m)" << std::setw(2) << "| "
-      << std::right << std::setw(14) << "Hashrate (12h)" << std::setw(2) << "| "
-      << std::right << std::setw(14) << "Hashrate (24h)" << std::setw(2) << "| "
+  out << "\e[1m"
+      << "|"
+      << std::left << std::setw(12) << "User" << std::setw(3) << " | "
+      << std::left << std::setw(12) << "Password" << std::setw(3) << " | "
+      << std::left << std::setw(15) << "Last IP" << std::setw(3) << " | "
+      << std::right << std::setw(8) << "Miners" << std::setw(3) << " | "
+      << std::right << std::setw(12) << "Good Shares" << std::setw(3) << " | "
+      << std::right << std::setw(12) << "Total Shares" << std::setw(3) << " | "
+      << std::right << std::setw(14) << "Hashrate (1m)" << std::setw(3) << " | "
+      << std::right << std::setw(14) << "Hashrate (60m)" << std::setw(3) << " | "
+      << std::right << std::setw(14) << "Hashrate (12h)" << std::setw(3) << " | "
+      << std::right << std::setw(14) << "Hashrate (24h)" << std::setw(3) << " | "
       << std::endl;
 }
 
 std::ostream& operator<<(std::ostream& out, ClientStatistics const& stat)
 {
-  out << " | "
-      << std::left << std::setw(12) << stat.getUsername().substr(0, 11) << std::setw(2) << "| "
-      << std::left << std::setw(12) << stat.getPassword().substr(0, 11) << std::setw(2) << "| "
-      << std::left << std::setw(15) << stat.getLastIp() << std::setw(2) << "| "
-      << std::right << std::setw(8) << stat.getMinerCount() << std::setw(2) << "| "
-      << std::right << std::setw(12) << stat.getSharesGood() << std::setw(2) << "| "
-      << std::right << std::setw(12) << stat.getSharesTotal() << std::setw(2) << "| "
-      << std::right << std::setw(14) << stat.getHashrateShort() << std::setw(2) << "| "
-      << std::right << std::setw(14) << stat.getHashrateMedium() << std::setw(2) << "| "
-      << std::right << std::setw(14) << stat.getHashrateLong() << std::setw(2) << "| "
-      << std::right << std::setw(14) << stat.getHashrateExtraLong() << std::setw(2) << "| "
+  out << "\e[0m"
+      << "|"
+      << std::left << std::setw(12) << stat.getUsername().substr(0, 11) << std::setw(3) << " | "
+      << std::left << std::setw(12) << stat.getPassword().substr(0, 11) << std::setw(3) << " | "
+      << std::left << std::setw(15) << stat.getLastIp() << std::setw(3) << " | "
+      << std::right << std::setw(8) << stat.getMinerCount() << std::setw(3) << " | "
+      << std::right << std::setw(12) << stat.getSharesGood() << std::setw(3) << " | "
+      << std::right << std::setw(12) << stat.getSharesTotal() << std::setw(3) << " | "
+      << std::right << std::setw(14) << stat.getHashrateShort() << std::setw(3) << " | "
+      << std::right << std::setw(14) << stat.getHashrateMedium() << std::setw(3) << " | "
+      << std::right << std::setw(14) << stat.getHashrateLong() << std::setw(3) << " | "
+      << std::right << std::setw(14) << stat.getHashrateExtraLong() << std::setw(3) << " | "
       << std::endl;
   return out;
 }
