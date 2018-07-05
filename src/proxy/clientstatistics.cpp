@@ -132,13 +132,13 @@ void ClientStatistics::printHeading(std::ostream& out)
       << std::left << std::setw(12) << "User" << std::setw(2) << "| "
       << std::left << std::setw(12) << "Password" << std::setw(2) << "| "
       << std::left << std::setw(15) << "Last IP" << std::setw(2) << "| "
-      << std::left << std::setw(8) << "Miners" << std::setw(2) << "| "
-      << std::left << std::setw(12) << "Good Shares" << std::setw(2) << "| "
-      << std::left << std::setw(12) << "Total Shares" << std::setw(2) << "| "
-      << std::left << std::setw(14) << "Hashrate (1m)" << std::setw(2) << "| "
-      << std::left << std::setw(14) << "Hashrate (60m)" << std::setw(2) << "| "
-      << std::left << std::setw(14) << "Hashrate (12h)" << std::setw(2) << "| "
-      << std::left << std::setw(14) << "Hashrate (24h)" << std::setw(2) << "| "
+      << std::right << std::setw(8) << "Miners" << std::setw(2) << "| "
+      << std::right << std::setw(12) << "Good Shares" << std::setw(2) << "| "
+      << std::right << std::setw(12) << "Total Shares" << std::setw(2) << "| "
+      << std::right << std::setw(14) << "Hashrate (1m)" << std::setw(2) << "| "
+      << std::right << std::setw(14) << "Hashrate (60m)" << std::setw(2) << "| "
+      << std::right << std::setw(14) << "Hashrate (12h)" << std::setw(2) << "| "
+      << std::right << std::setw(14) << "Hashrate (24h)" << std::setw(2) << "| "
       << std::endl;
 }
 
