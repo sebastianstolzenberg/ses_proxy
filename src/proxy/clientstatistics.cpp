@@ -28,19 +28,9 @@ std::string ClientStatistics::getUsername() const
   return username_;
 }
 
-void ClientStatistics::setUsername(const std::string& username)
-{
-  username_ = username;
-}
-
 std::string ClientStatistics::getPassword() const
 {
   return password_;
-}
-
-void ClientStatistics::setPassword(const std::string& password)
-{
-  password_ = password;
 }
 
 std::string ClientStatistics::getLastIp() const
@@ -48,19 +38,9 @@ std::string ClientStatistics::getLastIp() const
   return lastIp_;
 }
 
-void ClientStatistics::setLastIp(const std::string& lastIp)
-{
-  lastIp_ = lastIp;
-}
-
 uint16_t ClientStatistics::getMinerCount() const
 {
   return minerCount_;
-}
-
-void ClientStatistics::incrementMinerCount()
-{
-  minerCount_++;
 }
 
 uint64_t ClientStatistics::getSharesTotal() const
@@ -68,19 +48,9 @@ uint64_t ClientStatistics::getSharesTotal() const
   return sharesTotal_;
 }
 
-void ClientStatistics::addSharesTotal(uint64_t sharesTotal)
-{
-  sharesTotal_ += sharesTotal;
-}
-
 uint64_t ClientStatistics::getSharesGood() const
 {
   return sharesGood_;
-}
-
-void ClientStatistics::addSharesGood(uint64_t sharesGood)
-{
-  sharesGood_ += sharesGood;
 }
 
 double ClientStatistics::getHashrateShort() const
@@ -101,14 +71,6 @@ double ClientStatistics::getHashrateLong() const
 double ClientStatistics::getHashrateExtraLong() const
 {
   return hashrateExtraLong_;
-}
-
-void ClientStatistics::addHashrate(const util::HashRateCalculator& hashrate)
-{
-  hashrateShort_ += hashrate.getAverageHashRateShortTimeWindow();
-  //TODO medium
-  hashrateLong_ += hashrate.getAverageHashRateLongTimeWindow();
-  //TODO extra long
 }
 
 ClientStatistics& ClientStatistics::operator+=(const ClientStatistics& rhs)
