@@ -31,7 +31,7 @@ public:
 
   ~BoostConnection()
   {
-    LOG_INFO << __PRETTY_FUNCTION__;
+    LOG_TRACE << __PRETTY_FUNCTION__;
   }
 
   SocketType& socket()

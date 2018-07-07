@@ -237,13 +237,13 @@ void Proxy::handleClientNeedsJob(const Client::Ptr& client)
                                        }
                                      });
 
-        LOG_INFO << "Ordered pools by weighted load:";
+        LOG_DEBUG << "Ordered pools by weighted load:";
         for (auto pool : poolGroup.second.pools_)
-          LOG_INFO << "  " << pool->getDescriptor()
-                   << ", weightedHashRate, " << pool->weightedHashRate()
-                   << ", weight, " << pool->getWeight()
-                   << ", workers, " << pool->numWorkers()
-                   << ", algorithm, " << pool->getAlgorithm();
+          LOG_DEBUG << "  " << pool->getDescriptor()
+                    << ", weightedHashRate, " << pool->weightedHashRate()
+                    << ", weight, " << pool->getWeight()
+                    << ", workers, " << pool->numWorkers()
+                    << ", algorithm, " << pool->getAlgorithm();
 
         for (auto pool : poolGroup.second.pools_)
         {
