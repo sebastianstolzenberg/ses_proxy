@@ -61,7 +61,7 @@ const char* toString(AlgorithmVariant algorithmVariant)
     case ANY: return "any"; break;
     case V0: return "0"; break;
     case V1: return "1"; break;
-    case IPBC: return "ipbc"; break;
+    case TUBE: return "tube"; break;
     case ALLOY: return "alloy"; break;
     case XTL: return "xtl"; break;
     case MSR: return "msr"; break;
@@ -109,6 +109,11 @@ bool Algorithm::operator==(const Algorithm& rhs) const
          (algorithmVariant_ == rhs.algorithmVariant_ ||
           algorithmVariant_ == AlgorithmVariant::ANY ||
           rhs.algorithmVariant_ == AlgorithmVariant::ANY);
+}
+
+bool Algorithm::operator!=(const Algorithm& rhs) const
+{
+  return !(*this == rhs);
 }
 
 AlgorithmType Algorithm::getAlgorithmType_() const

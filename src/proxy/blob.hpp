@@ -8,6 +8,7 @@ namespace proxy {
 class Blob
 {
 public:
+  Blob() = default;
   Blob(const stratum::Job& job);
 
   const std::vector<uint8_t>& blob() const;

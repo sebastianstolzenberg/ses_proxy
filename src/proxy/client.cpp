@@ -2,6 +2,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "cryptonight/CryptoNight.h"
+
 #include "net/jsonrpc/jsonrpc.hpp"
 #include "stratum/stratum.hpp"
 #include "proxy/client.hpp"
@@ -13,6 +15,7 @@
 #define LOG_CLIENT_INFO LOG_INFO << clientName_ << ": "
 #define LOG_CLIENT_DEBUG LOG_DEBUG << clientName_ << ": "
 #define LOG_CLIENT_TRACE LOG_TRACE << clientName_ << ": "
+#define LOG_CLIENT_WARN LOG_WARN << clientName_ << ": "
 
 namespace ses {
 namespace proxy {
@@ -311,6 +314,7 @@ void Client::handleSubmit(const std::string& jsonRequestId,
     auto jobIt = jobs_.find(jobIdentifier);
     if (jobIt != jobs_.end())
     {
+      ++totalSubmits_;
       JobResult jobResult(jobIdentifier, nonce, result);
       uint32_t resultDifficulty = jobResult.getDifficulty();
       LOG_DEBUG << " difficulty = " << jobResult.getDifficulty();
@@ -321,10 +325,17 @@ void Client::handleSubmit(const std::string& jsonRequestId,
 
       if (resultDifficulty < anouncedDifficulty)
       {
+        LOG_CLIENT_WARN << "Received share difficulty " << resultDifficulty << " below " << anouncedDifficulty;
+        sendErrorResponse(jsonRequestId, "Low difficulty share");
+      }
+      else if (!verifyJobResult(jobResult, job))
+      {
+        LOG_CLIENT_WARN << "Failed verification of received share.";
         sendErrorResponse(jsonRequestId, "Low difficulty share");
       }
       else
       {
+        ++goodSubmits_;
         sendSuccessResponse(jsonRequestId, "OK");
         updateHashrates(anouncedDifficulty);
 
@@ -401,10 +412,28 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
     case JobResult::SUBMIT_ACCEPTED:
     default:
     {
-      ++goodSubmits_;
       break;
     }
   }
+}
+
+bool Client::verifyJobResult(const JobResult& result, const Job::Ptr& job)
+{
+  bool verified = false;
+  if (!submitVerifier_ || submitVerifier_->getAlgorithm() != job->getAlgorithm())
+  {
+    submitVerifier_ = std::make_shared<CryptoNight>(job->getAlgorithm());
+  }
+  if (submitVerifier_)
+  {
+    Blob blob = job->getBlob();
+    blob.setNonce(result.getNonce());
+    JobResult::Hash hash;
+    submitVerifier_->hash(blob.blob().data(), blob.blob().size(), hash.data());
+    verified = (hash == result.getHash());
+  }
+  LOG_CLIENT_DEBUG << "Submit verification result = " << verified;
+  return verified;
 }
 
 void Client::updateName()
@@ -420,7 +449,6 @@ void Client::updateName()
 
 void Client::updateHashrates(uint32_t difficulty)
 {
-  ++totalSubmits_;
   hashrate_.addHashes(difficulty);
 
   if (hashrate_.getAverageHashRateLongTimeWindow() != 0 &&

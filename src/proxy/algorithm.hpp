@@ -24,7 +24,7 @@ enum AlgorithmVariant
   ANY,
   V0,
   V1,
-  IPBC,
+  TUBE,
   ALLOY,
   XTL,
   MSR,
@@ -45,6 +45,7 @@ public:
   Algorithm(AlgorithmType algorithmType_, AlgorithmVariant algorithmVariant_);
 
   bool operator==(const Algorithm& rhs) const;
+  bool operator!=(const Algorithm& rhs) const;
 
   AlgorithmType getAlgorithmType_() const;
   AlgorithmVariant getAlgorithmVariant_() const;

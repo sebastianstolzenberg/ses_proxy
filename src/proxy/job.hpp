@@ -41,6 +41,7 @@ public:
   virtual util::Target getTarget() const = 0;
   virtual uint32_t getDifficulty() const = 0;
   virtual stratum::Job asStratumJob() const = 0;
+  virtual Blob getBlob() const = 0;
 
 protected:
   Job() = default;

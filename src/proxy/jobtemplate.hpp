@@ -33,6 +33,9 @@ public:
     return stream;
   }
 
+  //TODO JobTemplates return empty blobs, for now
+  Blob getBlob() const { return Blob(); }
+
 protected:
   JobTemplate() = default;
   virtual ~JobTemplate() = default;

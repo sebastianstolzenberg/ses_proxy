@@ -38,6 +38,7 @@ endif()
 set(CMAKE_CXX_STANDARD 14)
 
 add_subdirectory(src/cryptonote)
+add_subdirectory(src/cryptonight)
 
 include_directories(src ${Boost_INCLUDE_DIR})
 
@@ -93,6 +94,7 @@ target_link_libraries(ses_proxy
         ses_proxy_stratum
         ses_proxy_util
         cryptonote
+        cryptonight
         ${Boost_LIBRARIES}
         ${OPENSSL_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}

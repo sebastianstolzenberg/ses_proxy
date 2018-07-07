@@ -15,6 +15,9 @@
 #include "proxy/worker.hpp"
 #include "proxy/clientstatistics.hpp"
 
+// forward declation
+class CryptoNight;
+
 namespace ses {
 namespace proxy {
 
@@ -74,6 +77,7 @@ private:
 
 
 private:
+  bool verifyJobResult(const JobResult& result, const Job::Ptr& job);
   void updateName();
   void updateHashrates(uint32_t difficulty);
   void sendResponse(const std::string& jsonRequestId, const std::string& response);
@@ -116,6 +120,7 @@ private:
 
   util::HashRateCalculator hashrate_;
 
+  std::shared_ptr<CryptoNight> submitVerifier_;
 //  std::string subscribedExtraNone1_;
 //  Difficulty suggestedDifficulty_;
 //  std::string suggestedTarget_;

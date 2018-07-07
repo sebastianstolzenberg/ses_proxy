@@ -70,6 +70,11 @@ public:
                         toString(algorithm_.getAlgorithmVariant_()), blob_.toHexString(), target_.toHexString());
   }
 
+  Blob getBlob() const override
+  {
+    return blob_;
+  }
+
 private:
   JobResult::Handler jobResultHandler_;
   WorkerIdentifier assignedWorker_;
