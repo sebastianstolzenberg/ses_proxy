@@ -8,7 +8,7 @@ namespace util {
 class HashRateCalculator
 {
 public:
-  HashRateCalculator(const std::chrono::seconds& shortTimeWindow = std::chrono::minutes(1),
+  HashRateCalculator(const std::chrono::seconds& shortTimeWindow = std::chrono::minutes(10),
                      const std::chrono::seconds& mediumTimeWindow = std::chrono::hours(1),
                      const std::chrono::seconds& longTimeWindow = std::chrono::hours(12),
                      const std::chrono::seconds& extraLongTimeWindow = std::chrono::hours(24));

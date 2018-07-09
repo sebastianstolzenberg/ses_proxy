@@ -27,7 +27,7 @@ public:
 
   void sampleCurrentState()
   {
-    hashRate_ = producer_->getHashRate().getAverageHashRateLongTimeWindow();
+    hashRate_ = producer_->getHashRate().getAverageHashRateShortTimeWindow();
   }
 
   ProducerImplementation producer_;
@@ -58,7 +58,7 @@ public:
   void setTargetHashRate(double totalAvailableHashRate)
   {
     double targetHashRate_ = totalAvailableHashRate * getWeight();
-    double actualAverage = consumer_->getWorkerHashRate().getAverageHashRateLongTimeWindow();
+    double actualAverage = consumer_->getWorkerHashRate().getAverageHashRateShortTimeWindow();
     // substracts current deviation of the average from the ideal average
     remainingTargetHashRate_ = 2 * targetHashRate_ - actualAverage;
 //    std::cout << "(t" << targetHashRate_ << ",a" << actualAverage << ",r" << remainingTargetHashRate_ << ")";

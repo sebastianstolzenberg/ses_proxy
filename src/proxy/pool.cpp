@@ -124,6 +124,11 @@ const std::string& Pool::getDescriptor() const
   return poolName_;
 }
 
+const std::string& Pool::getName() const
+{
+  return configuration_.name_;
+}
+
 Algorithm Pool::getAlgorithm() const
 {
   return configuration_.algorithm_;
@@ -408,10 +413,23 @@ JobResult::SubmitStatus Pool::handleJobResult(const std::string& workerIdentifie
 void Pool::updateName()
 {
   std::ostringstream poolNameStream;
-  poolNameStream << configuration_.endPoint_.host_ << ":" << configuration_.endPoint_.port_;
+  if (!configuration_.name_.empty())
+  {
+    poolNameStream << configuration_.name_;
+  }
+  else
+  {
+    poolNameStream << configuration_.endPoint_.host_ << ":" << configuration_.endPoint_.port_;
+  }
   poolShortName_ = poolNameStream.str();
+
   poolNameStream = std::ostringstream();
-  poolNameStream << "<" << workerIdentifier_ << "@" << poolShortName_ << ">";
+  if (!configuration_.name_.empty())
+  {
+    poolNameStream << configuration_.name_ << " ";
+  }
+  poolNameStream << "<" << workerIdentifier_ << "@"
+                 << configuration_.endPoint_.host_ << ":" << configuration_.endPoint_.port_ << ">";
   poolName_ = poolNameStream.str();
 }
 

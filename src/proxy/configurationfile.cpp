@@ -36,6 +36,7 @@ void parsePoolConfigurations(boost::property_tree::ptree& ptree,
     for (auto& pool : poolGroup.second.get_child("pools"))
     {
       Pool::Configuration configuration;
+      configuration.name_ = pool.second.get<std::string>("name", "");
       configuration.endPoint_.host_ = pool.second.get<std::string>("host");
       configuration.endPoint_.port_ = pool.second.get<uint16_t>("port");
       configuration.endPoint_.connectionType_ =
