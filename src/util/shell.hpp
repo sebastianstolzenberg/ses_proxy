@@ -26,6 +26,7 @@ public:
   const std::string& getDescription() const;
 
   bool operator==(const std::string& otherCommand);
+  void operator()();
   void operator()(const std::vector<std::string>& parameter);
 
 private:
@@ -48,11 +49,11 @@ public:
   void stop();
 
   void listCommands();
+  Command& fetchCommand(const std::string& commandString);
 
 private:
   void startWaitingForNextUserInput();
   void processInput(const std::string& input);
-  Command& fetchCommand(const std::string& commandString);
 
 private:
   std::shared_ptr<boost::asio::io_service> ioService_;

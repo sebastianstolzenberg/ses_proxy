@@ -30,6 +30,11 @@ bool Command::operator==(const std::string& otherCommand)
   return command_ == otherCommand;
 }
 
+void Command::operator()()
+{
+  operator()(std::vector<std::string>());
+}
+
 void Command::operator()(const std::vector<std::string>& parameter)
 {
   if (handler_)
@@ -77,6 +82,38 @@ void Shell::listCommands()
   }
 }
 
+Command& Shell::fetchCommand(const std::string& commandString)
+{
+  auto currentIt = commands_.begin();
+  auto endIt = commands_.end();
+  auto foundIt = endIt;
+  for (;currentIt != endIt; ++currentIt)
+  {
+    if (boost::starts_with(currentIt->first, commandString))
+    {
+      if (foundIt == endIt)
+      {
+        foundIt = currentIt;
+      }
+      else
+      {
+        // second possible match found, aborts search
+        foundIt = endIt;
+        break;
+      }
+    }
+  }
+  if (foundIt != endIt)
+  {
+    return foundIt->second;
+  }
+  else
+  {
+    std::cout << "Error! No command found matching \"" << commandString << "\"" << std::endl << std::endl;
+    return commands_["help"];
+  }
+}
+
 void Shell::startWaitingForNextUserInput()
 {
   // Read a line of input entered by the user.
@@ -115,38 +152,6 @@ void Shell::processInput(const std::string& input)
     }
   }
   fetchCommand(command)(parameters);
-}
-
-Command& Shell::fetchCommand(const std::string& commandString)
-{
-  auto currentIt = commands_.begin();
-  auto endIt = commands_.end();
-  auto foundIt = endIt;
-  for (;currentIt != endIt; ++currentIt)
-  {
-    if (boost::starts_with(currentIt->first, commandString))
-    {
-      if (foundIt == endIt)
-      {
-        foundIt = currentIt;
-      }
-      else
-      {
-        // second possible match found, aborts search
-        foundIt = endIt;
-        break;
-      }
-    }
-  }
-  if (foundIt != endIt)
-  {
-    return foundIt->second;
-  }
-  else
-  {
-    std::cout << "Error! No command found matching \"" << commandString << "\"" << std::endl << std::endl;
-    return commands_["help"];
-  }
 }
 
 

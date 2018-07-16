@@ -344,6 +344,8 @@ void Proxy::balancePoolLoads()
     }
   }
 
+  shell_->fetchCommand("miner")();
+
 #ifdef CC_SUPPORT
   if (ccClient_)
   {
