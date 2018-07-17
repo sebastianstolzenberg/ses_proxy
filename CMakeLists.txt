@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+        "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 
 option(HUNTER_ENABLED "Use hunter package manager for dependency resolution" OFF)
 option(CC_SUPPORT "Enable support for XMRIGCC's Control Center" OFF)

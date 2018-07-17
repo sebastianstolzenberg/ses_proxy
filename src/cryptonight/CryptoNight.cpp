@@ -97,6 +97,11 @@ CryptoNight::CryptoNight(ses::proxy::Algorithm algorithm)
 //    selfTest(algorithm);
 }
 
+CryptoNight::~CryptoNight()
+{
+  _mm_free(scratchPad_->memory);
+}
+
 void CryptoNight::hash(const uint8_t* input, size_t size, uint8_t* output)
 {
   switch (algorithm_.getAlgorithmType_())

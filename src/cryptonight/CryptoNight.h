@@ -44,6 +44,7 @@ class CryptoNight
 {
 public:
   CryptoNight(ses::proxy::Algorithm algorithm);
+  ~CryptoNight();
 
   void hash(const uint8_t* input, size_t size, uint8_t* output);
 

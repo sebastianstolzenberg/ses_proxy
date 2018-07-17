@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <chrono>
 
 #include "cryptonight/CryptoNight.h"
 
@@ -328,11 +329,7 @@ void Client::handleSubmit(const std::string& jsonRequestId,
         LOG_CLIENT_WARN << "Received share difficulty " << resultDifficulty << " below " << anouncedDifficulty;
         sendErrorResponse(jsonRequestId, "Low difficulty share");
       }
-      else if (!verifyJobResult(jobResult, job))
-      {
-        LOG_CLIENT_WARN << "Failed verification of received share.";
-        sendErrorResponse(jsonRequestId, "Low difficulty share");
-      }
+      //TODO verify every submit instead of only the candidates which are submitting to the pool
       else
       {
         ++goodSubmits_;
@@ -341,9 +338,18 @@ void Client::handleSubmit(const std::string& jsonRequestId,
 
         if (resultDifficulty >= jobDifficulty)
         {
-          jobIt->second.first->submitResult(jobResult,
-                                            std::bind(&Client::handleUpstreamSubmitStatus, shared_from_this(),
-                                                      jsonRequestId, std::placeholders::_1));
+          if (!verifyJobResult(jobResult, job))
+          {
+            LOG_CLIENT_WARN << "Failed verification of received share.";
+            sendErrorResponse(jsonRequestId, "Low difficulty share");
+          }
+          else
+          {
+            jobIt->second.first->submitResult(jobResult,
+                                              std::bind(&Client::handleUpstreamSubmitStatus,
+                                                        shared_from_this(),
+                                                        jsonRequestId, std::placeholders::_1));
+          }
         }
         else
         {
@@ -420,6 +426,7 @@ void Client::handleUpstreamSubmitStatus(std::string jsonRequestId, JobResult::Su
 bool Client::verifyJobResult(const JobResult& result, const Job::Ptr& job)
 {
   bool verified = false;
+  std::chrono::microseconds duration;
   if (!submitVerifier_ || submitVerifier_->getAlgorithm() != job->getAlgorithm())
   {
     submitVerifier_ = std::make_shared<CryptoNight>(job->getAlgorithm());
@@ -429,10 +436,14 @@ bool Client::verifyJobResult(const JobResult& result, const Job::Ptr& job)
     Blob blob = job->getBlob();
     blob.setNonce(result.getNonce());
     JobResult::Hash hash;
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     submitVerifier_->hash(blob.blob().data(), blob.blob().size(), hash.data());
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now(); ;
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
     verified = (hash == result.getHash());
   }
-  LOG_CLIENT_DEBUG << "Submit verification result = " << verified;
+  LOG_CLIENT_DEBUG << "Submit verification result = " << verified
+                   << ", duration = " << duration.count() << " microseconds";
   return verified;
 }
 
