@@ -314,8 +314,7 @@ void Proxy::balancePoolLoads()
     {
       auto numPoolWorkers = pool->numWorkers();
       auto poolHashRate = pool->hashRate();
-      auto
-          poolHashRateAverageMedium = pool->getWorkerHashRate().getAverageHashRateShortTimeWindow();
+      auto poolHashRateAverageMedium = pool->getWorkerHashRate().getAverageHashRateShortTimeWindow();
       auto poolHashRateAverageLong = pool->getWorkerHashRate().getAverageHashRateLongTimeWindow();
       auto poolTotalHashes = pool->getSubmitHashRate().getTotalHashes();
 
@@ -401,13 +400,12 @@ void Proxy::printProxyStatus()
       hashRate += pool->hashRate();
     }
   }
-  std::cout << std::endl
-            << "Proxy status:"
-            << " hashRate=" << hashRate
+  std::cout << COLOR_GREEN << "Proxy status:" << COLOR_NC
+            << " hashRate=" << hashRate << "h/s"
             << " numPoolGroups=" << numPoolGroups
             << " numPools=" << numPoolGroups
-            << " numMiner=" << numMiner
-            << std::endl << std::endl;
+            << " numMiner=" << numMiner << std::endl;
+
 }
 
 void Proxy::printPoolsStatus()
@@ -446,10 +444,11 @@ void Proxy::printMinerStatus()
     clientStatisticsByIp[client->getCurrentIp()] += client->getStatistics();
   }
 
-  out << std::endl << "Grouped by User" << std::endl;
+  out << std::endl; // << "Grouped by User" << std::endl;
   ClientStatistics::printHeading(out);
   for (auto const & iter : clientStatisticsByUser) { out << iter.second; }
 
+/*
   out << std::endl << "Grouped by Password" << std::endl;
   ClientStatistics::printHeading(out);
   for (auto const & iter : clientStatisticsByPassword) { out << iter.second; }
@@ -457,6 +456,7 @@ void Proxy::printMinerStatus()
   out << std::endl << "Grouped by IP" << std::endl;
   ClientStatistics::printHeading(out);
   for (auto const & iter : clientStatisticsByIp) { out << iter.second; }
+*/
 
   std::cout << out.str() << std::endl;
 }

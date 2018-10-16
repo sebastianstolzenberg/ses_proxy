@@ -12,10 +12,10 @@
 #undef LOG_COMPONENT
 #define LOG_COMPONENT pool
 
-#define LOG_POOL_ERROR LOG_ERROR << poolName_ << ": "
-#define LOG_POOL_INFO LOG_INFO << poolName_ << ": "
-#define LOG_POOL_DEBUG LOG_DEBUG << poolName_ << ": "
-#define LOG_POOL_TRACE LOG_TRACE << poolName_ << ": "
+#define LOG_POOL_ERROR LOG_ERROR << COLOR_PURPLE << poolShortName_ << " -> " << COLOR_NC
+#define LOG_POOL_INFO LOG_INFO << COLOR_PURPLE << poolShortName_ << " -> " << COLOR_NC
+#define LOG_POOL_DEBUG LOG_DEBUG << COLOR_PURPLE << poolShortName_ << " -> " << COLOR_NC
+#define LOG_POOL_TRACE LOG_TRACE << COLOR_PURPLE << poolShortName_ << " -> " << COLOR_NC
 
 namespace ses {
 namespace proxy {
@@ -337,9 +337,6 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
 
   ++totalSubmits_;
   ++successfulSubmits_;
-  LOG_POOL_DEBUG << "Submit success: job, " << jobId
-                 << ", hr, " << submitHashRate_
-                 << ", rate, " << successfulSubmits_ << "/" << totalSubmits_;
 
   if (submitStatusHandler)
   {
@@ -349,7 +346,14 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
   auto job = jobTemplates_[jobId];
   if (job)
   {
-    LOG_POOL_DEBUG << "proxy::Pool, job " << job->getJobIdentifier() << ", numHashes " << job->numHashesFound();
+    LOG_POOL_INFO << COLOR_GREEN << "Accepted" << COLOR_NC << " ["  << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "], "
+                  << "Diff: " << job->getDifficulty() << ", "
+                  << submitHashRate_;
+  }
+  else
+  {
+    LOG_POOL_INFO << COLOR_GREEN << "Accepted" << COLOR_NC << " ["  << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "], "
+                  << submitHashRate_;
   }
 }
 
@@ -357,8 +361,19 @@ void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitSt
                              int code, const std::string& message)
 {
   ++totalSubmits_;
-  LOG_POOL_ERROR << "Submit failed: message, " << code << " " << message << ", job, " << jobId
-                 << ", rate, " << successfulSubmits_ << "/" << totalSubmits_;
+
+  auto job = jobTemplates_[jobId];
+  if (job)
+  {
+    LOG_POOL_ERROR << "Rejected [" << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "], "
+                   << "Diff: " << job->getDifficulty() << ", "
+		   << "Reason: " << message;
+  }
+  else
+  {
+    LOG_POOL_ERROR << "Rejected [" << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "], "
+                   << "Reason: " << message;
+  }
 
   if (submitStatusHandler)
   {
@@ -496,7 +511,7 @@ void Pool::setJob(const stratum::Job& job)
     try
     {
       auto newJobTemplate = JobTemplate::create(workerIdentifier_, getAlgorithm(), job);
-      LOG_POOL_DEBUG << "Received new job: " << *newJobTemplate;
+      LOG_POOL_INFO << COLOR_NC << "Received new job with target diff: " << COLOR_BLUE << job.getTargetDiff() << COLOR_NC;
       newJobTemplate->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
                                                     std::placeholders::_1, std::placeholders::_2,
                                                     std::placeholders::_3));
@@ -583,6 +598,7 @@ void Pool::submit(const JobResult& jobResult, const JobResult::SubmitStatusHandl
     //TODO job template specific response
     RequestIdentifier id = 0;
     uint32_t resultDifficulty = jobResult.getDifficulty();
+ 
     if (jobResult.isNodeJsResult())
     {
       LOG_POOL_DEBUG << "Submitting hash: job, " << jobIt->second->getJobIdentifier()

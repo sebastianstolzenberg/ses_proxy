@@ -38,24 +38,6 @@ const char* to_string(Component component)
     return nullptr;
 }
 
-#define COLOR_NC           "\e[0m" // No Color
-#define COLOR_WHITE        "\e[1;37m"
-#define COLOR_BLACK        "\e[0;30m"
-#define COLOR_BLUE         "\e[0;34m"
-#define COLOR_LIGHT_BLUE   "\e[1;34m"
-#define COLOR_GREEN        "\e[0;32m"
-#define COLOR_LIGHT_GREEN  "\e[1;32m"
-#define COLOR_CYAN         "\e[0;36m"
-#define COLOR_LIGHT_CYAN   "\e[1;36m"
-#define COLOR_RED          "\e[0;31m"
-#define COLOR_LIGHT_RED    "\e[1;31m"
-#define COLOR_PURPLE       "\e[0;35m"
-#define COLOR_LIGHT_PURPLE "\e[1;35m"
-#define COLOR_BROWN        "\e[0;33m"
-#define COLOR_YELLOW       "\e[1;33m"
-#define COLOR_GRAY         "\e[0;30m"
-#define COLOR_LIGHT_GRAY   "\e[0;37m"
-
 void formatMessagePart(boost::log::record_view const& rec, boost::log::formatting_ostream& strm)
 {
   auto severity = rec[boost::log::trivial::severity].get();
@@ -96,7 +78,7 @@ void formatMessagePart(boost::log::record_view const& rec, boost::log::formattin
     case ses::log::net:    strm << COLOR_YELLOW "Net    - "; break;
     default: break;
   }
-  strm << rec[boost::log::expressions::smessage];
+  strm << COLOR_NC << rec[boost::log::expressions::smessage];
   switch (component ? component.get() : ses::log::any)
   {
     case ses::log::pool:
@@ -104,8 +86,6 @@ void formatMessagePart(boost::log::record_view const& rec, boost::log::formattin
     case ses::log::client:
     case ses::log::net:
     case ses::log::proxy:
-      strm << COLOR_NC;
-      break;
     case ses::log::any:
     default:
       break;
@@ -125,7 +105,7 @@ void initialize(bool syslog)
 
 //  boost::log::add_common_attributes();
   logger->add_global_attribute("TimeStamp", boost::log::attributes::local_clock());
-  logger->add_global_attribute("ThreadID", boost::log::attributes::current_thread_id());
+//  logger->add_global_attribute("ThreadID", boost::log::attributes::current_thread_id());
 //    boost::log::aux::default_attribute_names::timestamp(), boost::log::attributes::local_clock());
 //  boost::log::core::get()->add_global_attribute("ThreadID", boost::log::attributes::current_thread_id());
 
@@ -153,8 +133,6 @@ void initialize(bool syslog)
           boost::log::expressions::stream
             << "["
             << boost::log::expressions::format_date_time<boost::posix_time::ptime>("TimeStamp", "%d.%m.%Y %H:%M:%S.%f")
-            << "] "
-            << "[" << boost::log::expressions::attr<boost::log::attributes::current_thread_id::value_type>("ThreadID")
             << "] "
             << boost::log::expressions::wrap_formatter(&formatMessagePart)
         )

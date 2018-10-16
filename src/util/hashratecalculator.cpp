@@ -111,12 +111,11 @@ std::chrono::seconds HashRateCalculator::secondsSinceStart() const
 
 std::ostream& operator<<(std::ostream& stream, const HashRateCalculator& hashrate)
 {
-  stream << "HashRates: lastUpdate, " << hashrate.hashRateLastUpdate_
-         << ", shortTimeWindow, " << hashrate.hashRateAverageShortTimeWindow_
-         << ", mediumTimeWindow, " << hashrate.hashRateAverageMediumTimeWindow_
-         << ", longTimeWindow, " << hashrate.hashRateAverageLongTimeWindow_
-         << ", extraLongTimeWindow, " << hashrate.hashRateAverageExtraLongTimeWindow_
-         << ", total, " << hashrate.totalHashes_;
+  stream << "HashRates: short, " << hashrate.hashRateAverageShortTimeWindow_
+         << ", medium, " << hashrate.hashRateAverageMediumTimeWindow_
+         << ", long, " << hashrate.hashRateAverageLongTimeWindow_
+         << ", extraLong, " << hashrate.hashRateAverageExtraLongTimeWindow_
+         << ", total hashes, " << hashrate.totalHashes_;
 }
 
 } // namespace util
