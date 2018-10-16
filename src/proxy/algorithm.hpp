@@ -24,6 +24,7 @@ enum AlgorithmVariant
   ANY,
   V0,
   V1,
+  V2,
   TUBE,
   ALLOY,
   XTL,
