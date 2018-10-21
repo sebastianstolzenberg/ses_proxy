@@ -124,6 +124,11 @@ const std::string& Pool::getDescriptor() const
   return poolName_;
 }
 
+const std::string& Pool::getShortDescriptor() const
+{
+  return poolShortName_;
+}
+
 const std::string& Pool::getName() const
 {
   return configuration_.name_;
@@ -334,7 +339,6 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
                                const std::string& status)
 {
   submitHashRate_.addHashes(activeJobTemplate_->getDifficulty());
-
   ++totalSubmits_;
   ++successfulSubmits_;
 
@@ -346,13 +350,13 @@ void Pool::handleSubmitSuccess(const std::string& jobId, const JobResult::Submit
   auto job = jobTemplates_[jobId];
   if (job)
   {
-    LOG_POOL_INFO << COLOR_GREEN << "Accepted" << COLOR_NC << " ["  << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "], "
-                  << "Diff: " << job->getDifficulty() << ", "
+    LOG_POOL_INFO << COLOR_GREEN << "Accepted" << COLOR_NC << " ("  << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "), "
+                  << "Diff (" << job->getDifficulty() << "), "
                   << submitHashRate_;
   }
   else
   {
-    LOG_POOL_INFO << COLOR_GREEN << "Accepted" << COLOR_NC << " ["  << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "], "
+    LOG_POOL_INFO << COLOR_GREEN << "Accepted" << COLOR_NC << " ("  << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "), "
                   << submitHashRate_;
   }
 }
@@ -365,7 +369,7 @@ void Pool::handleSubmitError(const std::string& jobId, const JobResult::SubmitSt
   auto job = jobTemplates_[jobId];
   if (job)
   {
-    LOG_POOL_ERROR << "Rejected [" << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "], "
+    LOG_POOL_ERROR << COLOR_RED << "Rejected" << COLOR_NC << " [" << successfulSubmits_ << "/" << totalSubmits_-successfulSubmits_ << "], "
                    << "Diff: " << job->getDifficulty() << ", "
 		   << "Reason: " << message;
   }
@@ -511,7 +515,7 @@ void Pool::setJob(const stratum::Job& job)
     try
     {
       auto newJobTemplate = JobTemplate::create(workerIdentifier_, getAlgorithm(), job);
-      LOG_POOL_INFO << COLOR_NC << "Received new job with target diff: " << COLOR_BLUE << job.getTargetDiff() << COLOR_NC;
+      LOG_POOL_INFO << COLOR_NC << "Received new job with target diff: " << newJobTemplate->getDifficulty() << COLOR_NC;
       newJobTemplate->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
                                                     std::placeholders::_1, std::placeholders::_2,
                                                     std::placeholders::_3));

@@ -24,6 +24,7 @@ Client::Client(const std::shared_ptr<boost::asio::io_service>& ioService,
                const WorkerIdentifier& id, Algorithm defaultAlgorithm,
                uint32_t defaultDifficulty, uint32_t targetSecondsBetweenSubmits)
   : ioService_(ioService), identifier_(id), algorithmType_(defaultAlgorithm.getAlgorithmType_()),
+    defaultAlgorithmVariant_(defaultAlgorithm.getAlgorithmVariant_()),
     type_(WorkerType::UNKNOWN), loggedIn_(false), difficulty_(defaultDifficulty),
     targetSecondsBetweenSubmits_(targetSecondsBetweenSubmits), totalSubmits_(0), goodSubmits_(0)
 {
@@ -164,6 +165,11 @@ const std::string& Client::getPassword() const
   return password_;
 }
 
+const std::set<AlgorithmVariant>& Client::getSupportedAlgorithmVariants() const
+{
+  return algorithmVariants_;
+}
+
 void Client::handleReceived(const std::string& data)
 {
   using namespace std::placeholders;
@@ -209,7 +215,7 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
                          const std::string& agent, const std::string& algorithm,
                          const std::vector<std::string>& algorithmVariants)
 {
-  LOG_CLIENT_DEBUG << "ses::proxy::Client::handleLogin()"
+  LOG_CLIENT_TRACE << "ses::proxy::Client::handleLogin()"
                    << ", login, " << login
                    << ", pass, " << pass
                    << ", agent, " << agent
@@ -239,9 +245,13 @@ void Client::handleLogin(const std::string& jsonRequestId, const std::string& lo
     if (!algorithmVariants.empty())
     {
       algorithmVariants_.clear();
-      for (auto& algorithmVariant : algorithmVariants)
+      algorithmVariants_.insert(defaultAlgorithmVariant_);
+
+      for (auto algorithmVariantStr : algorithmVariants)
       {
-        algorithmVariants_.insert(toAlgorithmVariant(algorithmVariant));
+	auto algorithmVariant = toAlgorithmVariant(algorithmVariantStr);
+	if (algorithmVariant != AlgorithmVariant::ANY)
+		algorithmVariants_.insert(algorithmVariant);
       }
     }
 
@@ -489,6 +499,7 @@ void Client::sendSuccessResponse(const std::string& jsonRequestId, const std::st
 
 void Client::sendErrorResponse(const std::string& jsonRequestId, const std::string& message)
 {
+  LOG_CLIENT_WARN << "Return error :" << message;
   if (auto connection = connection_.lock())
   {
     connection->send(net::jsonrpc::errorResponse(jsonRequestId, -1, message));

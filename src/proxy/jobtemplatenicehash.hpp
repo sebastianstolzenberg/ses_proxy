@@ -13,7 +13,8 @@ class NiceHashJobTemplate : public BaseJobTemplate
 public:
   NiceHashJobTemplate(const std::string& identifier, const std::string& jobIdentifier, const Algorithm& algorithm,
                       const Blob& blob, const util::Target target)
-    : BaseJobTemplate(identifier, jobIdentifier, algorithm, blob), target_(target), nextNiceHash_(0)
+    : BaseJobTemplate(identifier, jobIdentifier, algorithm, blob), target_(target),
+      targetDifficulty_(util::targetToDifficulty(target)), nextNiceHash_(0)
   {
   }
 
@@ -23,11 +24,16 @@ public:
     LOG_TRACE << __PRETTY_FUNCTION__;
   }
 
+  uint32_t getDifficulty() const override
+  {
+    return targetDifficulty_;
+  }
+
   void toStream(std::ostream& stream) const override
   {
     stream << "NiceHashJobTemplate, jobId, " << jobIdentifier_
            << ", target, " << target_.toHexString()
-           << ", difficulty, " << util::targetToDifficulty(target_);
+           << ", difficulty, " << targetDifficulty_;
   }
 
 private:
@@ -94,6 +100,7 @@ private:
 
 private:
   util::Target target_;
+  uint32_t targetDifficulty_;
   uint32_t nextNiceHash_;
   std::set<uint32_t> foundNonces_;
 };

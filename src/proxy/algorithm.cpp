@@ -61,13 +61,13 @@ const char* toString(AlgorithmVariant algorithmVariant)
     case ANY: return "any"; break;
     case V0: return "0"; break;
     case V1: return "1"; break;
-    case V2: return "2"; break;
     case TUBE: return "tube"; break;
     case ALLOY: return "alloy"; break;
     case XTL: return "xtl"; break;
     case MSR: return "msr"; break;
     case XHV: return "xhv"; break;
     case RTO: return "rto"; break;
+    case V2: return "2"; break;
     default:
       return "unknown";
   }

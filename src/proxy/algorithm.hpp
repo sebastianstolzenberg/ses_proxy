@@ -24,13 +24,13 @@ enum AlgorithmVariant
   ANY,
   V0,
   V1,
-  V2,
   TUBE,
   ALLOY,
   XTL,
   MSR,
   XHV,
   RTO,
+  V2,
   _last
 };
 
@@ -55,8 +55,7 @@ public:
   template <class STREAM>
   friend STREAM& operator<< (STREAM& stream, Algorithm const& val)
   {
-    stream << "Algorithm(" << toString(val.algorithmType_)
-           << ", variant " << toString(val.algorithmVariant_) << ")";
+    stream << std::string("Algorithm (") + toString(val.algorithmType_) + std::string(", variant ") + toString(val.algorithmVariant_)  + std::string(")");
     return stream;
   }
 

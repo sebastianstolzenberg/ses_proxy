@@ -26,6 +26,7 @@ public:
   std::chrono::seconds secondsSinceStart() const;
 
   friend std::ostream& operator<<(std::ostream& stream, const HashRateCalculator& hashrate);
+  HashRateCalculator& operator+=(const HashRateCalculator& rashrate);
 
 private:
   std::chrono::seconds shortTimeWindow_;

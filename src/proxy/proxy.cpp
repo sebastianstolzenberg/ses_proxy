@@ -249,6 +249,17 @@ void Proxy::handleClientNeedsJob(const Client::Ptr& client)
         {
           if (pool->addWorker(client))
           {
+/*
+		std::stringstream list;
+
+		list << "client supports: ";
+		for(auto f : client->getSupportedAlgorithmVariants()) {	
+			list << toString(f) << ", ";
+		}    
+
+		list << " assign to pool: " << pool->getShortDescriptor() << " with variant: " << pool->getAlgorithm();
+		LOG_TRACE << list.str();
+*/
             newClients_.remove(client);
             clients_.push_back(client);
 
@@ -343,7 +354,7 @@ void Proxy::balancePoolLoads()
     }
   }
 
-  shell_->fetchCommand("status")();
+  shell_->fetchCommand("pool")();
 
 #ifdef CC_SUPPORT
   if (ccClient_)
@@ -390,21 +401,21 @@ void Proxy::printProxyStatus()
   size_t numPoolGroups = poolGroups_.size();
   size_t numPools = 0;
   size_t numMiner = clients_.size();
-  size_t hashRate = 0;
+  util::HashRateCalculator hashRate;
 
   for (auto& poolGroup : poolGroups_)
   {
     numPools += poolGroup.second.pools_.size();
     for (auto& pool : poolGroup.second.pools_)
     {
-      hashRate += pool->hashRate();
+      hashRate += pool->getSubmitHashRate();
     }
   }
   std::cout << COLOR_GREEN << "Proxy status:" << COLOR_NC
-            << " hashRate=" << hashRate << "h/s"
-            << " numPoolGroups=" << numPoolGroups
-            << " numPools=" << numPoolGroups
-            << " numMiner=" << numMiner << std::endl;
+            << " " << hashRate
+            << " numPoolGroups (" << numPoolGroups
+            << ") numPools (" << numPoolGroups
+            << ") numMiner (" << numMiner << ")" << std::endl;
 
 }
 
@@ -415,18 +426,15 @@ void Proxy::printPoolsStatus()
   out << std::endl;
   for (auto& poolGroup : poolGroups_)
   {
-    out << std::endl << " Pool group \"" << poolGroup.second.name_ << "\" (priority " << poolGroup.first << ")" << std::endl;
+    out << COLOR_CYAN << " Pool group: \"" << poolGroup.second.name_ << COLOR_NC << "\" (priority " << poolGroup.first << ")" << std::endl;
     for (auto& pool : poolGroup.second.pools_)
     {
-      out << "   Pool \"" << pool->getDescriptor() << "\" (" << pool->numWorkers()
-          << " miners, weight " << pool->getWeight() << "):" << std::endl
-          << "     " << pool->getAlgorithm() << std::endl
-          << "     Mined " << pool->getWorkerHashRate() << std::endl
-          << "     Submitted " << pool->getSubmitHashRate() << std::endl;
+      out << COLOR_YELLOW << "\tPool: " << std::left << std::setw(50) << pool->getShortDescriptor() << std::left << std::setw(15) << std::string(" (") + std::to_string(pool->numWorkers()) + std::string(" miners)")
+          << COLOR_NC << " " << std::left << std::setw(50) << pool->getAlgorithm() << " " << pool->getSubmitHashRate() << std::endl;
     }
   }
 
-  std::cout << out.str() << std::endl;
+  std::cout << out.str();
 }
 
 void Proxy::printMinerStatus()

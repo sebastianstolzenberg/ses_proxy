@@ -67,6 +67,7 @@ public:
   const std::list<Worker::Ptr>& getWorkersSortedByHashrateDescending();
 
   const std::string& getDescriptor() const;
+  const std::string& getShortDescriptor() const;
   const std::string& getName() const;
   Algorithm getAlgorithm() const;
   double getWeight() const;

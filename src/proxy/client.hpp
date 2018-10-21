@@ -57,6 +57,7 @@ public:
   const std::string& getUseragent() const;
   const std::string& getUsername() const;
   const std::string& getPassword() const;
+  const std::set<AlgorithmVariant>& getSupportedAlgorithmVariants() const;
 
 private:
   void handleReceived(const std::string& data);
@@ -100,6 +101,7 @@ private:
   std::string clientName_;
   WorkerIdentifier identifier_;
   AlgorithmType algorithmType_;
+  AlgorithmVariant defaultAlgorithmVariant_;
   std::set<AlgorithmVariant> algorithmVariants_;
   WorkerType type_;
   bool loggedIn_;
