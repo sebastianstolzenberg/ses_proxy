@@ -515,7 +515,8 @@ void Pool::setJob(const stratum::Job& job)
     try
     {
       auto newJobTemplate = JobTemplate::create(workerIdentifier_, getAlgorithm(), job);
-      LOG_POOL_INFO << COLOR_NC << "Received new job with target diff: " << newJobTemplate->getDifficulty() << COLOR_NC;
+      LOG_POOL_INFO << COLOR_NC << "Received new job with target diff: "
+                    << COLOR_BLUE << newJobTemplate->getDifficulty() << COLOR_NC;
       newJobTemplate->setJobResultHandler(std::bind(&Pool::handleJobResult, shared_from_this(),
                                                     std::placeholders::_1, std::placeholders::_2,
                                                     std::placeholders::_3));
